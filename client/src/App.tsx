@@ -24,6 +24,7 @@ export default function App() {
     if (route === 'create-lobby') {
       return (
         <LobbyScreen
+          playerName={pendingName}
           connecting={conn.connecting}
           error={conn.error}
           onBack={() => setRoute('home')}

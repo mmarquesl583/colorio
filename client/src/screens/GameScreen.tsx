@@ -81,7 +81,13 @@ export default function GameScreen({ conn }: { conn: RoomConnection }) {
           <Logo size={21} />
           <button onClick={conn.leaveRoom} className="corio-tap" style={{ all: 'unset', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4, background: 'rgba(239,68,68,0.12)', border: '1px solid rgba(239,68,68,0.35)', borderRadius: 999, padding: '5px 9px', fontSize: 9, fontWeight: 700, color: '#FCA5A5' }}>↩ SAIR</button>
         </div>
-        <button onClick={copyLink} className="corio-tap" style={{ all: 'unset', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6, fontSize: 11, fontWeight: 700, letterSpacing: 0.2, color: '#E9E4FF', background: 'rgba(139,92,246,0.12)', border: '1px solid rgba(139,92,246,0.4)', borderRadius: 999, padding: '8px 14px', whiteSpace: 'nowrap' }}>{copyLabel}</button>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <button onClick={copyLink} className="corio-tap" style={{ all: 'unset', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6, fontSize: 11, fontWeight: 700, letterSpacing: 0.2, color: '#E9E4FF', background: 'rgba(139,92,246,0.12)', border: '1px solid rgba(139,92,246,0.4)', borderRadius: 999, padding: '8px 14px', whiteSpace: 'nowrap' }}>{copyLabel}</button>
+          <div className="corio-you-chip">
+            <div style={{ width: 30, height: 30, borderRadius: '50%', background: `${you.color}33`, border: `1.5px solid ${you.color}`, fontSize: 12, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', flex: 'none' }}>{you.initial}</div>
+            <div className="corio-you-name" style={{ fontSize: 12.5, fontWeight: 700 }}>{you.name}</div>
+          </div>
+        </div>
       </div>
 
       <div className="corio-game-body">
@@ -92,23 +98,23 @@ export default function GameScreen({ conn }: { conn: RoomConnection }) {
             <Pill label="TEMPO" value={`⏱ ${mm}:${ss}`} valueColor={timerColor} />
           </div>
 
-          <div style={{ flex: 'none', margin: '0 16px 8px', padding: '10px 12px', borderRadius: 14, background: '#12121a', border: '1px solid rgba(255,255,255,0.08)', display: 'flex', gap: 10 }}>
+          <div className="corio-card" style={{ flex: 'none', margin: '0 16px 8px', padding: '10px 12px', borderRadius: 14, background: '#12121a', border: '1px solid rgba(255,255,255,0.08)', display: 'flex', gap: 10 }}>
             <div style={{ flex: 1.1, minWidth: 0, display: 'flex', gap: 8 }}>
               <div style={{ width: 28, height: 28, borderRadius: 8, background: 'rgba(139,92,246,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, flex: 'none' }}>{round.themeIcon}</div>
               <div style={{ minWidth: 0 }}>
-                <div style={{ fontSize: 8, fontWeight: 700, letterSpacing: 0.6, color: '#A78BFA' }}>TEMA</div>
-                <div style={{ fontSize: 13, fontWeight: 700 }}>{round.themeName}</div>
+                <div className="corio-eyebrow" style={{ fontSize: 8, fontWeight: 700, letterSpacing: 0.6, color: '#A78BFA' }}>TEMA</div>
+                <div className="corio-card-title" style={{ fontSize: 13, fontWeight: 700 }}>{round.themeName}</div>
               </div>
             </div>
             <div style={{ width: 1, background: 'rgba(255,255,255,0.08)', flex: 'none' }} />
             <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ fontSize: 8, fontWeight: 700, letterSpacing: 0.6, color: '#FFC93C' }}>VEZ DE {you.isMaster ? '👑' : ''}</div>
-              <div style={{ fontSize: 13, fontWeight: 700, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{masterLabel}</div>
+              <div className="corio-eyebrow" style={{ fontSize: 8, fontWeight: 700, letterSpacing: 0.6, color: '#FFC93C' }}>VEZ DE {you.isMaster ? '👑' : ''}</div>
+              <div className="corio-card-title" style={{ fontSize: 13, fontWeight: 700, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{masterLabel}</div>
             </div>
             <div style={{ width: 1, background: 'rgba(255,255,255,0.08)', flex: 'none' }} />
             <div style={{ flex: 1.4, minWidth: 0 }}>
-              <div style={{ fontSize: 8, fontWeight: 700, letterSpacing: 0.6, color: '#5CE1F0' }}>FRASE</div>
-              <div style={{ fontSize: 11.5, fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{themeHint}</div>
+              <div className="corio-eyebrow" style={{ fontSize: 8, fontWeight: 700, letterSpacing: 0.6, color: '#5CE1F0' }}>FRASE</div>
+              <div className="corio-card-sub" style={{ fontSize: 11.5, fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{themeHint}</div>
             </div>
           </div>
 
@@ -161,19 +167,19 @@ export default function GameScreen({ conn }: { conn: RoomConnection }) {
 
 function Pill({ label, value, valueColor }: { label: string; value: string; valueColor?: string }) {
   return (
-    <div style={{ flex: 1, minWidth: 0, background: '#12121a', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 14, padding: '7px 10px' }}>
-      <div style={{ fontSize: 7.5, fontWeight: 700, letterSpacing: 1, color: 'rgba(244,242,248,0.4)' }}>{label}</div>
-      <div style={{ fontFamily: "'Space Grotesk',sans-serif", fontSize: 13.5, fontWeight: 700, color: valueColor }}>{value}</div>
+    <div className="corio-card" style={{ flex: 1, minWidth: 0, background: '#12121a', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 14, padding: '7px 10px' }}>
+      <div className="corio-eyebrow" style={{ fontSize: 7.5, fontWeight: 700, letterSpacing: 1, color: 'rgba(244,242,248,0.4)' }}>{label}</div>
+      <div className="corio-value-lg" style={{ fontFamily: "'Space Grotesk',sans-serif", fontSize: 13.5, fontWeight: 700, color: valueColor }}>{value}</div>
     </div>
   );
 }
 
 function WaitingCard({ title, subtitle }: { title: string; subtitle: string }) {
   return (
-    <div style={{ flex: 1, minHeight: 0, margin: '0 16px', background: '#12121a', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 16, padding: 16, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 10, textAlign: 'center' }}>
+    <div className="corio-card" style={{ flex: 1, minHeight: 0, margin: '0 16px', background: '#12121a', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 16, padding: 16, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 10, textAlign: 'center' }}>
       <div style={{ fontSize: 22, animation: 'corio-breathe 2.2s ease-in-out infinite' }}>🎨</div>
-      <div style={{ fontSize: 13, fontWeight: 700 }}>{title}</div>
-      <div style={{ fontSize: 11, color: 'rgba(244,242,248,0.55)' }}>{subtitle}</div>
+      <div className="corio-title" style={{ fontSize: 13, fontWeight: 700 }}>{title}</div>
+      <div className="corio-subtitle" style={{ fontSize: 11, color: 'rgba(244,242,248,0.55)' }}>{subtitle}</div>
       <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
         <div style={{ width: 6, height: 6, borderRadius: '50%', background: '#8B5CF6', animation: 'corio-pulse 1.2s infinite' }} />
       </div>
@@ -183,25 +189,27 @@ function WaitingCard({ title, subtitle }: { title: string; subtitle: string }) {
 
 function MasterWritingCard({ secretCss, hexLabel, spinning, draft, onDraftChange, onSubmit }: { secretCss: string; hexLabel: string; spinning: boolean; draft: string; onDraftChange: (v: string) => void; onSubmit: () => void }) {
   return (
-    <div style={{ flex: 1, minHeight: 0, margin: '0 16px', background: '#12121a', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 16, padding: 18, display: 'flex', flexDirection: 'column', overflowY: 'auto' }} className="corio-noscroll">
+    <div className="corio-card corio-noscroll" style={{ flex: 1, minHeight: 0, margin: '0 16px', background: '#12121a', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 16, padding: 18, display: 'flex', flexDirection: 'column', overflowY: 'auto' }}>
       <div style={{ margin: 'auto 0', display: 'flex', flexDirection: 'column', gap: 16 }}>
-        <div style={{ textAlign: 'center' }}>
+        <div style={{ textAlign: 'center', position: 'relative' }}>
+          <span className="corio-sparkle" style={{ left: '10%', top: 4, fontSize: 16, animation: 'corio-twinkle 1.8s ease-in-out infinite .3s' }}>✦</span>
+          <span className="corio-sparkle" style={{ right: '8%', top: 30, fontSize: 11, animation: 'corio-twinkle 1.8s ease-in-out infinite .8s' }}>✦</span>
           <div style={{ fontSize: 20, lineHeight: 1, color: '#FFC93C', animation: 'corio-twinkle 1.8s ease-in-out infinite' }}>✦</div>
-          <div style={{ fontSize: 18, fontWeight: 800, lineHeight: 1.3, marginTop: 6 }}>É A SUA VEZ, <span style={{ background: 'linear-gradient(90deg,#8B5CF6,#FFC93C)', WebkitBackgroundClip: 'text', backgroundClip: 'text', color: 'transparent' }}>MESTRE DA COR</span></div>
-          <div style={{ fontSize: 12.5, color: 'rgba(244,242,248,0.6)', lineHeight: 1.5, marginTop: 4 }}>O tema é a sua cor secreta. Escreva uma frase sobre ele para os outros tentarem adivinhar.</div>
+          <div className="corio-title" style={{ fontSize: 18, fontWeight: 800, lineHeight: 1.3, marginTop: 6 }}>É A SUA VEZ, <span style={{ background: 'linear-gradient(90deg,#8B5CF6,#FFC93C)', WebkitBackgroundClip: 'text', backgroundClip: 'text', color: 'transparent' }}>MESTRE DA COR</span></div>
+          <div className="corio-subtitle" style={{ fontSize: 12.5, color: 'rgba(244,242,248,0.6)', lineHeight: 1.5, marginTop: 4 }}>O tema é a sua cor secreta. Escreva uma frase sobre ele para os outros tentarem adivinhar.</div>
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: 14, background: '#1c1c26', borderRadius: 14, padding: 14 }}>
           <div style={{ width: 56, height: 56, borderRadius: 13, flex: 'none', background: secretCss, border: '1px solid rgba(139,92,246,0.4)' }} />
           <div style={{ minWidth: 0 }}>
-            <div style={{ fontSize: 9, fontWeight: 700, letterSpacing: 0.3, color: '#A78BFA', whiteSpace: 'nowrap' }}>{spinning ? '🎲 SORTEANDO...' : 'SUA COR SECRETA'}</div>
-            <div style={{ fontSize: 17, fontWeight: 700, fontFamily: "'Space Grotesk',sans-serif", marginTop: 4 }}>{hexLabel}</div>
+            <div className="corio-eyebrow" style={{ fontSize: 9, fontWeight: 700, letterSpacing: 0.3, color: '#A78BFA', whiteSpace: 'nowrap' }}>{spinning ? '🎲 SORTEANDO...' : 'SUA COR SECRETA'}</div>
+            <div className="corio-value-lg" style={{ fontSize: 17, fontWeight: 700, fontFamily: "'Space Grotesk',sans-serif", marginTop: 4 }}>{hexLabel}</div>
           </div>
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, background: '#1c1c26', borderRadius: 14, padding: 12 }}>
           <div style={{ width: 32, height: 32, borderRadius: 9, background: 'rgba(139,92,246,0.18)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 15, flex: 'none' }}>🏆</div>
-          <div style={{ fontSize: 11.5, lineHeight: 1.5, color: 'rgba(244,242,248,0.7)' }}>Quem chegar mais perto ganha mais pontos — e quanto mais perto todo mundo chegar, mais pontos você também ganha.</div>
+          <div className="corio-card-sub" style={{ fontSize: 11.5, lineHeight: 1.5, color: 'rgba(244,242,248,0.7)' }}>Quem chegar mais perto ganha mais pontos — e quanto mais perto todo mundo chegar, mais pontos você também ganha.</div>
         </div>
 
         <div style={{ position: 'relative' }}>
@@ -215,7 +223,7 @@ function MasterWritingCard({ secretCss, hexLabel, spinning, draft, onDraftChange
           <div style={{ position: 'absolute', right: 11, bottom: 7, fontSize: 9, color: 'rgba(244,242,248,0.35)' }}>{draft.length}/80</div>
         </div>
         <div style={{ fontSize: 11, color: '#A78BFA', textAlign: 'center' }}>✦ DICA: quanto mais perto todo mundo chegar da sua cor, mais vocês ganham juntos!</div>
-        <button onClick={onSubmit} disabled={spinning || !draft.trim()} className="corio-tap" style={{ all: 'unset', cursor: 'pointer', boxSizing: 'border-box', width: '100%', textAlign: 'center', background: 'linear-gradient(90deg,#8B5CF6,#C084FC)', color: '#fff', fontWeight: 700, fontSize: 15, padding: 13, borderRadius: 13, opacity: spinning ? 0.5 : 1 }}>➤ Enviar pista</button>
+        <button onClick={onSubmit} disabled={spinning || !draft.trim()} className="corio-tap corio-btn-lg" style={{ all: 'unset', cursor: 'pointer', boxSizing: 'border-box', width: '100%', textAlign: 'center', background: 'linear-gradient(90deg,#8B5CF6,#C084FC)', color: '#fff', fontWeight: 700, fontSize: 15, padding: 13, borderRadius: 13, opacity: spinning ? 0.5 : 1 }}>➤ Enviar pista</button>
       </div>
     </div>
   );
@@ -223,15 +231,15 @@ function MasterWritingCard({ secretCss, hexLabel, spinning, draft, onDraftChange
 
 function MasterSentCard({ secretCss, waitingLabel }: { secretCss: string; waitingLabel: string }) {
   return (
-    <div style={{ flex: 1, minHeight: 0, margin: '0 16px', background: '#12121a', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 16, padding: 14, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 10, textAlign: 'center', position: 'relative' }}>
+    <div className="corio-card" style={{ flex: 1, minHeight: 0, margin: '0 16px', background: '#12121a', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 16, padding: 14, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 10, textAlign: 'center', position: 'relative' }}>
       <div style={{ position: 'relative', width: 72, height: 72 }}>
         <div style={{ position: 'absolute', inset: -14, borderRadius: 26, background: secretCss, opacity: 0.35, filter: 'blur(14px)', animation: 'corio-glowring 2.4s ease-in-out infinite' }} />
         <div style={{ position: 'absolute', top: -8, right: -10, fontSize: 13, color: '#FFC93C', animation: 'corio-twinkle 1.8s ease-in-out infinite' }}>✦</div>
         <div style={{ position: 'absolute', bottom: 2, left: -16, fontSize: 10, color: '#8B5CF6', animation: 'corio-twinkle 1.8s ease-in-out infinite .4s' }}>✦</div>
         <div style={{ position: 'relative', width: 72, height: 72, borderRadius: 18, background: secretCss, border: '1px solid rgba(255,255,255,0.25)', boxShadow: `0 0 24px ${secretCss}, 0 10px 22px rgba(0,0,0,0.5)`, animation: 'corio-shimmer 2.4s ease-in-out infinite, corio-breathe 2.4s ease-in-out infinite' }} />
       </div>
-      <div style={{ fontSize: 12, fontWeight: 700 }}>Sua cor secreta foi enviada 👑</div>
-      <div style={{ fontSize: 11, color: 'rgba(244,242,248,0.55)', maxWidth: 260, lineHeight: 1.4 }}>Os outros jogadores estão tentando adivinhar a partir da sua frase.</div>
+      <div className="corio-title" style={{ fontSize: 12, fontWeight: 700 }}>Sua cor secreta foi enviada 👑</div>
+      <div className="corio-subtitle" style={{ fontSize: 11, color: 'rgba(244,242,248,0.55)', maxWidth: 260, lineHeight: 1.4 }}>Os outros jogadores estão tentando adivinhar a partir da sua frase.</div>
       <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 4 }}>
         <div style={{ width: 6, height: 6, borderRadius: '50%', background: '#8B5CF6', animation: 'corio-pulse 1.2s infinite' }} />
         <div style={{ fontSize: 10.5, color: 'rgba(244,242,248,0.5)' }}>{waitingLabel}</div>
