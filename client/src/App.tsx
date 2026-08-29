@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useRoomConnection } from './ws.ts';
-import PhoneFrame from './components/PhoneFrame.tsx';
+import AppShell from './components/AppShell.tsx';
 import HomeScreen from './screens/HomeScreen.tsx';
 import LobbyScreen from './screens/LobbyScreen.tsx';
 import WaitingScreen from './screens/WaitingScreen.tsx';
@@ -43,6 +43,6 @@ export default function App() {
   })();
 
   return (
-    <PhoneFrame>{content}</PhoneFrame>
+    <AppShell>{content}</AppShell>
   );
 }
