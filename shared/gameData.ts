@@ -12,6 +12,7 @@ export const LOBBY_THEMES: LobbyTheme[] = [
   { id: 'comida', icon: '🍔', name: 'Comida', color: '#F59E0B' },
   { id: 'disney', icon: '🏰', name: 'Disney', color: '#8B5CF6' },
   { id: 'futebol', icon: '⚽', name: 'Futebol', color: '#22C55E' },
+  { id: 'marvel', icon: '🦸', name: 'Marvel', color: '#B91C1C' },
 ];
 
 // Used when a round's phrase mode is "AI" (auto-generated clue, no human master writes it).
