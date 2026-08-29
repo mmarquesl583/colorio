@@ -1,9 +1,11 @@
 import type { WebSocket } from 'ws';
 import {
-  hslFracToRgb, rgbToLab, rgbToHex, deltaE2000,
+  hslFracToRgb, rgbToLab, rgbToHex, deltaE2000, hexToRgb, rgbToHslFrac,
 } from '../../shared/color.ts';
 import { scoreFromDeltaE, badgeFromDeltaE } from '../../shared/scoring.ts';
 import { LOBBY_THEMES, AI_PHRASE_BANK, PLAYER_PALETTE, PLACING_SECONDS, NEXT_ROUND_READY_TIMEOUT_MS, SPEED_BONUS_MAX, ROUND_MVP_BONUS } from '../../shared/gameData.ts';
+import { AI_QUESTIONS } from '../../shared/aiQuestions.ts';
+import type { AiDifficulty } from '../../shared/aiQuestions.ts';
 import type {
   RoomConfig, RoundPhase, ScreenState, HslColor, ChatEntry,
   RoundView, RoundResults, RoomStateView, PlayerPublic,
@@ -156,16 +158,31 @@ export class Room {
       p.confirmedAtSeconds = null;
     }
 
+    let phrase = '';
+    let aiDifficulty: AiDifficulty | null = null;
+    let secretHsl: HslColor = { h: Math.round(Math.random() * 360), s: Math.round(40 + Math.random() * 45), l: Math.round(22 + Math.random() * 45) };
+    if (isAi) {
+      const bank = AI_QUESTIONS[theme.id];
+      const q = bank?.length ? bank[Math.floor(Math.random() * bank.length)] : null;
+      if (q) {
+        phrase = q.pergunta;
+        aiDifficulty = q.dificuldade;
+        const rgb = hexToRgb(q.hex);
+        secretHsl = rgbToHslFrac(rgb.r, rgb.g, rgb.b);
+      } else {
+        phrase = AI_PHRASE_BANK[Math.floor(Math.random() * AI_PHRASE_BANK.length)];
+      }
+    }
+
     const number = (this.roundIdx % this.config.numRounds) + 1;
     this.round = {
       idx: this.roundIdx, number,
       themeId: theme.id, themeIcon: theme.icon, themeName: theme.name,
       masterId, masterName,
-      phrase: isAi ? AI_PHRASE_BANK[Math.floor(Math.random() * AI_PHRASE_BANK.length)] : '',
-      isAiPhrase: isAi,
+      phrase, isAiPhrase: isAi, aiDifficulty,
     };
     this.results = null;
-    this.secretHsl = { h: Math.round(Math.random() * 360), s: Math.round(40 + Math.random() * 45), l: Math.round(22 + Math.random() * 45) };
+    this.secretHsl = secretHsl;
 
     this.chat.push(sysMsg('#FF5C8A', `Tema da Rodada · ${theme.name}`));
     this.chat.push(sysMsg('#29E7FF', isAi ? '🤖 A IA escreveu a pista' : `✏️ Vez de ${masterName}`));

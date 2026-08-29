@@ -113,7 +113,7 @@ export default function GameScreen({ conn }: { conn: RoomConnection }) {
             </div>
             <div style={{ width: 1, background: 'rgba(255,255,255,0.08)', flex: 'none' }} />
             <div style={{ flex: 1.4, minWidth: 0 }}>
-              <div className="corio-eyebrow" style={{ fontSize: 8, fontWeight: 700, letterSpacing: 0.6, color: '#5CE1F0' }}>FRASE</div>
+              <div className="corio-eyebrow" style={{ fontSize: 8, fontWeight: 700, letterSpacing: 0.6, color: '#5CE1F0' }}>FRASE {round.aiDifficulty && difficultyDot(round.aiDifficulty)}</div>
               <div className="corio-card-sub" style={{ fontSize: 11.5, fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{themeHint}</div>
             </div>
           </div>
@@ -246,6 +246,10 @@ function MasterSentCard({ secretCss, waitingLabel }: { secretCss: string; waitin
       </div>
     </div>
   );
+}
+
+function difficultyDot(d: 'facil' | 'media' | 'dificil'): string {
+  return d === 'facil' ? '🟢' : d === 'media' ? '🟡' : '🔴';
 }
 
 function cssFromHsl(hsl: HslColor): string {

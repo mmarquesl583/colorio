@@ -29,6 +29,29 @@ export function rgbToHex(r: number, g: number, b: number): string {
   return '#' + [r, g, b].map((v) => Math.max(0, Math.min(255, Math.round(v))).toString(16).padStart(2, '0')).join('').toUpperCase();
 }
 
+export function hexToRgb(hex: string): Rgb {
+  const clean = hex.replace('#', '');
+  const num = parseInt(clean, 16);
+  return { r: (num >> 16) & 255, g: (num >> 8) & 255, b: num & 255 };
+}
+
+/** Returns hue in degrees [0,360) and saturation/lightness as integer percentages [0,100]. */
+export function rgbToHslFrac(r: number, g: number, b: number): { h: number; s: number; l: number } {
+  r /= 255; g /= 255; b /= 255;
+  const max = Math.max(r, g, b), min = Math.min(r, g, b);
+  const l = (max + min) / 2;
+  let h = 0, s = 0;
+  if (max !== min) {
+    const d = max - min;
+    s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+    if (max === r) h = (g - b) / d + (g < b ? 6 : 0);
+    else if (max === g) h = (b - r) / d + 2;
+    else h = (r - g) / d + 4;
+    h /= 6;
+  }
+  return { h: Math.round(h * 360), s: Math.round(s * 100), l: Math.round(l * 100) };
+}
+
 export function rgbToCss(rgb: Rgb): string {
   return `rgb(${rgb.r},${rgb.g},${rgb.b})`;
 }
