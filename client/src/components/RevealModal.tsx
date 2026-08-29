@@ -1,0 +1,228 @@
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import type { PlayerPublic, RoundResults } from '@shared/types';
+
+type Stage = 'guesses' | 'sorted' | 'filling' | 'final';
+
+interface Row {
+  id: string;
+  pos: number;
+  initial: string;
+  name: string;
+  isTop: boolean;
+  badge: string | null;
+  currentScore: number;
+  gainLabel: string;
+  stripeColor: string;
+  stripeVisible: boolean;
+  isMasterRow: boolean;
+}
+
+interface Props {
+  results: RoundResults;
+  you: PlayerPublic;
+  nextReady: { ready: number; total: number };
+  onReadyNext: () => void;
+}
+
+export default function RevealModal({ results, you, nextReady, onReadyNext }: Props) {
+  const [stage, setStage] = useState<Stage>('guesses');
+  const [revealCount, setRevealCount] = useState(0);
+  const [progress, setProgress] = useState(0);
+  const [showFinalContinue, setShowFinalContinue] = useState(false);
+  const [continued, setContinued] = useState(false);
+  const rowRefs = useRef<Record<string, HTMLDivElement | null>>({});
+  const prevRectsRef = useRef<Record<string, DOMRect>>({});
+  const flipDurationRef = useRef(500);
+
+  useEffect(() => {
+    setStage('guesses'); setRevealCount(0); setProgress(0); setShowFinalContinue(false); setContinued(false);
+    prevRectsRef.current = {};
+    const timers: ReturnType<typeof setTimeout>[] = [];
+    const t = (ms: number, fn: () => void) => timers.push(setTimeout(fn, ms));
+    results.guesses.forEach((_, i) => t(700 * (i + 1), () => setRevealCount(i + 1)));
+    const tSorted = 700 * results.guesses.length + 1300;
+    t(tSorted, () => { flipDurationRef.current = 500; setStage('sorted'); setProgress(0); });
+    t(tSorted + 900, () => {
+      for (let i = 1; i <= 16; i++) t(110 * i, () => setProgress(i / 16));
+    });
+    return () => timers.forEach(clearTimeout);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [results]);
+
+  const guessesByStanding = results.guesses; // server orders these by pre-round standing already
+  const guessesByRoundScore = [...results.guesses].sort((a, b) => b.score - a.score);
+
+  let rows: Row[] = [];
+  let title = '', subtitle = '', revealBg = 'rgba(5,5,7,0.94)';
+  let showMasterDivider = false;
+  let masterRow: Row | null = null;
+
+  const animVal = (score: number) => Math.round(score * progress);
+
+  if (stage === 'guesses' || stage === 'sorted') {
+    const isSorted = stage === 'sorted';
+    title = isSorted ? 'ESSA ERA A COR CORRETA' : 'REVELANDO AS ESCOLHAS...';
+    subtitle = isSorted ? 'Quem se camuflou melhor no fundo, chegou mais perto' : 'Veja as cores que cada jogador escolheu para a frase';
+    revealBg = isSorted ? `hsl(${hslToCss(results.secretHsl)})` : 'rgba(5,5,7,0.94)';
+    const ordered = isSorted ? guessesByRoundScore : guessesByStanding;
+    rows = ordered.map((g, i) => {
+      const visible = isSorted || i < revealCount;
+      return {
+        id: g.playerId, pos: i + 1, initial: g.initial, name: g.playerId === you.id ? 'Você' : g.name,
+        isTop: isSorted && progress >= 1 && i === 0,
+        badge: (isSorted && progress >= 1) ? g.badge : null,
+        currentScore: g.prevScore,
+        gainLabel: (isSorted && progress > 0) ? `+${animVal(g.score)}` : '',
+        stripeColor: visible ? `hsl(${hslToCss(g.hsl)})` : '#2a2a35',
+        stripeVisible: true,
+        isMasterRow: false,
+      };
+    });
+    if (isSorted && results.masterId) {
+      showMasterDivider = true;
+      masterRow = {
+        id: results.masterId, pos: 0, initial: results.masterName?.[0] ?? 'M',
+        name: results.masterId === you.id ? 'Você' : (results.masterName ?? ''),
+        isTop: false, badge: null,
+        currentScore: results.masterPrevScore,
+        gainLabel: progress > 0 ? `+${animVal(results.masterGain)}` : '',
+        stripeColor: 'transparent', stripeVisible: false, isMasterRow: true,
+      };
+    }
+  } else {
+    title = stage === 'filling' ? 'SOMANDO OS PONTOS...' : 'PLACAR ATUALIZADO';
+    subtitle = stage === 'filling' ? 'Cada cor representa quem escolheu ela' : 'Nova posição geral da sala';
+    revealBg = 'rgba(5,5,7,0.94)';
+    const entries = results.guesses.map((g) => ({
+      id: g.playerId, initial: g.initial, name: g.playerId === you.id ? 'Você' : g.name,
+      score: stage === 'final' ? g.newScore : g.prevScore,
+      stripe: `hsl(${g.hsl.h},${g.hsl.s}%,${g.hsl.l}%)`,
+    }));
+    if (results.masterId) {
+      entries.push({
+        id: results.masterId, initial: results.masterName?.[0] ?? 'M',
+        name: results.masterId === you.id ? 'Você' : (results.masterName ?? ''),
+        score: stage === 'final' ? results.masterNewScore : results.masterPrevScore,
+        stripe: '',
+      });
+    }
+    const roundScoreOf = (id: string) => results.guesses.find((x) => x.playerId === id)?.score ?? 0;
+    const ordered = stage === 'final'
+      ? [...entries].sort((a, b) => b.score - a.score)
+      : [...entries.filter((e) => e.id !== results.masterId)].sort((a, b) => roundScoreOf(b.id) - roundScoreOf(a.id))
+          .concat(entries.filter((e) => e.id === results.masterId));
+    rows = ordered.map((e, i) => ({
+      id: e.id, pos: i + 1, initial: e.initial, name: e.name, isTop: false, badge: null,
+      currentScore: e.score, gainLabel: '',
+      stripeColor: e.stripe || 'transparent', stripeVisible: stage === 'final',
+      isMasterRow: e.id === results.masterId,
+    }));
+  }
+
+  const allRows = masterRow ? [...rows] : rows;
+  const orderIds = allRows.map((r) => r.id).join('|') + '|' + stage;
+
+  useLayoutEffect(() => {
+    const newRects: Record<string, DOMRect> = {};
+    allRows.forEach((r) => { const el = rowRefs.current[r.id]; if (el) newRects[r.id] = el.getBoundingClientRect(); });
+    const oldRects = prevRectsRef.current;
+    allRows.forEach((r) => {
+      const el = rowRefs.current[r.id];
+      if (!el) return;
+      const old = oldRects[r.id], now = newRects[r.id];
+      if (old && now) {
+        const dy = old.top - now.top;
+        if (Math.abs(dy) > 0.5) {
+          el.style.transition = 'none';
+          el.style.transform = `translateY(${dy}px)`;
+          requestAnimationFrame(() => {
+            el.style.transition = `transform ${flipDurationRef.current}ms cubic-bezier(.22,.61,.16,1)`;
+            el.style.transform = 'translateY(0)';
+          });
+        }
+      }
+    });
+    prevRectsRef.current = newRects;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [orderIds]);
+
+  const clickContinue = () => {
+    flipDurationRef.current = 500;
+    setStage('filling');
+    setTimeout(() => { flipDurationRef.current = 1800; setStage('final'); setTimeout(() => setShowFinalContinue(true), 2000); }, 800);
+  };
+
+  const clickNextRound = () => {
+    setContinued(true);
+    onReadyNext();
+  };
+
+  const showHeaderCols = stage === 'guesses' || stage === 'sorted';
+
+  return (
+    <div style={{ position: 'absolute', inset: 0, background: revealBg, transition: 'background 1.2s ease', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16, zIndex: 40, boxSizing: 'border-box' }}>
+      <div className="corio-noscroll" style={{ width: '100%', maxHeight: '100%', overflowY: 'auto', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+        <div style={{ fontSize: 16, color: '#FFC93C', marginBottom: 4, animation: 'corio-twinkle 1.6s ease-in-out infinite' }}>✦</div>
+        <div style={{ fontFamily: "'Space Grotesk',sans-serif", fontWeight: 700, fontSize: 16, letterSpacing: 0.5, textAlign: 'center' }}>{title}</div>
+        <div style={{ fontSize: 10.5, color: 'rgba(244,242,248,0.65)', textAlign: 'center', marginTop: 2, marginBottom: 12 }}>{subtitle}</div>
+
+        {showHeaderCols && (
+          <div style={{ width: '100%', maxWidth: 360, display: 'flex', justifyContent: 'flex-end', gap: 18, paddingRight: 6, marginBottom: 6 }}>
+            <div style={{ fontSize: 7.5, fontWeight: 700, letterSpacing: 0.4, color: 'rgba(244,242,248,0.4)', width: 44, textAlign: 'center' }}>PONTOS ATUAIS</div>
+            <div style={{ fontSize: 7.5, fontWeight: 700, letterSpacing: 0.4, color: 'rgba(244,242,248,0.4)', width: 44, textAlign: 'center' }}>PONTOS RODADA</div>
+          </div>
+        )}
+
+        {rows.map((r) => (
+          <div key={r.id} ref={(el) => { rowRefs.current[r.id] = el; }} style={{ width: '100%', maxWidth: 360, display: 'flex', alignItems: 'center', gap: 9, height: 52, borderRadius: 12, overflow: 'hidden', position: 'relative', background: (stage === 'sorted') ? 'rgba(10,10,14,0.4)' : 'rgba(20,20,26,0.9)', backdropFilter: (stage === 'guesses' || stage === 'sorted') ? 'blur(2px)' : undefined, marginBottom: 8, paddingRight: 8 }}>
+            <div style={{ width: 14, height: '100%', flex: 'none', background: r.stripeColor, opacity: r.stripeVisible ? 1 : 0, transition: 'background .7s ease, opacity .6s ease' }} />
+            <div style={{ flex: 'none', width: 16, fontSize: 10, fontWeight: 700, color: 'rgba(244,242,248,0.45)', textAlign: 'center' }}>{r.pos || ''}</div>
+            <div style={{ width: 22, height: 22, borderRadius: '50%', background: 'rgba(255,255,255,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 9, fontWeight: 700, flex: 'none' }}>{r.initial}</div>
+            <div style={{ flex: 1, minWidth: 0, fontSize: 11.5, fontWeight: 700, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', gap: 5 }}>
+              {r.name}
+              {r.isTop && <span>🏆</span>}
+              {r.badge && <span style={{ fontSize: 7.5, fontWeight: 700, letterSpacing: 0.3, background: '#FFC93C', color: '#151007', padding: '2px 5px', borderRadius: 5 }}>{r.badge}</span>}
+            </div>
+            <div style={{ width: 44, textAlign: 'center', fontSize: 11.5, fontWeight: 700 }}>{r.currentScore.toLocaleString('pt-BR')}</div>
+            {showHeaderCols && <div style={{ width: 44, textAlign: 'center', fontSize: 11.5, fontWeight: 700, color: '#A78BFA' }}>{r.gainLabel}</div>}
+          </div>
+        ))}
+
+        {stage === 'sorted' && (
+          <button onClick={clickContinue} style={{ all: 'unset', cursor: 'pointer', boxSizing: 'border-box', display: 'block', width: '100%', maxWidth: 360, textAlign: 'center', background: 'linear-gradient(90deg,#FF5C5C,#8B5CF6)', color: '#fff', fontWeight: 700, fontSize: 13, padding: 11, borderRadius: 12, marginTop: 6, animation: 'corio-rise .3s ease' }}>Próxima rodada →</button>
+        )}
+
+        {showMasterDivider && masterRow && (
+          <>
+            <div style={{ width: '100%', maxWidth: 360, height: 1, background: 'rgba(255,255,255,0.12)', margin: '4px 0 10px' }} />
+            <div ref={(el) => { rowRefs.current[masterRow!.id] = el; }} style={{ width: '100%', maxWidth: 360, display: 'flex', alignItems: 'center', gap: 9, height: 52, borderRadius: 12, overflow: 'hidden', background: 'rgba(20,20,26,0.9)', marginBottom: 8, padding: '0 8px', boxSizing: 'border-box' }}>
+              <div style={{ width: 16, fontSize: 10, flex: 'none', textAlign: 'center' }}>🎨</div>
+              <div style={{ width: 22, height: 22, borderRadius: '50%', background: 'rgba(255,255,255,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 9, fontWeight: 700, flex: 'none' }}>{masterRow.initial}</div>
+              <div style={{ flex: 1, minWidth: 0, fontSize: 11.5, fontWeight: 700 }}>Mestre {masterRow.name}</div>
+              <div style={{ width: 44, textAlign: 'center', fontSize: 11.5, fontWeight: 700 }}>{masterRow.currentScore.toLocaleString('pt-BR')}</div>
+              <div style={{ width: 44, textAlign: 'center', fontSize: 11.5, fontWeight: 700, color: '#FFC93C' }}>{masterRow.gainLabel}</div>
+            </div>
+            <div style={{ marginTop: 14, textAlign: 'center', animation: 'corio-rise .3s ease' }}>
+              <div style={{ fontSize: 14, color: '#8B5CF6', marginBottom: 4, animation: 'corio-twinkle 1.6s ease-in-out infinite' }}>✦✦</div>
+              <div style={{ fontSize: 11, fontWeight: 700, color: 'rgba(244,242,248,0.7)' }}>Revelação completa!</div>
+            </div>
+          </>
+        )}
+
+        {showFinalContinue && !continued && (
+          <button onClick={clickNextRound} style={{ all: 'unset', cursor: 'pointer', display: 'block', background: 'linear-gradient(135deg,#8B5CF6,#7C3AED)', color: '#fff', fontWeight: 700, fontSize: 12.5, padding: '10px 22px', borderRadius: 12, marginTop: 8 }}>Próxima rodada →</button>
+        )}
+        {continued && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 10 }}>
+            <div style={{ width: 6, height: 6, borderRadius: '50%', background: '#8B5CF6', animation: 'corio-pulse 1.2s infinite' }} />
+            <div style={{ fontSize: 10.5, color: 'rgba(244,242,248,0.55)' }}>Aguardando jogadores... ({nextReady.ready}/{nextReady.total})</div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function hslToCss(hsl: { h: number; s: number; l: number }): string {
+  return `${hsl.h},${hsl.s}%,${hsl.l}%`;
+}
