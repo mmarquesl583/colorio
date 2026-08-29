@@ -69,15 +69,50 @@ input, textarea { font-family: inherit; touch-action: manipulation; }
   padding-top: max(16px, env(safe-area-inset-top));
 }
 
-/* Home / lobby / waiting: a comfortable centered column at any width. */
-.corio-narrow {
+/* Lobby / waiting: a centered column that grows (and gains a fuller grid)
+   as there's more room — content-driven, not just stretched. */
+.corio-wide {
   width: 100%;
   max-width: 480px;
   margin: 0 auto;
 }
 
 @media (min-width: 481px) {
-  .corio-narrow { box-shadow: 0 0 0 1px rgba(255,255,255,0.05); border-radius: 0 0 20px 20px; }
+  .corio-wide { box-shadow: 0 0 0 1px rgba(255,255,255,0.05); border-radius: 0 0 20px 20px; }
+}
+@media (min-width: 720px) { .corio-wide { max-width: 640px; } }
+@media (min-width: 1024px) { .corio-wide { max-width: 720px; } }
+
+.corio-theme-grid { display: grid; grid-template-columns: repeat(2, 1fr); }
+.corio-player-grid { display: flex; flex-direction: column; gap: 5px; }
+@media (min-width: 720px) {
+  .corio-theme-grid { grid-template-columns: repeat(3, 1fr); }
+  .corio-player-grid { display: grid; grid-template-columns: repeat(2, 1fr); align-content: start; gap: 8px; }
+}
+
+/* Home: the compact card stays a fixed size — on wide screens it sits
+   beside a decorative color-swatch panel instead of stretching the form. */
+.corio-home-shell {
+  width: 100%;
+  max-width: 480px;
+  margin: 0 auto;
+  flex: 1;
+  min-height: 0;
+  display: flex;
+}
+.corio-home-art { display: none; }
+
+@media (min-width: 860px) {
+  .corio-home-shell { max-width: none; align-items: stretch; }
+  .corio-home-form { width: 440px; flex: none; margin: auto 0; }
+  .corio-home-art {
+    display: block;
+    flex: 1;
+    position: relative;
+    overflow: hidden;
+    border-left: 1px solid rgba(255,255,255,0.06);
+    background: radial-gradient(circle at 30% 20%, rgba(139,92,246,0.16), transparent 55%);
+  }
 }
 
 /* Game screen: single column on mobile, main + persistent sidebar on desktop. */

@@ -26,7 +26,7 @@ export default function LobbyScreen({ connecting, error, onBack, onCreate }: Pro
   };
 
   return (
-    <div className="corio-narrow" style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', padding: '8px 16px 12px', gap: 6 }}>
+    <div className="corio-wide" style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', justifyContent: 'center', padding: '8px 16px 12px', gap: 6 }}>
       <div style={{ flex: 'none', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <div onClick={onBack} className="corio-tap" style={{ cursor: 'pointer', width: 28, height: 28, borderRadius: 9, background: 'rgba(255,255,255,0.06)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13 }}>‹</div>
         <Logo />
@@ -83,7 +83,7 @@ export default function LobbyScreen({ connecting, error, onBack, onCreate }: Pro
 
       <div style={{ flex: 'none', background: '#12121a', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 14, padding: '9px 10px' }}>
         <div style={{ fontSize: 8, fontWeight: 700, letterSpacing: 0.6, color: 'rgba(244,242,248,0.6)' }}>TEMAS</div>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2,1fr)', gridTemplateRows: 'repeat(3,1fr)', gap: 8, marginTop: 8 }}>
+        <div className="corio-theme-grid" style={{ gap: 8, marginTop: 8 }}>
           {LOBBY_THEMES.map((t) => {
             const on = selectedThemes.includes(t.id);
             return (

@@ -15,7 +15,7 @@ export default function WaitingScreen({ conn }: { conn: RoomConnection }) {
   };
 
   return (
-    <div className="corio-narrow" style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', padding: '8px 16px 12px', gap: 8 }}>
+    <div className="corio-wide" style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', padding: '8px 16px 12px', gap: 8 }}>
       <div style={{ flex: 'none', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <div style={{ width: 28 }} />
         <Logo size={17} />
@@ -50,7 +50,7 @@ export default function WaitingScreen({ conn }: { conn: RoomConnection }) {
           <div style={{ fontSize: 9, fontWeight: 700, letterSpacing: 0.6, color: 'rgba(244,242,248,0.6)' }}>JOGADORES</div>
           <div style={{ fontSize: 11, fontWeight: 700, color: '#A78BFA', fontFamily: "'Space Grotesk',sans-serif" }}>{s.players.length}/{s.config.numPlayers}</div>
         </div>
-        <div className="corio-noscroll" style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', gap: 5, overflowY: 'auto' }}>
+        <div className="corio-noscroll corio-player-grid" style={{ flex: 1, minHeight: 0, overflowY: 'auto' }}>
           {slots.map((p, i) => p ? (
             <div key={p.id} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 8px', borderRadius: 10, background: 'rgba(255,255,255,0.03)', flex: 'none' }}>
               <div style={{ width: 32, height: 32, borderRadius: '50%', background: `${p.color}33`, border: `1.5px solid ${p.color}`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 700, flex: 'none' }}>{p.initial}</div>
