@@ -44,3 +44,7 @@ export const MIN_PLAYERS = 2;
 export const MAX_PLAYERS = 12;
 export const MIN_ROUNDS = 1;
 export const MAX_ROUNDS = 12;
+
+// Scoring bonuses layered on top of the base Delta E curve (shared/scoring.ts).
+export const SPEED_BONUS_MAX = 30; // full bonus for confirming the instant the round starts
+export const ROUND_MVP_BONUS = 50; // awarded to the single closest guess of the round (needs 2+ guessers to be meaningful)

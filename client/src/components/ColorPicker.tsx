@@ -131,7 +131,7 @@ export default function ColorPicker({ value, onChange, confirmed, onConfirm, col
       <SliderRow icon="💧" min={0} max={100} value={value.s} onChange={(v) => onChange({ ...value, s: v })} track={satTrackCss} suffix="%" />
       <SliderRow icon="⚪" min={0} max={100} value={value.l} onChange={(v) => onChange({ ...value, l: v })} track={lightTrackCss} suffix="%" />
 
-      <button onClick={onConfirm} style={{ all: 'unset', cursor: 'pointer', boxSizing: 'border-box', width: '100%', textAlign: 'center', background: pickedColorCss, color: confirmTextColor, fontWeight: 700, fontSize: 12.5, padding: 9, borderRadius: 11, marginTop: 2 }}>✓ Confirmar cor</button>
+      <button onClick={onConfirm} className="corio-tap" style={{ all: 'unset', cursor: 'pointer', boxSizing: 'border-box', width: '100%', textAlign: 'center', background: pickedColorCss, color: confirmTextColor, fontWeight: 700, fontSize: 12.5, padding: 9, borderRadius: 11, marginTop: 2 }}>✓ Confirmar cor</button>
       <div style={{ fontSize: 8.5, color: 'rgba(244,242,248,0.4)', textAlign: 'center' }}>Você pode alterar até confirmar</div>
     </div>
   );

@@ -10,6 +10,7 @@ interface Row {
   name: string;
   isTop: boolean;
   badge: string | null;
+  roundMvp: boolean;
   currentScore: number;
   gainLabel: string;
   stripeColor: string;
@@ -71,6 +72,7 @@ export default function RevealModal({ results, you, nextReady, onReadyNext }: Pr
         id: g.playerId, pos: i + 1, initial: g.initial, name: g.playerId === you.id ? 'Você' : g.name,
         isTop: isSorted && progress >= 1 && i === 0,
         badge: (isSorted && progress >= 1) ? g.badge : null,
+        roundMvp: (isSorted && progress >= 1) ? g.isRoundMvp : false,
         currentScore: g.prevScore,
         gainLabel: (isSorted && progress > 0) ? `+${animVal(g.score)}` : '',
         stripeColor: visible ? `hsl(${hslToCss(g.hsl)})` : '#2a2a35',
@@ -83,7 +85,7 @@ export default function RevealModal({ results, you, nextReady, onReadyNext }: Pr
       masterRow = {
         id: results.masterId, pos: 0, initial: results.masterName?.[0] ?? 'M',
         name: results.masterId === you.id ? 'Você' : (results.masterName ?? ''),
-        isTop: false, badge: null,
+        isTop: false, badge: null, roundMvp: false,
         currentScore: results.masterPrevScore,
         gainLabel: progress > 0 ? `+${animVal(results.masterGain)}` : '',
         stripeColor: 'transparent', stripeVisible: false, isMasterRow: true,
@@ -112,7 +114,7 @@ export default function RevealModal({ results, you, nextReady, onReadyNext }: Pr
       : [...entries.filter((e) => e.id !== results.masterId)].sort((a, b) => roundScoreOf(b.id) - roundScoreOf(a.id))
           .concat(entries.filter((e) => e.id === results.masterId));
     rows = ordered.map((e, i) => ({
-      id: e.id, pos: i + 1, initial: e.initial, name: e.name, isTop: false, badge: null,
+      id: e.id, pos: i + 1, initial: e.initial, name: e.name, isTop: false, badge: null, roundMvp: false,
       currentScore: e.score, gainLabel: '',
       stripeColor: e.stripe || 'transparent', stripeVisible: stage === 'final',
       isMasterRow: e.id === results.masterId,
@@ -180,8 +182,9 @@ export default function RevealModal({ results, you, nextReady, onReadyNext }: Pr
             <div style={{ width: 22, height: 22, borderRadius: '50%', background: 'rgba(255,255,255,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 9, fontWeight: 700, flex: 'none' }}>{r.initial}</div>
             <div style={{ flex: 1, minWidth: 0, fontSize: 11.5, fontWeight: 700, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', gap: 5 }}>
               {r.name}
-              {r.isTop && <span>🏆</span>}
-              {r.badge && <span style={{ fontSize: 7.5, fontWeight: 700, letterSpacing: 0.3, background: '#FFC93C', color: '#151007', padding: '2px 5px', borderRadius: 5 }}>{r.badge}</span>}
+              {r.isTop && <span style={{ flex: 'none' }} title="Maior pontuação da rodada">🏆</span>}
+              {r.roundMvp && <span style={{ flex: 'none' }} title="Palpite mais preciso da rodada">🎯</span>}
+              {r.badge && <span style={{ fontSize: 7.5, fontWeight: 700, letterSpacing: 0.3, background: '#FFC93C', color: '#151007', padding: '2px 5px', borderRadius: 5, flex: 'none' }}>{r.badge}</span>}
             </div>
             <div style={{ width: 44, textAlign: 'center', fontSize: 11.5, fontWeight: 700 }}>{r.currentScore.toLocaleString('pt-BR')}</div>
             {showHeaderCols && <div style={{ width: 44, textAlign: 'center', fontSize: 11.5, fontWeight: 700, color: '#A78BFA' }}>{r.gainLabel}</div>}
@@ -189,7 +192,7 @@ export default function RevealModal({ results, you, nextReady, onReadyNext }: Pr
         ))}
 
         {stage === 'sorted' && (
-          <button onClick={clickContinue} style={{ all: 'unset', cursor: 'pointer', boxSizing: 'border-box', display: 'block', width: '100%', maxWidth: 360, textAlign: 'center', background: 'linear-gradient(90deg,#FF5C5C,#8B5CF6)', color: '#fff', fontWeight: 700, fontSize: 13, padding: 11, borderRadius: 12, marginTop: 6, animation: 'corio-rise .3s ease' }}>Próxima rodada →</button>
+          <button onClick={clickContinue} className="corio-tap" style={{ all: 'unset', cursor: 'pointer', boxSizing: 'border-box', display: 'block', width: '100%', maxWidth: 360, textAlign: 'center', background: 'linear-gradient(90deg,#FF5C5C,#8B5CF6)', color: '#fff', fontWeight: 700, fontSize: 13, padding: 11, borderRadius: 12, marginTop: 6, animation: 'corio-rise .3s ease' }}>Próxima rodada →</button>
         )}
 
         {showMasterDivider && masterRow && (
@@ -210,7 +213,7 @@ export default function RevealModal({ results, you, nextReady, onReadyNext }: Pr
         )}
 
         {showFinalContinue && !continued && (
-          <button onClick={clickNextRound} style={{ all: 'unset', cursor: 'pointer', display: 'block', background: 'linear-gradient(135deg,#8B5CF6,#7C3AED)', color: '#fff', fontWeight: 700, fontSize: 12.5, padding: '10px 22px', borderRadius: 12, marginTop: 8 }}>Próxima rodada →</button>
+          <button onClick={clickNextRound} className="corio-tap" style={{ all: 'unset', cursor: 'pointer', display: 'block', background: 'linear-gradient(135deg,#8B5CF6,#7C3AED)', color: '#fff', fontWeight: 700, fontSize: 12.5, padding: '10px 22px', borderRadius: 12, marginTop: 8 }}>Próxima rodada →</button>
         )}
         {continued && (
           <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 10 }}>

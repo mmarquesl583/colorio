@@ -30,16 +30,17 @@ export default function HomeScreen({ connecting, error, onClearError, onStartCre
 
   return (
     <div style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '24px 24px 40px', gap: 22, textAlign: 'center' }}>
-      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}>
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, animation: 'corio-pop .5s cubic-bezier(.22,.61,.16,1)' }}>
         <div style={{ fontSize: 34 }}>🎨</div>
         <Logo size={30} />
         <div style={{ fontSize: 12, color: 'rgba(244,242,248,0.5)' }}>Adivinhe a cor, ganhe pontos, se divirta.</div>
       </div>
 
-      <div style={{ width: '100%', maxWidth: 320, display: 'flex', flexDirection: 'column', gap: 10 }}>
+      <div style={{ width: '100%', maxWidth: 320, display: 'flex', flexDirection: 'column', gap: 10, animation: 'corio-rise .5s ease .05s backwards' }}>
         <div style={{ display: 'flex', gap: 8 }}>
           <button
             onClick={() => { setMode('create'); onClearError(); }}
+            className="corio-tap"
             style={{
               all: 'unset', cursor: 'pointer', flex: 1, textAlign: 'center', padding: '9px 0',
               borderRadius: 11, fontSize: 12, fontWeight: 700,
@@ -49,6 +50,7 @@ export default function HomeScreen({ connecting, error, onClearError, onStartCre
           >🚀 Criar sala</button>
           <button
             onClick={() => { setMode('join'); onClearError(); }}
+            className="corio-tap"
             style={{
               all: 'unset', cursor: 'pointer', flex: 1, textAlign: 'center', padding: '9px 0',
               borderRadius: 11, fontSize: 12, fontWeight: 700,
@@ -82,6 +84,7 @@ export default function HomeScreen({ connecting, error, onClearError, onStartCre
         <button
           onClick={submit}
           disabled={!canSubmit || connecting}
+          className="corio-tap"
           style={{
             all: 'unset', cursor: canSubmit ? 'pointer' : 'default', boxSizing: 'border-box', width: '100%',
             textAlign: 'center', background: canSubmit ? 'linear-gradient(90deg,#8B5CF6,#6D28D9)' : 'rgba(255,255,255,0.08)',

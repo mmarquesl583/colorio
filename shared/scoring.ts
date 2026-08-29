@@ -11,8 +11,11 @@ export function scoreFromDeltaE(de: number): number {
   return Math.max(0, Math.min(1000, Math.round(score)));
 }
 
-export function badgeFromDeltaE(de: number): 'PERFEITO' | 'QUASE PERFEITO' | null {
+// Thresholds mirror the curve's own breakpoints above, so every visible tier
+// lines up with a real step in the score curve instead of an arbitrary cutoff.
+export function badgeFromDeltaE(de: number): 'PERFEITO' | 'QUASE PERFEITO' | 'ÓTIMO' | null {
   if (de <= 1) return 'PERFEITO';
-  if (de <= 2) return 'QUASE PERFEITO';
+  if (de <= 3) return 'QUASE PERFEITO';
+  if (de <= 6) return 'ÓTIMO';
   return null;
 }

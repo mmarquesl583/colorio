@@ -3,7 +3,7 @@ import {
   hslFracToRgb, rgbToLab, rgbToHex, deltaE2000,
 } from '../../shared/color.ts';
 import { scoreFromDeltaE, badgeFromDeltaE } from '../../shared/scoring.ts';
-import { LOBBY_THEMES, AI_PHRASE_BANK, PLAYER_PALETTE, PLACING_SECONDS, NEXT_ROUND_READY_TIMEOUT_MS } from '../../shared/gameData.ts';
+import { LOBBY_THEMES, AI_PHRASE_BANK, PLAYER_PALETTE, PLACING_SECONDS, NEXT_ROUND_READY_TIMEOUT_MS, SPEED_BONUS_MAX, ROUND_MVP_BONUS } from '../../shared/gameData.ts';
 import type {
   RoomConfig, RoundPhase, ScreenState, HslColor, ChatEntry,
   RoundView, RoundResults, RoomStateView, PlayerPublic,
@@ -24,6 +24,7 @@ interface InternalPlayer {
   readyNext: boolean;
   pickedColor: HslColor | null;
   colorHistory: string[];
+  confirmedAtSeconds: number | null;
 }
 
 function sysMsg(color: string, text: string): ChatEntry {
@@ -66,7 +67,7 @@ export class Room {
       color: this.colorFor(idx),
       initial: (name.trim()[0] || 'J').toUpperCase(),
       score: 0, connected: true, confirmed: false, readyNext: false,
-      pickedColor: null, colorHistory: [],
+      pickedColor: null, colorHistory: [], confirmedAtSeconds: null,
     };
     this.players.set(id, player);
     this.order.push(id);
@@ -152,6 +153,7 @@ export class Room {
       p.readyNext = false;
       p.pickedColor = null;
       p.colorHistory = [];
+      p.confirmedAtSeconds = null;
     }
 
     const number = (this.roundIdx % this.config.numRounds) + 1;
@@ -214,6 +216,7 @@ export class Room {
     if (!p || this.phase !== 'placing' || p.confirmed) return;
     if (this.round?.masterId === playerId) return;
     p.confirmed = true;
+    p.confirmedAtSeconds = this.secondsLeft ?? 0;
     if (!p.pickedColor) p.pickedColor = { ...DEFAULT_COLOR };
     this.chat.push(sysMsg('#94A3B8', `${p.name} confirmou sua cor`));
     this.maybeAdvanceFromPlacing();
@@ -250,30 +253,43 @@ export class Room {
     const secretLab = rgbToLab(secretRgb.r, secretRgb.g, secretRgb.b);
     const guessers = this.eligibleGuessers();
     const byStanding = [...guessers].sort((a, b) => (this.players.get(b)!.score - this.players.get(a)!.score));
-    const guesses = byStanding.map((id) => {
+    const base = byStanding.map((id) => {
       const p = this.players.get(id)!;
       const hsl = p.pickedColor ?? { ...DEFAULT_COLOR };
       const rgb = hslFracToRgb(hsl.h, hsl.s / 100, hsl.l / 100);
       const lab = rgbToLab(rgb.r, rgb.g, rgb.b);
       const de = deltaE2000(lab, secretLab);
-      const score = scoreFromDeltaE(de);
+      const baseScore = scoreFromDeltaE(de);
+      return { id, p, hsl, de, baseScore };
+    });
+    const mvpId = base.length >= 2
+      ? base.reduce((best, g) => (g.de < best.de ? g : best), base[0]).id
+      : null;
+
+    // Master's gain reflects clue quality (pure accuracy) — untouched by the
+    // speed/MVP bonuses below, which reward individual guessers, not the clue.
+    const masterGain = base.length ? Math.round(base.reduce((s, g) => s + g.baseScore, 0) / base.length) : 0;
+
+    const guesses = base.map(({ id, p, hsl, de, baseScore }) => {
+      const speedBonus = baseScore > 0 ? Math.round(SPEED_BONUS_MAX * ((p.confirmedAtSeconds ?? 0) / PLACING_SECONDS)) : 0;
+      const isRoundMvp = id === mvpId;
+      const score = baseScore + speedBonus + (isRoundMvp ? ROUND_MVP_BONUS : 0);
       const prevScore = p.score;
       p.score += score;
       return {
         playerId: id, name: p.name, color: p.color, initial: p.initial,
-        hsl, deltaE: de, score, badge: badgeFromDeltaE(de),
+        hsl, deltaE: de, score, badge: badgeFromDeltaE(de), isRoundMvp,
         prevScore, newScore: p.score,
       };
     });
 
     let masterId: string | null = null, masterName: string | null = null;
-    let masterPrevScore = 0, masterNewScore = 0, masterGain = 0;
+    let masterPrevScore = 0, masterNewScore = 0;
     if (this.round?.masterId) {
       masterId = this.round.masterId;
       const master = this.players.get(masterId)!;
       masterName = master.name;
       masterPrevScore = master.score;
-      masterGain = guesses.length ? Math.round(guesses.reduce((s, g) => s + g.score, 0) / guesses.length) : 0;
       master.score += masterGain;
       masterNewScore = master.score;
     }

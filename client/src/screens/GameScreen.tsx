@@ -2,7 +2,6 @@ import { useEffect, useRef, useState } from 'react';
 import Logo from '../components/Logo.tsx';
 import ColorPicker from '../components/ColorPicker.tsx';
 import ChatPlacar from '../components/ChatPlacar.tsx';
-import InfoModal from '../components/InfoModal.tsx';
 import RoundIntroModal from '../components/RoundIntroModal.tsx';
 import RevealModal from '../components/RevealModal.tsx';
 import { randomSecretHsl, hslFracToRgb, rgbToHex } from '@shared/color';
@@ -17,8 +16,6 @@ export default function GameScreen({ conn }: { conn: RoomConnection }) {
   const round = s.round!;
   const phase = s.phase!;
 
-  const [muted, setMuted] = useState(false);
-  const [showInfo, setShowInfo] = useState(false);
   const [copyLabel, setCopyLabel] = useState('🔗 Compartilhar');
   const [localColor, setLocalColor] = useState<HslColor>(you.pickedColor ?? DEFAULT_COLOR);
   const [masterDraft, setMasterDraft] = useState('');
@@ -82,12 +79,9 @@ export default function GameScreen({ conn }: { conn: RoomConnection }) {
       <div style={{ flex: 'none', padding: '10px 16px 8px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <Logo size={21} />
-          <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-            <IconButton onClick={() => setMuted((m) => !m)}>{muted ? '🔇' : '🔊'}</IconButton>
-            <IconButton onClick={() => setShowInfo(true)} italic>i</IconButton>
-          </div>
+          <button onClick={conn.leaveRoom} className="corio-tap" style={{ all: 'unset', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4, background: 'rgba(239,68,68,0.12)', border: '1px solid rgba(239,68,68,0.35)', borderRadius: 999, padding: '5px 9px', fontSize: 9, fontWeight: 700, color: '#FCA5A5' }}>↩ SAIR</button>
         </div>
-        <button onClick={copyLink} style={{ all: 'unset', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6, fontSize: 11, fontWeight: 700, letterSpacing: 0.2, color: '#E9E4FF', background: 'rgba(139,92,246,0.12)', border: '1px solid rgba(139,92,246,0.4)', borderRadius: 999, padding: '8px 14px', whiteSpace: 'nowrap' }}>🔗 {copyLabel}</button>
+        <button onClick={copyLink} className="corio-tap" style={{ all: 'unset', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6, fontSize: 11, fontWeight: 700, letterSpacing: 0.2, color: '#E9E4FF', background: 'rgba(139,92,246,0.12)', border: '1px solid rgba(139,92,246,0.4)', borderRadius: 999, padding: '8px 14px', whiteSpace: 'nowrap' }}>{copyLabel}</button>
       </div>
 
       <div style={{ flex: 'none', display: 'flex', gap: 8, padding: '0 16px 8px' }}>
@@ -150,17 +144,10 @@ export default function GameScreen({ conn }: { conn: RoomConnection }) {
       {showTabsPanel && <ChatPlacar players={s.players} youId={you.id} chat={s.chat} onSendChat={(text) => conn.send({ type: 'send_chat', text })} />}
 
       {showRoundIntro && <RoundIntroModal round={round} onClose={() => setDismissedIntroIdx(round.idx)} />}
-      {showInfo && <InfoModal onClose={() => setShowInfo(false)} />}
       {phase === 'reveal' && s.results && (
         <RevealModal results={s.results} you={you} nextReady={s.nextReady} onReadyNext={() => conn.send({ type: 'ready_next' })} />
       )}
     </>
-  );
-}
-
-function IconButton({ children, onClick, italic }: { children: React.ReactNode; onClick: () => void; italic?: boolean }) {
-  return (
-    <button onClick={onClick} style={{ all: 'unset', cursor: 'pointer', width: 26, height: 26, borderRadius: '50%', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.08)', color: '#C4B5FD', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: italic ? 800 : undefined, fontStyle: italic ? 'italic' : undefined }}>{children}</button>
   );
 }
 
@@ -219,8 +206,8 @@ function MasterWritingCard({ secretCss, hexLabel, spinning, draft, onDraftChange
           />
           <div style={{ position: 'absolute', right: 11, bottom: 7, fontSize: 9, color: 'rgba(244,242,248,0.35)' }}>{draft.length}/80</div>
         </div>
-        <div style={{ fontSize: 11, color: '#A78BFA', textAlign: 'center' }}>✦ DICA: frases criativas e sutis confundem mais!</div>
-        <button onClick={onSubmit} disabled={spinning || !draft.trim()} style={{ all: 'unset', cursor: 'pointer', boxSizing: 'border-box', width: '100%', textAlign: 'center', background: 'linear-gradient(90deg,#8B5CF6,#C084FC)', color: '#fff', fontWeight: 700, fontSize: 15, padding: 13, borderRadius: 13, opacity: spinning ? 0.5 : 1 }}>➤ Enviar pista</button>
+        <div style={{ fontSize: 11, color: '#A78BFA', textAlign: 'center' }}>✦ DICA: quanto mais perto todo mundo chegar da sua cor, mais vocês ganham juntos!</div>
+        <button onClick={onSubmit} disabled={spinning || !draft.trim()} className="corio-tap" style={{ all: 'unset', cursor: 'pointer', boxSizing: 'border-box', width: '100%', textAlign: 'center', background: 'linear-gradient(90deg,#8B5CF6,#C084FC)', color: '#fff', fontWeight: 700, fontSize: 15, padding: 13, borderRadius: 13, opacity: spinning ? 0.5 : 1 }}>➤ Enviar pista</button>
       </div>
     </div>
   );

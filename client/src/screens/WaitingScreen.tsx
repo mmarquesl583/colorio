@@ -19,7 +19,7 @@ export default function WaitingScreen({ conn }: { conn: RoomConnection }) {
       <div style={{ flex: 'none', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <div style={{ width: 28 }} />
         <Logo size={17} />
-        <div onClick={conn.leaveRoom} style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4, background: 'rgba(239,68,68,0.12)', border: '1px solid rgba(239,68,68,0.35)', borderRadius: 999, padding: '5px 9px', fontSize: 9, fontWeight: 700, color: '#FCA5A5' }}>↩ SAIR</div>
+        <div onClick={conn.leaveRoom} className="corio-tap" style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4, background: 'rgba(239,68,68,0.12)', border: '1px solid rgba(239,68,68,0.35)', borderRadius: 999, padding: '5px 9px', fontSize: 9, fontWeight: 700, color: '#FCA5A5' }}>↩ SAIR</div>
       </div>
 
       <div style={{ flex: 'none' }}>
@@ -32,7 +32,7 @@ export default function WaitingScreen({ conn }: { conn: RoomConnection }) {
           <div style={{ fontSize: 7, fontWeight: 700, letterSpacing: 0.6, color: 'rgba(244,242,248,0.4)' }}>CÓDIGO DA SALA</div>
           <div style={{ fontFamily: "'Space Grotesk',sans-serif", fontWeight: 800, fontSize: 17, letterSpacing: 2 }}>{s.code}</div>
         </div>
-        <button onClick={copyLink} style={{ all: 'unset', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 5, background: '#8B5CF6', color: '#fff', fontWeight: 700, fontSize: 10, padding: '8px 12px', borderRadius: 10, whiteSpace: 'nowrap' }}>{copyLabel}</button>
+        <button onClick={copyLink} className="corio-tap" style={{ all: 'unset', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 5, background: '#8B5CF6', color: '#fff', fontWeight: 700, fontSize: 10, padding: '8px 12px', borderRadius: 10, whiteSpace: 'nowrap' }}>{copyLabel}</button>
       </div>
 
       <div style={{ flex: 'none', background: '#12121a', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 13, padding: '8px 10px' }}>
@@ -83,6 +83,7 @@ export default function WaitingScreen({ conn }: { conn: RoomConnection }) {
           <button
             onClick={() => conn.send({ type: 'start_match' })}
             disabled={s.players.length < 2}
+            className="corio-tap"
             style={{ all: 'unset', cursor: s.players.length < 2 ? 'default' : 'pointer', display: 'flex', alignItems: 'center', gap: 6, background: 'linear-gradient(90deg,#8B5CF6,#FFC93C)', color: '#1a1024', fontWeight: 800, fontSize: 11, padding: '10px 14px', borderRadius: 11, whiteSpace: 'nowrap', opacity: s.players.length < 2 ? 0.5 : 1 }}
           >▶ COMEÇAR</button>
         )}

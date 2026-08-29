@@ -69,7 +69,7 @@ export default function ChatPlacar({ players, youId, chat, onSendChat }: Props) 
                 placeholder="Responda aqui..."
                 style={{ flex: 1, background: '#1c1c26', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 10, padding: '6px 10px', color: '#fff', fontSize: 11.5, outline: 'none', minWidth: 0 }}
               />
-              <button onClick={send} style={{ all: 'unset', cursor: 'pointer', width: 28, height: 28, borderRadius: 9, background: '#8B5CF6', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, flex: 'none' }}>➤</button>
+              <button onClick={send} className="corio-tap" style={{ all: 'unset', cursor: 'pointer', width: 28, height: 28, borderRadius: 9, background: '#8B5CF6', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, flex: 'none' }}>➤</button>
             </div>
           </>
         )}
@@ -82,6 +82,7 @@ function TabButton({ active, color, label, onClick }: { active: boolean; color: 
   return (
     <button
       onClick={onClick}
+      className="corio-tap"
       style={{ all: 'unset', cursor: 'pointer', flex: 1, textAlign: 'center', padding: 7, borderRadius: '10px 10px 0 0', fontSize: 10, fontWeight: 700, letterSpacing: 0.3, background: active ? '#12121a' : 'transparent', color: active ? color : 'rgba(244,242,248,0.4)' }}
     >{label}</button>
   );
