@@ -76,7 +76,7 @@ export default function GameScreen({ conn }: { conn: RoomConnection }) {
 
   return (
     <>
-      <div style={{ flex: 'none', padding: '10px 16px 8px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
+      <div className="corio-game-header" style={{ flex: 'none', padding: '10px 16px 8px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <Logo size={21} />
           <button onClick={conn.leaveRoom} className="corio-tap" style={{ all: 'unset', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4, background: 'rgba(239,68,68,0.12)', border: '1px solid rgba(239,68,68,0.35)', borderRadius: 999, padding: '5px 9px', fontSize: 9, fontWeight: 700, color: '#FCA5A5' }}>↩ SAIR</button>
@@ -84,64 +84,72 @@ export default function GameScreen({ conn }: { conn: RoomConnection }) {
         <button onClick={copyLink} className="corio-tap" style={{ all: 'unset', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6, fontSize: 11, fontWeight: 700, letterSpacing: 0.2, color: '#E9E4FF', background: 'rgba(139,92,246,0.12)', border: '1px solid rgba(139,92,246,0.4)', borderRadius: 999, padding: '8px 14px', whiteSpace: 'nowrap' }}>{copyLabel}</button>
       </div>
 
-      <div style={{ flex: 'none', display: 'flex', gap: 8, padding: '0 16px 8px' }}>
-        <Pill label="SALA" value={s.code} />
-        <Pill label="RODADA" value={`${round.number} / ${s.config.numRounds}`} />
-        <Pill label="TEMPO" value={`⏱ ${mm}:${ss}`} valueColor={timerColor} />
-      </div>
-
-      <div style={{ flex: 'none', margin: '0 16px 8px', padding: '10px 12px', borderRadius: 14, background: '#12121a', border: '1px solid rgba(255,255,255,0.08)', display: 'flex', gap: 10 }}>
-        <div style={{ flex: 1.1, minWidth: 0, display: 'flex', gap: 8 }}>
-          <div style={{ width: 28, height: 28, borderRadius: 8, background: 'rgba(139,92,246,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, flex: 'none' }}>{round.themeIcon}</div>
-          <div style={{ minWidth: 0 }}>
-            <div style={{ fontSize: 8, fontWeight: 700, letterSpacing: 0.6, color: '#A78BFA' }}>TEMA</div>
-            <div style={{ fontSize: 13, fontWeight: 700 }}>{round.themeName}</div>
+      <div className="corio-game-body">
+        <div className="corio-game-main">
+          <div style={{ flex: 'none', display: 'flex', gap: 8, padding: '0 16px 8px' }}>
+            <Pill label="SALA" value={s.code} />
+            <Pill label="RODADA" value={`${round.number} / ${s.config.numRounds}`} />
+            <Pill label="TEMPO" value={`⏱ ${mm}:${ss}`} valueColor={timerColor} />
           </div>
+
+          <div style={{ flex: 'none', margin: '0 16px 8px', padding: '10px 12px', borderRadius: 14, background: '#12121a', border: '1px solid rgba(255,255,255,0.08)', display: 'flex', gap: 10 }}>
+            <div style={{ flex: 1.1, minWidth: 0, display: 'flex', gap: 8 }}>
+              <div style={{ width: 28, height: 28, borderRadius: 8, background: 'rgba(139,92,246,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, flex: 'none' }}>{round.themeIcon}</div>
+              <div style={{ minWidth: 0 }}>
+                <div style={{ fontSize: 8, fontWeight: 700, letterSpacing: 0.6, color: '#A78BFA' }}>TEMA</div>
+                <div style={{ fontSize: 13, fontWeight: 700 }}>{round.themeName}</div>
+              </div>
+            </div>
+            <div style={{ width: 1, background: 'rgba(255,255,255,0.08)', flex: 'none' }} />
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ fontSize: 8, fontWeight: 700, letterSpacing: 0.6, color: '#FFC93C' }}>VEZ DE {you.isMaster ? '👑' : ''}</div>
+              <div style={{ fontSize: 13, fontWeight: 700, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{masterLabel}</div>
+            </div>
+            <div style={{ width: 1, background: 'rgba(255,255,255,0.08)', flex: 'none' }} />
+            <div style={{ flex: 1.4, minWidth: 0 }}>
+              <div style={{ fontSize: 8, fontWeight: 700, letterSpacing: 0.6, color: '#5CE1F0' }}>FRASE</div>
+              <div style={{ fontSize: 11.5, fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{themeHint}</div>
+            </div>
+          </div>
+
+          {phase === 'master-writing' && you.isMaster && (
+            <MasterWritingCard
+              secretCss={cssFromHsl(masterSpin.color)}
+              hexLabel={hexFromHsl(masterSpin.color)}
+              spinning={masterSpin.spinning}
+              draft={masterDraft}
+              onDraftChange={setMasterDraft}
+              onSubmit={submitPhrase}
+            />
+          )}
+
+          {phase === 'master-writing' && !you.isMaster && (
+            <WaitingCard title={`${round.masterName} está escrevendo a pista`} subtitle="Aguarde só um instante." />
+          )}
+
+          {phase === 'placing' && you.isMaster && (
+            <MasterSentCard secretCss={cssFromHsl(you.masterSecret ?? DEFAULT_COLOR)} waitingLabel={`Aguardando jogadores... (${confirmedCount}/${eligibleGuessers.length})`} />
+          )}
+
+          {phase === 'placing' && !you.isMaster && (
+            <ColorPicker
+              value={localColor}
+              onChange={onColorChange}
+              confirmed={you.confirmed}
+              onConfirm={onConfirm}
+              colorHistory={you.colorHistory}
+              waitingReady={confirmedCount}
+              waitingTotal={eligibleGuessers.length}
+            />
+          )}
         </div>
-        <div style={{ width: 1, background: 'rgba(255,255,255,0.08)', flex: 'none' }} />
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontSize: 8, fontWeight: 700, letterSpacing: 0.6, color: '#FFC93C' }}>VEZ DE {you.isMaster ? '👑' : ''}</div>
-          <div style={{ fontSize: 13, fontWeight: 700, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{masterLabel}</div>
-        </div>
-        <div style={{ width: 1, background: 'rgba(255,255,255,0.08)', flex: 'none' }} />
-        <div style={{ flex: 1.4, minWidth: 0 }}>
-          <div style={{ fontSize: 8, fontWeight: 700, letterSpacing: 0.6, color: '#5CE1F0' }}>FRASE</div>
-          <div style={{ fontSize: 11.5, fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{themeHint}</div>
-        </div>
+
+        {showTabsPanel && (
+          <div className="corio-game-sidebar">
+            <ChatPlacar players={s.players} youId={you.id} chat={s.chat} onSendChat={(text) => conn.send({ type: 'send_chat', text })} />
+          </div>
+        )}
       </div>
-
-      {phase === 'master-writing' && you.isMaster && (
-        <MasterWritingCard
-          secretCss={cssFromHsl(masterSpin.color)}
-          hexLabel={hexFromHsl(masterSpin.color)}
-          spinning={masterSpin.spinning}
-          draft={masterDraft}
-          onDraftChange={setMasterDraft}
-          onSubmit={submitPhrase}
-        />
-      )}
-
-      {phase === 'master-writing' && !you.isMaster && (
-        <WaitingCard title={`${round.masterName} está escrevendo a pista`} subtitle="Aguarde só um instante." />
-      )}
-
-      {phase === 'placing' && you.isMaster && (
-        <MasterSentCard secretCss={cssFromHsl(you.masterSecret ?? DEFAULT_COLOR)} waitingLabel={`Aguardando jogadores... (${confirmedCount}/${eligibleGuessers.length})`} />
-      )}
-
-      {phase === 'placing' && !you.isMaster && (
-        <ColorPicker
-          value={localColor}
-          onChange={onColorChange}
-          confirmed={you.confirmed}
-          onConfirm={onConfirm}
-          colorHistory={you.colorHistory}
-          waitingReady={confirmedCount}
-          waitingTotal={eligibleGuessers.length}
-        />
-      )}
-
-      {showTabsPanel && <ChatPlacar players={s.players} youId={you.id} chat={s.chat} onSendChat={(text) => conn.send({ type: 'send_chat', text })} />}
 
       {showRoundIntro && <RoundIntroModal round={round} onClose={() => setDismissedIntroIdx(round.idx)} />}
       {phase === 'reveal' && s.results && (

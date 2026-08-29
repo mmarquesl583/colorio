@@ -26,7 +26,7 @@ export default function LobbyScreen({ connecting, error, onBack, onCreate }: Pro
   };
 
   return (
-    <div style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', padding: '8px 16px 12px', gap: 6 }}>
+    <div className="corio-narrow" style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', padding: '8px 16px 12px', gap: 6 }}>
       <div style={{ flex: 'none', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <div onClick={onBack} className="corio-tap" style={{ cursor: 'pointer', width: 28, height: 28, borderRadius: 9, background: 'rgba(255,255,255,0.06)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13 }}>‹</div>
         <Logo />

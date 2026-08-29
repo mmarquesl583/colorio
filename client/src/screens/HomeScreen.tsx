@@ -29,7 +29,7 @@ export default function HomeScreen({ connecting, error, onClearError, onStartCre
   };
 
   return (
-    <div style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '24px 24px 40px', gap: 22, textAlign: 'center' }}>
+    <div className="corio-narrow" style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '24px 24px 40px', gap: 22, textAlign: 'center' }}>
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, animation: 'corio-pop .5s cubic-bezier(.22,.61,.16,1)' }}>
         <div style={{ fontSize: 34 }}>🎨</div>
         <Logo size={30} />

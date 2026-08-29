@@ -55,7 +55,6 @@ input, textarea { font-family: inherit; touch-action: manipulation; }
 
 .corio-screen {
   width: 100%;
-  max-width: 480px;
   height: 100dvh;
   display: flex;
   flex-direction: column;
@@ -70,6 +69,43 @@ input, textarea { font-family: inherit; touch-action: manipulation; }
   padding-top: max(16px, env(safe-area-inset-top));
 }
 
+/* Home / lobby / waiting: a comfortable centered column at any width. */
+.corio-narrow {
+  width: 100%;
+  max-width: 480px;
+  margin: 0 auto;
+}
+
 @media (min-width: 481px) {
-  .corio-screen { box-shadow: 0 0 0 1px rgba(0,0,0,0.06); }
+  .corio-narrow { box-shadow: 0 0 0 1px rgba(255,255,255,0.05); border-radius: 0 0 20px 20px; }
+}
+
+/* Game screen: single column on mobile, main + persistent sidebar on desktop. */
+.corio-game-body { display: flex; flex-direction: column; flex: 1; min-height: 0; }
+.corio-game-main { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+.corio-game-sidebar { display: flex; flex-direction: column; min-height: 0; gap: 8px; }
+
+.corio-tabbar { display: flex; }
+.corio-placar-panel, .corio-chat-panel {
+  display: flex;
+  background: #12121a;
+  border: 1px solid rgba(255,255,255,0.08);
+  border-top: none;
+  border-radius: 0 0 14px 14px;
+  overflow: hidden;
+  height: 150px;
+  margin: 0 16px 12px;
+  flex: none;
+}
+.corio-panel-hidden { display: none; }
+
+@media (min-width: 900px) {
+  .corio-game-header { max-width: 1600px; margin: 0 auto; width: 100%; box-sizing: border-box; }
+  .corio-game-body { flex-direction: row; gap: 16px; padding-right: 20px; max-width: 1600px; margin: 0 auto; width: 100%; box-sizing: border-box; }
+  .corio-game-sidebar { width: 360px; flex: none; height: 100%; gap: 12px; }
+  .corio-tabbar { display: none; }
+  .corio-placar-panel, .corio-chat-panel { border-top: 1px solid rgba(255,255,255,0.08); border-radius: 14px; margin: 0; }
+  .corio-placar-panel { height: 240px; }
+  .corio-chat-panel { height: auto; flex: 1; }
+  .corio-panel-hidden { display: flex; }
 }

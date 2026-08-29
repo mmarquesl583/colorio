@@ -15,7 +15,7 @@ export default function WaitingScreen({ conn }: { conn: RoomConnection }) {
   };
 
   return (
-    <div style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', padding: '8px 16px 12px', gap: 8 }}>
+    <div className="corio-narrow" style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', padding: '8px 16px 12px', gap: 8 }}>
       <div style={{ flex: 'none', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <div style={{ width: 28 }} />
         <Logo size={17} />
