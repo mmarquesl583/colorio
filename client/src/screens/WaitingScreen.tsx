@@ -59,7 +59,7 @@ export default function WaitingScreen({ conn }: { conn: RoomConnection }) {
         </div>
         <div className="corio-noscroll corio-player-grid" style={{ flex: 1, minHeight: 0, overflowY: 'auto' }}>
           {slots.map((p, i) => p ? (
-            <div key={p.id} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 8px', borderRadius: 10, background: 'rgba(255,255,255,0.03)', flex: 'none' }}>
+            <div key={p.id} className="corio-card" style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 8px', borderRadius: 10, background: 'rgba(255,255,255,0.03)', flex: 'none' }}>
               <div style={{ width: 32, height: 32, borderRadius: '50%', background: `${p.color}33`, border: `1.5px solid ${p.color}`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 700, flex: 'none' }}>{p.initial}</div>
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
@@ -71,7 +71,7 @@ export default function WaitingScreen({ conn }: { conn: RoomConnection }) {
               <div style={{ fontSize: 13, flex: 'none' }}>✅</div>
             </div>
           ) : (
-            <div key={'empty' + i} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 8px', borderRadius: 10, background: 'transparent', flex: 'none' }}>
+            <div key={'empty' + i} className="corio-card" style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 8px', borderRadius: 10, background: 'transparent', flex: 'none' }}>
               <div style={{ width: 32, height: 32, borderRadius: '50%', border: '1.5px dashed rgba(255,255,255,0.2)', flex: 'none' }} />
               <div className="corio-card-sub" style={{ flex: 1, minWidth: 0, fontSize: 11, color: 'rgba(244,242,248,0.35)' }}>Aguardando jogador...</div>
               <div style={{ fontSize: 13, flex: 'none' }}>➕</div>

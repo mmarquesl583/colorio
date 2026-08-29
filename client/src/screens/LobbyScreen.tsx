@@ -75,13 +75,13 @@ export default function LobbyScreen({ playerName, connecting, error, onBack, onC
       <div className="corio-card" style={{ flex: 'none', background: '#12121a', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 14, padding: '9px 10px' }}>
         <div className="corio-eyebrow" style={{ fontSize: 8, fontWeight: 700, letterSpacing: 0.6, color: 'rgba(244,242,248,0.6)' }}>MODO DE FRASE</div>
         <div style={{ display: 'flex', gap: 8, marginTop: 6 }}>
-          <div onClick={() => setPhraseMode('players')} className="corio-tap" style={modeCardStyle(phraseMode === 'players', 'rgba(139,92,246,0.15)', '#8B5CF6')}>
+          <div onClick={() => setPhraseMode('players')} className="corio-tap corio-card" style={modeCardStyle(phraseMode === 'players', 'rgba(139,92,246,0.15)', '#8B5CF6')}>
             {phraseMode === 'players' && <div style={checkDotStyle('#8B5CF6')}>✓</div>}
             <div style={{ fontSize: 16 }}>✏️</div>
             <div className="corio-card-title" style={{ fontSize: 10, fontWeight: 700, marginTop: 3 }}>Frase dos jogadores</div>
             <div className="corio-card-sub" style={{ fontSize: 7.5, color: 'rgba(244,242,248,0.45)', marginTop: 2, lineHeight: 1.25 }}>Cada jogador escreve a frase</div>
           </div>
-          <div onClick={() => setPhraseMode('ai')} className="corio-tap" style={modeCardStyle(phraseMode === 'ai', 'rgba(41,231,255,0.12)', '#29E7FF')}>
+          <div onClick={() => setPhraseMode('ai')} className="corio-tap corio-card" style={modeCardStyle(phraseMode === 'ai', 'rgba(41,231,255,0.12)', '#29E7FF')}>
             {phraseMode === 'ai' && <div style={checkDotStyle('#29E7FF', '#04222b')}>✓</div>}
             <div style={{ fontSize: 16 }}>🤖</div>
             <div className="corio-card-title" style={{ fontSize: 10, fontWeight: 700, marginTop: 3 }}>Frase da IA</div>
@@ -99,7 +99,7 @@ export default function LobbyScreen({ playerName, connecting, error, onBack, onC
               <div
                 key={t.id}
                 onClick={() => toggleTheme(t.id)}
-                className="corio-tap"
+                className="corio-tap corio-card corio-theme-card"
                 style={{
                   cursor: 'pointer', position: 'relative', borderRadius: 12, padding: '8px 8px', textAlign: 'center',
                   background: on ? `linear-gradient(160deg,${t.color}33,${t.color}11)` : 'rgba(255,255,255,0.03)',
@@ -108,7 +108,7 @@ export default function LobbyScreen({ playerName, connecting, error, onBack, onC
                 }}
               >
                 {on && <div style={{ position: 'absolute', top: 6, right: 6, width: 16, height: 16, borderRadius: '50%', background: t.color, color: '#fff', fontSize: 8, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>✓</div>}
-                <div style={{ width: 30, height: 30, borderRadius: 9, background: `${t.color}2e`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, flex: 'none' }}>{t.icon}</div>
+                <div className="corio-icon-box" style={{ width: 30, height: 30, borderRadius: 9, background: `${t.color}2e`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, flex: 'none' }}>{t.icon}</div>
                 <div className="corio-card-title" style={{ fontSize: 10.5, fontWeight: 700 }}>{t.name}</div>
               </div>
             );
@@ -117,12 +117,12 @@ export default function LobbyScreen({ playerName, connecting, error, onBack, onC
       </div>
 
       <div style={{ flex: 'none', display: 'flex', gap: 8 }}>
-        <div onClick={() => setPrivacy('public')} className="corio-tap" style={privacyCardStyle(privacy === 'public')}>
+        <div onClick={() => setPrivacy('public')} className="corio-tap corio-card" style={privacyCardStyle(privacy === 'public')}>
           <div style={{ fontSize: 13 }}>🌐</div>
           <div style={{ minWidth: 0, flex: 1 }}><div className="corio-card-title" style={{ fontSize: 10, fontWeight: 700 }}>Pública</div><div className="corio-card-sub" style={{ fontSize: 7, color: 'rgba(244,242,248,0.45)' }}>Qualquer um entra</div></div>
           {privacy === 'public' && <div style={smallCheckStyle}>✓</div>}
         </div>
-        <div onClick={() => setPrivacy('private')} className="corio-tap" style={privacyCardStyle(privacy === 'private')}>
+        <div onClick={() => setPrivacy('private')} className="corio-tap corio-card" style={privacyCardStyle(privacy === 'private')}>
           <div style={{ fontSize: 13 }}>🔒</div>
           <div style={{ minWidth: 0, flex: 1 }}><div className="corio-card-title" style={{ fontSize: 10, fontWeight: 700 }}>Privada</div><div className="corio-card-sub" style={{ fontSize: 7, color: 'rgba(244,242,248,0.45)' }}>Só com código</div></div>
           {privacy === 'private' && <div style={smallCheckStyle}>✓</div>}

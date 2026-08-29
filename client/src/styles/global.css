@@ -80,8 +80,9 @@ input, textarea { font-family: inherit; touch-action: manipulation; }
 @media (min-width: 481px) {
   .corio-wide { box-shadow: 0 0 0 1px rgba(255,255,255,0.05); border-radius: 0 0 20px 20px; }
 }
-@media (min-width: 720px) { .corio-wide { max-width: 640px; } }
-@media (min-width: 1024px) { .corio-wide { max-width: 720px; } }
+@media (min-width: 720px) { .corio-wide { max-width: 680px; } }
+@media (min-width: 1024px) { .corio-wide { max-width: 920px; } }
+@media (min-width: 1440px) { .corio-wide { max-width: 1120px; } }
 
 /* Premium desktop type/spacing scale — deliberately overrides the mobile-
    tuned inline sizes via !important; mobile is untouched below 900px. */
@@ -97,6 +98,8 @@ input, textarea { font-family: inherit; touch-action: manipulation; }
   .corio-card-sub { font-size: 11.5px !important; margin-top: 3px !important; }
   .corio-value-lg { font-size: 22px !important; }
   .corio-btn-lg { font-size: 14.5px !important; padding: 15px !important; }
+  .corio-theme-card { justify-content: center !important; gap: 14px !important; }
+  .corio-theme-card .corio-icon-box { width: 42px !important; height: 42px !important; font-size: 22px !important; }
 }
 
 .corio-sparkle { position: absolute; color: #FFC93C; pointer-events: none; display: none; }
@@ -121,6 +124,7 @@ input, textarea { font-family: inherit; touch-action: manipulation; }
   .corio-theme-grid { grid-template-columns: repeat(3, 1fr); }
   .corio-player-grid { display: grid; grid-template-columns: repeat(2, 1fr); align-content: start; gap: 8px; }
 }
+@media (min-width: 1024px) { .corio-player-grid { grid-template-columns: repeat(3, 1fr); } }
 
 /* Home: the compact card stays a fixed size — on wide screens it sits
    beside a decorative color-swatch panel instead of stretching the form. */
