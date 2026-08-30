@@ -47,7 +47,7 @@ export interface RevealPlayerResult {
   hsl: HslColor;
   deltaE: number;
   score: number;
-  badge: 'PERFEITO' | 'QUASE PERFEITO' | 'ÓTIMO' | null;
+  badge: 'PERFEITO' | 'QUASE PERFEITO' | 'MUITO PERTO' | 'PERTO' | 'DISTANTE';
   isRoundMvp: boolean;
   prevScore: number;
   newScore: number;

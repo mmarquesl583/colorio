@@ -2,7 +2,7 @@ import type { WebSocket } from 'ws';
 import {
   hslFracToRgb, rgbToHex, hexToRgb, rgbToHslFrac,
 } from '../../shared/color.ts';
-import { calculateColorScore, calculateMasterScore, badgeFromDeltaE } from '../../shared/scoring.ts';
+import { calculateColorScore, calculateMasterScore, badgeFromScore } from '../../shared/scoring.ts';
 import { LOBBY_THEMES, AI_PHRASE_BANK, PLAYER_PALETTE, PLACING_SECONDS, NEXT_ROUND_READY_TIMEOUT_MS, SPEED_BONUS_MAX, ROUND_MVP_BONUS } from '../../shared/gameData.ts';
 import { AI_QUESTIONS } from '../../shared/aiQuestions.ts';
 import type { AiDifficulty } from '../../shared/aiQuestions.ts';
@@ -302,7 +302,7 @@ export class Room {
       p.score += score;
       return {
         playerId: id, name: p.name, color: p.color, initial: p.initial,
-        hsl, deltaE: de, score, badge: badgeFromDeltaE(de), isRoundMvp,
+        hsl, deltaE: de, score, badge: badgeFromScore(baseScore), isRoundMvp,
         prevScore, newScore: p.score,
       };
     });

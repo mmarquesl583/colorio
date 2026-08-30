@@ -58,7 +58,9 @@ export default function RevealModal({ results, you, nextReady, onReadyNext }: Pr
   }, [results.secretHex]);
 
   const guessesByStanding = results.guesses; // server orders these by pre-round standing already
-  const guessesByRoundScore = [...results.guesses].sort((a, b) => b.score - a.score);
+  // Ranking is by round score; equal scores are tied and break by the lower
+  // (more accurate) Delta E rather than an arbitrary order.
+  const guessesByRoundScore = [...results.guesses].sort((a, b) => b.score - a.score || a.deltaE - b.deltaE);
 
   // The "sorted" stage washes the whole modal in the secret color — some
   // secrets are near-white or near-black, which would make the default
@@ -81,7 +83,7 @@ export default function RevealModal({ results, you, nextReady, onReadyNext }: Pr
     subtitle = isSorted ? 'Quem se camuflou melhor no fundo, chegou mais perto' : 'Veja as cores que cada jogador escolheu para a frase';
     revealBg = isSorted ? `hsl(${hslToCss(results.secretHsl)})` : 'rgba(5,5,7,0.94)';
     const ordered = isSorted ? guessesByRoundScore : guessesByStanding;
-    // Round ranking treats guesses within 2 points of each other as tied.
+    // Round ranking: only exactly equal round scores share a rank.
     const roundRanks = isSorted ? computeRoundRanks(guessesByRoundScore.map((g) => g.score)) : null;
     rows = ordered.map((g, i) => {
       const visible = isSorted || i < revealCount;
@@ -244,9 +246,8 @@ export default function RevealModal({ results, you, nextReady, onReadyNext }: Pr
   );
 }
 
-// Round ranking: guesses within 2 points of the one above them share its
-// rank, so near-ties don't read as a meaningful ordering difference.
-function computeRoundRanks(scoresDesc: number[], tolerance = 2): number[] {
+// Round ranking: only guesses with the exact same score share a rank.
+function computeRoundRanks(scoresDesc: number[], tolerance = 0): number[] {
   const ranks: number[] = [];
   let lastScore: number | null = null;
   let lastRank = 0;
