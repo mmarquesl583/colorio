@@ -86,7 +86,7 @@ export class Room {
   addPlayer(id: string, name: string, ws: WebSocket): InternalPlayer {
     const idx = this.order.length;
     const player: InternalPlayer = {
-      id, ws, name: name.slice(0, 20) || 'Jogador',
+      id, ws, name: name.slice(0, 24) || 'Jogador',
       color: this.colorFor(idx),
       initial: (name.trim()[0] || 'J').toUpperCase(),
       score: 0, perfectCount: 0, connected: true, confirmed: false, readyNext: false,

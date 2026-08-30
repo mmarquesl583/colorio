@@ -50,8 +50,8 @@ export function useRoomConnection(): RoomConnection {
   const wsRef = useRef<WebSocket | null>(null);
   const pendingRef = useRef<ClientMessage | null>(null);
 
-  const openSocket = useCallback((onOpen: (ws: WebSocket) => void) => {
-    setConnecting(true);
+  const openSocket = useCallback((onOpen: (ws: WebSocket) => void, opts?: { silent?: boolean }) => {
+    setConnecting(!opts?.silent);
     setError(null);
     const ws = new WebSocket(WS_URL);
     wsRef.current = ws;
@@ -66,7 +66,15 @@ export function useRoomConnection(): RoomConnection {
         setState(msg.state);
         setConnecting(false);
       } else if (msg.type === 'error') {
-        setError(msg.message);
+        if (opts?.silent) {
+          // A stale saved session (old room, restarted server, etc.) failing
+          // to auto-rejoin isn't something the player did — clear it quietly
+          // instead of greeting them with an error before they've done anything.
+          saveSession(null);
+          ws.close();
+        } else {
+          setError(msg.message);
+        }
         setConnecting(false);
       }
     };
@@ -74,7 +82,7 @@ export function useRoomConnection(): RoomConnection {
       if (wsRef.current === ws) wsRef.current = null;
     };
     ws.onerror = () => {
-      setError('Não foi possível conectar ao servidor.');
+      if (!opts?.silent) setError('Não foi possível conectar ao servidor.');
       setConnecting(false);
     };
   }, []);
@@ -84,7 +92,7 @@ export function useRoomConnection(): RoomConnection {
     if (!saved) return;
     openSocket((ws) => {
       ws.send(JSON.stringify({ type: 'rejoin', code: saved.code, playerId: saved.playerId } satisfies ClientMessage));
-    });
+    }, { silent: true });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 

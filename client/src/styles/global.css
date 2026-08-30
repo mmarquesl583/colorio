@@ -137,6 +137,13 @@ input, textarea { font-family: inherit; touch-action: manipulation; }
   display: flex;
   justify-content: center;
   align-items: center;
+  /* .corio-screen reserves a safe-area gap above every screen (so headers on
+     other screens clear the notch/status bar); Home has no header, so pull
+     the illustrated background up over that gap instead of showing the
+     screen's plain dark background through it as a bare bar. */
+  margin-top: calc(-1 * max(16px, env(safe-area-inset-top)));
+  padding-top: max(16px, env(safe-area-inset-top));
+  box-sizing: border-box;
   background-image:
     radial-gradient(circle at 50% 38%, rgba(255,92,138,0.18), transparent 55%),
     url('/images/home/background-texture.webp');
