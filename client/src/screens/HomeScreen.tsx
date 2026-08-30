@@ -12,17 +12,17 @@ interface Props {
 
 const IMG = '/images/home';
 
-interface Doodle { src: string; style: React.CSSProperties; rot: number; duration: number; delay: number; }
+interface Doodle { src: string; pos: React.CSSProperties; width: number; rot: number; duration: number; delay: number; }
 
 const DOODLES: Doodle[] = [
-  { src: 'doodle-crown.webp', style: { top: '1.5%', left: '3%', width: 110 }, rot: -10, duration: 6, delay: 0 },
-  { src: 'doodle-star-big.webp', style: { top: '17%', left: '2%', width: 74 }, rot: -8, duration: 7, delay: .4 },
-  { src: 'doodle-speech-bubble.webp', style: { top: '3%', right: '2%', width: 128 }, rot: 6, duration: 6.5, delay: .2 },
-  { src: 'doodle-pencil.webp', style: { top: '42%', left: '-2%', width: 100 }, rot: -20, duration: 7.5, delay: .6 },
-  { src: 'doodle-lightning.webp', style: { top: '22%', right: '3%', width: 74 }, rot: 10, duration: 6.2, delay: .3 },
-  { src: 'doodle-sparkle-yellow.webp', style: { top: '54%', right: '4%', width: 50 }, rot: 4, duration: 5, delay: .1 },
-  { src: 'doodle-sparkle-white.webp', style: { top: '13%', left: '30%', width: 34 }, rot: -6, duration: 5.4, delay: .5 },
-  { src: 'doodle-cursor-click.webp', style: { bottom: '17%', right: '2%', width: 56 }, rot: -12, duration: 6.8, delay: .7 },
+  { src: 'doodle-crown.webp', pos: { top: '1.5%', left: '3%' }, width: 110, rot: -10, duration: 6, delay: 0 },
+  { src: 'doodle-star-big.webp', pos: { top: '17%', left: '2%' }, width: 74, rot: -8, duration: 7, delay: .4 },
+  { src: 'doodle-speech-bubble.webp', pos: { top: '3%', right: '2%' }, width: 128, rot: 6, duration: 6.5, delay: .2 },
+  { src: 'doodle-pencil.webp', pos: { top: '42%', left: '-2%' }, width: 100, rot: -20, duration: 7.5, delay: .6 },
+  { src: 'doodle-lightning.webp', pos: { top: '20%', right: '10%' }, width: 74, rot: 10, duration: 6.2, delay: .3 },
+  { src: 'doodle-sparkle-yellow.webp', pos: { top: '54%', right: '6%' }, width: 50, rot: 4, duration: 5, delay: .1 },
+  { src: 'doodle-sparkle-white.webp', pos: { top: '13%', left: '30%' }, width: 34, rot: -6, duration: 5.4, delay: .5 },
+  { src: 'doodle-cursor-click.webp', pos: { bottom: '17%', right: '4%' }, width: 56, rot: -12, duration: 6.8, delay: .7 },
 ];
 
 export default function HomeScreen({ connecting, error, onClearError, onStartCreate, onJoin }: Props) {
@@ -70,10 +70,11 @@ export default function HomeScreen({ connecting, error, onClearError, onStartCre
             alt=""
             className="corio-home-v2-doodle"
             style={{
-              ...d.style,
+              ...d.pos,
               animationDuration: `${d.duration}s`,
               animationDelay: `${d.delay}s`,
               '--corio-float-rot': `${d.rot}deg`,
+              '--corio-doodle-w': `${d.width}px`,
             } as React.CSSProperties}
           />
         ))}

@@ -148,6 +148,7 @@ input, textarea { font-family: inherit; touch-action: manipulation; }
 .corio-home-v2-decor { position: absolute; inset: 0; overflow: hidden; pointer-events: none; z-index: 1; }
 .corio-home-v2-doodle {
   position: absolute;
+  width: var(--corio-doodle-w);
   filter: drop-shadow(0 8px 14px rgba(0,0,0,0.4));
   animation: corio-float 6.5s ease-in-out infinite;
   opacity: 0.96;
@@ -277,6 +278,7 @@ input, textarea { font-family: inherit; touch-action: manipulation; }
   }
   .corio-home-v2-hero { align-items: flex-start; flex: none; width: auto; }
   .corio-home-v2-logo-full { width: min(40vw, 480px); }
+  .corio-home-v2-doodle { width: calc(var(--corio-doodle-w) * 1.6); }
   .corio-home-v2-tagline { text-align: left; font-size: 22px !important; margin-top: 18px !important; }
   .corio-home-v2-form { width: 460px; flex: none; gap: 16px; }
   .corio-home-v2-btn { font-size: 18px !important; padding: 24px 24px !important; }
