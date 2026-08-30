@@ -5,10 +5,15 @@ import ChatPlacar from '../components/ChatPlacar.tsx';
 import RoundIntroModal from '../components/RoundIntroModal.tsx';
 import RevealModal from '../components/RevealModal.tsx';
 import { randomSecretHsl, hslFracToRgb, rgbToHex } from '@shared/color';
+import { PLACING_SECONDS } from '@shared/gameData';
 import type { HslColor } from '@shared/types';
 import type { RoomConnection } from '../ws.ts';
 
 const DEFAULT_COLOR: HslColor = { h: 270, s: 50, l: 60 };
+// The round-intro card stays up for this many ticks of the server's
+// authoritative countdown — same instant for every client, no click to
+// dismiss, so nobody gets extra picking time by rushing past it.
+const ROUND_INTRO_SECONDS = 3;
 
 export default function GameScreen({ conn }: { conn: RoomConnection }) {
   const s = conn.state!;
@@ -19,7 +24,6 @@ export default function GameScreen({ conn }: { conn: RoomConnection }) {
   const [copyLabel, setCopyLabel] = useState('🔗 Compartilhar');
   const [localColor, setLocalColor] = useState<HslColor>(you.pickedColor ?? DEFAULT_COLOR);
   const [masterDraft, setMasterDraft] = useState('');
-  const [dismissedIntroIdx, setDismissedIntroIdx] = useState<number | null>(null);
   const [masterSpin, setMasterSpin] = useState<{ spinning: boolean; color: HslColor }>({ spinning: false, color: you.masterSecret ?? DEFAULT_COLOR });
 
   const lastRoundRef = useRef(-1);
@@ -72,7 +76,7 @@ export default function GameScreen({ conn }: { conn: RoomConnection }) {
   const themeHint = round.phrase || (you.isMaster ? 'Escreva sua pista' : (round.isAiPhrase ? 'A IA está preparando a pista...' : 'Aguardando a pista...'));
 
   const showTabsPanel = !(phase === 'master-writing' && you.isMaster) && phase !== 'reveal';
-  const showRoundIntro = phase === 'placing' && !!round.phrase && !you.isMaster && dismissedIntroIdx !== round.idx;
+  const showRoundIntro = phase === 'placing' && !!round.phrase && !you.isMaster && seconds > PLACING_SECONDS - ROUND_INTRO_SECONDS;
 
   return (
     <>
@@ -157,7 +161,7 @@ export default function GameScreen({ conn }: { conn: RoomConnection }) {
         )}
       </div>
 
-      {showRoundIntro && <RoundIntroModal round={round} onClose={() => setDismissedIntroIdx(round.idx)} />}
+      {showRoundIntro && <RoundIntroModal round={round} />}
       {phase === 'reveal' && s.results && (
         <RevealModal results={s.results} you={you} nextReady={s.nextReady} onReadyNext={() => conn.send({ type: 'ready_next' })} />
       )}

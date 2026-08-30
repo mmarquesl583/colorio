@@ -4,7 +4,10 @@ function difficultyDot(d: 'facil' | 'media' | 'dificil'): string {
   return d === 'facil' ? '🟢' : d === 'media' ? '🟡' : '🔴';
 }
 
-export default function RoundIntroModal({ round, onClose }: { round: RoundView; onClose: () => void }) {
+// No dismiss control here on purpose: every client shows and hides this
+// card on the same tick of the server's countdown (see GameScreen's
+// showRoundIntro), so nobody can rush past it for extra picking time.
+export default function RoundIntroModal({ round }: { round: RoundView }) {
   return (
     <div style={{ position: 'absolute', inset: 0, background: 'rgba(5,5,7,0.82)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20, zIndex: 28 }}>
       <div style={{ background: '#15151f', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 18, padding: 20, width: '100%', maxWidth: 340, animation: 'corio-rise .35s ease', textAlign: 'center' }}>
@@ -17,7 +20,10 @@ export default function RoundIntroModal({ round, onClose }: { round: RoundView; 
           <div style={{ fontSize: 8.5, fontWeight: 700, color: 'rgba(244,242,248,0.4)', marginBottom: 4 }}>FRASE {round.aiDifficulty && difficultyDot(round.aiDifficulty)}</div>
           <div style={{ fontSize: 15, fontWeight: 700, lineHeight: 1.35 }}>"{round.phrase}"</div>
         </div>
-        <button onClick={onClose} className="corio-tap" style={{ all: 'unset', cursor: 'pointer', display: 'block', width: '100%', boxSizing: 'border-box', textAlign: 'center', marginTop: 14, background: 'linear-gradient(90deg,#8B5CF6,#C084FC)', color: '#fff', fontWeight: 700, fontSize: 13, padding: 11, borderRadius: 12 }}>Vamos adivinhar →</button>
+        <div style={{ marginTop: 14, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
+          <div style={{ width: 6, height: 6, borderRadius: '50%', background: '#8B5CF6', animation: 'corio-pulse 1.2s infinite' }} />
+          <div style={{ fontSize: 10.5, fontWeight: 700, color: 'rgba(244,242,248,0.55)' }}>Preparando...</div>
+        </div>
       </div>
     </div>
   );

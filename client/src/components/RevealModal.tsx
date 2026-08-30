@@ -4,6 +4,10 @@ import type { PlayerPublic, RoundResults } from '@shared/types';
 
 type Stage = 'guesses' | 'sorted' | 'filling' | 'final';
 
+// How long the ranked/badged board stays on screen before auto-advancing.
+// Fixed and identical for every client — nobody can rush or stall it.
+const SORTED_VIEW_MS = 3000;
+
 interface Row {
   id: string;
   pos: number;
@@ -47,6 +51,13 @@ export default function RevealModal({ results, you, nextReady, onReadyNext }: Pr
     t(tSorted + 900, () => {
       for (let i = 1; i <= 16; i++) t(110 * i, () => setProgress(i / 16));
     });
+    // From here on the sequence advances on its own, on the same schedule
+    // for every client — no button, nobody can rush or stall the reveal.
+    const tRankedShown = tSorted + 900 + 1760;
+    const tContinue = tRankedShown + SORTED_VIEW_MS;
+    t(tContinue, () => { flipDurationRef.current = 500; setStage('filling'); });
+    t(tContinue + 800, () => { flipDurationRef.current = 1800; setStage('final'); });
+    t(tContinue + 800 + 2000, () => setShowFinalContinue(true));
     return () => timers.forEach(clearTimeout);
     // Every WS broadcast re-parses a brand-new `results` object even when
     // nothing about the reveal changed (a chat message, another player
@@ -168,12 +179,6 @@ export default function RevealModal({ results, you, nextReady, onReadyNext }: Pr
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [orderIds]);
 
-  const clickContinue = () => {
-    flipDurationRef.current = 500;
-    setStage('filling');
-    setTimeout(() => { flipDurationRef.current = 1800; setStage('final'); setTimeout(() => setShowFinalContinue(true), 2000); }, 800);
-  };
-
   const clickNextRound = () => {
     setContinued(true);
     onReadyNext();
@@ -210,10 +215,6 @@ export default function RevealModal({ results, you, nextReady, onReadyNext }: Pr
             {showHeaderCols && <div style={{ width: 44, textAlign: 'center', fontSize: 11.5, fontWeight: 700, color: '#A78BFA' }}>{r.gainLabel}</div>}
           </div>
         ))}
-
-        {stage === 'sorted' && (
-          <button onClick={clickContinue} className="corio-tap" style={{ all: 'unset', cursor: 'pointer', boxSizing: 'border-box', display: 'block', width: '100%', maxWidth: 360, textAlign: 'center', background: 'linear-gradient(90deg,#FF5C5C,#8B5CF6)', color: '#fff', fontWeight: 700, fontSize: 13, padding: 11, borderRadius: 12, marginTop: 6, animation: 'corio-rise .3s ease' }}>Próxima rodada →</button>
-        )}
 
         {showMasterDivider && masterRow && (
           <>
