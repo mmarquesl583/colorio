@@ -1,5 +1,4 @@
 import { useEffect, useState } from 'react';
-import ColorWheelLogo, { ColorIoWordmark } from '../components/ColorWheelLogo.tsx';
 import { HTTP_BASE } from '../ws.ts';
 import type { PublicRoomSummary } from '@shared/types';
 
@@ -82,13 +81,7 @@ export default function HomeScreen({ connecting, error, onClearError, onStartCre
 
       <div className="corio-noscroll corio-home-v2-content">
         <div className="corio-home-v2-hero">
-          <div className="corio-home-v2-wheel">
-            <ColorWheelLogo width={240} />
-          </div>
-          <div className="corio-home-v2-wordmark" style={{ marginTop: -6 }}>
-            <ColorIoWordmark fontSize="clamp(46px, 15vw, 60px)" strokeWidth={3.5} />
-            <div className="corio-home-v2-splat" style={{ width: 74, height: 74, top: -20, right: -52 }} />
-          </div>
+          <img src={`${IMG}/logo-full.webp`} alt="color.io" className="corio-home-v2-logo-full" />
 
           <div className="corio-home-v2-tagline" style={{ marginTop: 14, marginBottom: 20 }}>
             Adivinhe a cor,<br />ganhe pontos, <mark>se divirta.</mark>
