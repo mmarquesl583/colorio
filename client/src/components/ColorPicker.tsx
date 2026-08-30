@@ -90,7 +90,7 @@ export default function ColorPicker({ value, onChange, confirmed, onConfirm, col
 
   if (confirmed) {
     return (
-      <div style={{ flex: 1, minHeight: 0, margin: '0 16px', background: '#12121a', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 16, padding: '14px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 12, textAlign: 'center' }}>
+      <div style={{ flex: 1, minHeight: 0, margin: '0 16px', background: '#12121a', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 16, padding: '14px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 12, textAlign: 'center', animation: 'corio-rise .35s ease' }}>
         <div style={{ width: 64, height: 64, borderRadius: 16, background: pickedColorCss, border: '2px solid rgba(255,255,255,0.25)', boxShadow: `0 0 20px ${pickedColorCss}88` }} />
         <div style={{ fontSize: 12, fontWeight: 700 }}>Cor confirmada ✓</div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
@@ -102,7 +102,7 @@ export default function ColorPicker({ value, onChange, confirmed, onConfirm, col
   }
 
   return (
-    <div className="corio-card" style={{ flex: 1, minHeight: 0, margin: '0 16px', background: '#12121a', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 16, padding: '10px 12px', display: 'flex', flexDirection: 'column', gap: 6 }}>
+    <div className="corio-card" style={{ flex: 1, minHeight: 0, margin: '0 16px', background: '#12121a', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 16, padding: '10px 12px', display: 'flex', flexDirection: 'column', gap: 6, animation: 'corio-rise .35s ease' }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <div className="corio-eyebrow" style={{ fontSize: 9.5, fontWeight: 700, letterSpacing: 0.6, color: 'rgba(244,242,248,0.55)' }}>ESCOLHA SUA COR</div>
         {hasEyeDropper && (
@@ -112,7 +112,7 @@ export default function ColorPicker({ value, onChange, confirmed, onConfirm, col
 
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, flex: 1, minHeight: 0 }}>
         <div
-          style={{ position: 'relative', flex: 1, minWidth: 0, width: '100%', aspectRatio: '1.7', maxHeight: '100%', borderRadius: 12, overflow: 'hidden', border: '1px solid rgba(255,255,255,0.12)', touchAction: 'none' }}
+          style={{ position: 'relative', flex: 1, minWidth: 0, width: '100%', aspectRatio: '1.7', maxHeight: '100%', borderRadius: 12, overflow: 'hidden', border: '1px solid rgba(255,255,255,0.12)', touchAction: 'none', cursor: 'crosshair' }}
           onPointerDown={(e) => { draggingRef.current = true; onChange(posFromSquareEvent(e)); }}
           onPointerMove={(e) => { if (draggingRef.current) onChange(posFromSquareEvent(e)); }}
           onPointerUp={() => { draggingRef.current = false; }}
@@ -135,7 +135,7 @@ export default function ColorPicker({ value, onChange, confirmed, onConfirm, col
       </div>
 
       <div
-        style={{ position: 'relative', height: 14, flex: 'none', borderRadius: 7, overflow: 'hidden', background: 'linear-gradient(90deg,#ff0000,#ffff00,#00ff00,#00ffff,#0000ff,#ff00ff,#ff0000)', touchAction: 'none' }}
+        style={{ position: 'relative', height: 14, flex: 'none', borderRadius: 7, overflow: 'hidden', background: 'linear-gradient(90deg,#ff0000,#ffff00,#00ff00,#00ffff,#0000ff,#ff00ff,#ff0000)', touchAction: 'none', cursor: 'ew-resize' }}
         onPointerDown={(e) => { hueDraggingRef.current = true; onChange({ ...value, h: hueFromBarEvent(e) }); }}
         onPointerMove={(e) => { if (hueDraggingRef.current) onChange({ ...value, h: hueFromBarEvent(e) }); }}
         onPointerUp={() => { hueDraggingRef.current = false; }}

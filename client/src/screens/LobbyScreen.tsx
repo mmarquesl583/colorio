@@ -1,7 +1,12 @@
 import { useState } from 'react';
 import Logo from '../components/Logo.tsx';
 import { LOBBY_THEMES, MIN_PLAYERS, MAX_PLAYERS, MIN_ROUNDS, MAX_ROUNDS, PLAYER_PALETTE } from '@shared/gameData';
+import { AI_QUESTIONS } from '@shared/aiQuestions';
 import type { PhraseMode, Privacy, RoomConfig } from '@shared/types';
+
+// Only themes with a real curated question bank make sense in "Frase da
+// IA" — the rest would just fall back to the generic, unrelated phrase.
+const AI_ELIGIBLE_IDS = new Set(Object.keys(AI_QUESTIONS));
 
 interface Props {
   playerName: string;
@@ -22,12 +27,18 @@ export default function LobbyScreen({ playerName, connecting, error, onBack, onC
     setSelectedThemes((s) => (s.includes(id) ? s.filter((x) => x !== id) : [...s, id]));
   };
 
+  const visibleThemes = phraseMode === 'ai' ? LOBBY_THEMES.filter((t) => AI_ELIGIBLE_IDS.has(t.id)) : LOBBY_THEMES;
+  const chooseMode = (mode: PhraseMode) => {
+    setPhraseMode(mode);
+    if (mode === 'ai') setSelectedThemes((s) => s.filter((id) => AI_ELIGIBLE_IDS.has(id)));
+  };
+
   const create = () => {
     onCreate({ numPlayers, numRounds, phraseMode, privacy, selectedThemes });
   };
 
   return (
-    <div className="corio-wide" style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', justifyContent: 'center', padding: '8px 16px 12px', gap: 6 }}>
+    <div className="corio-wide" style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', justifyContent: 'center', padding: '8px 16px 12px', gap: 6, animation: 'corio-rise .4s ease' }}>
       <div style={{ flex: 'none', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <div onClick={onBack} className="corio-tap corio-back-btn" style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6, width: 28, height: 28, borderRadius: 9, background: 'rgba(255,255,255,0.06)', justifyContent: 'center', fontSize: 13 }}>
           <span>‹</span>
@@ -75,13 +86,13 @@ export default function LobbyScreen({ playerName, connecting, error, onBack, onC
       <div className="corio-card" style={{ flex: 'none', background: '#12121a', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 14, padding: '9px 10px' }}>
         <div className="corio-eyebrow" style={{ fontSize: 8, fontWeight: 700, letterSpacing: 0.6, color: 'rgba(244,242,248,0.6)' }}>MODO DE FRASE</div>
         <div style={{ display: 'flex', gap: 8, marginTop: 6 }}>
-          <div onClick={() => setPhraseMode('players')} className="corio-tap corio-card" style={modeCardStyle(phraseMode === 'players', 'rgba(139,92,246,0.15)', '#8B5CF6')}>
+          <div onClick={() => chooseMode('players')} className="corio-tap corio-card" style={modeCardStyle(phraseMode === 'players', 'rgba(139,92,246,0.15)', '#8B5CF6')}>
             {phraseMode === 'players' && <div style={checkDotStyle('#8B5CF6')}>✓</div>}
             <div style={{ fontSize: 16 }}>✏️</div>
             <div className="corio-card-title" style={{ fontSize: 10, fontWeight: 700, marginTop: 3 }}>Frase dos jogadores</div>
             <div className="corio-card-sub" style={{ fontSize: 7.5, color: 'rgba(244,242,248,0.45)', marginTop: 2, lineHeight: 1.25 }}>Cada jogador escreve a frase</div>
           </div>
-          <div onClick={() => setPhraseMode('ai')} className="corio-tap corio-card" style={modeCardStyle(phraseMode === 'ai', 'rgba(41,231,255,0.12)', '#29E7FF')}>
+          <div onClick={() => chooseMode('ai')} className="corio-tap corio-card" style={modeCardStyle(phraseMode === 'ai', 'rgba(41,231,255,0.12)', '#29E7FF')}>
             {phraseMode === 'ai' && <div style={checkDotStyle('#29E7FF', '#04222b')}>✓</div>}
             <div style={{ fontSize: 16 }}>🤖</div>
             <div className="corio-card-title" style={{ fontSize: 10, fontWeight: 700, marginTop: 3 }}>Frase da IA</div>
@@ -93,7 +104,7 @@ export default function LobbyScreen({ playerName, connecting, error, onBack, onC
       <div className="corio-card" style={{ flex: 'none', background: '#12121a', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 14, padding: '9px 10px' }}>
         <div className="corio-eyebrow" style={{ fontSize: 8, fontWeight: 700, letterSpacing: 0.6, color: 'rgba(244,242,248,0.6)' }}>TEMAS</div>
         <div className="corio-theme-grid" style={{ gap: 8, marginTop: 8 }}>
-          {LOBBY_THEMES.map((t) => {
+          {visibleThemes.map((t) => {
             const on = selectedThemes.includes(t.id);
             return (
               <div

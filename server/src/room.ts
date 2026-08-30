@@ -1,8 +1,8 @@
 import type { WebSocket } from 'ws';
 import {
-  hslFracToRgb, rgbToLab, rgbToHex, deltaE2000, hexToRgb, rgbToHslFrac,
+  hslFracToRgb, rgbToHex, hexToRgb, rgbToHslFrac,
 } from '../../shared/color.ts';
-import { scoreFromDeltaE, badgeFromDeltaE } from '../../shared/scoring.ts';
+import { calculateColorScore, calculateMasterScore, badgeFromDeltaE } from '../../shared/scoring.ts';
 import { LOBBY_THEMES, AI_PHRASE_BANK, PLAYER_PALETTE, PLACING_SECONDS, NEXT_ROUND_READY_TIMEOUT_MS, SPEED_BONUS_MAX, ROUND_MVP_BONUS } from '../../shared/gameData.ts';
 import { AI_QUESTIONS } from '../../shared/aiQuestions.ts';
 import type { AiDifficulty } from '../../shared/aiQuestions.ts';
@@ -124,9 +124,14 @@ export class Room {
   }
 
   private pickTheme(): { id: string; icon: string; name: string } {
-    const pool = this.config.selectedThemes.length
+    let pool = this.config.selectedThemes.length
       ? LOBBY_THEMES.filter((t) => this.config.selectedThemes.includes(t.id))
       : LOBBY_THEMES;
+    if (this.config.phraseMode === 'ai') {
+      const aiEligible = LOBBY_THEMES.filter((t) => AI_QUESTIONS[t.id]?.length);
+      const inPool = pool.filter((t) => AI_QUESTIONS[t.id]?.length);
+      pool = inPool.length ? inPool : aiEligible;
+    }
     const candidates = pool.length > 1 ? pool.filter((t) => t.id !== this.lastThemeId) : pool;
     const list = candidates.length ? candidates : pool;
     const theme = list[Math.floor(Math.random() * list.length)] ?? LOBBY_THEMES[0];
@@ -268,16 +273,15 @@ export class Room {
     this.stopTicking();
     const secretHsl = this.secretHsl;
     const secretRgb = hslFracToRgb(secretHsl.h, secretHsl.s / 100, secretHsl.l / 100);
-    const secretLab = rgbToLab(secretRgb.r, secretRgb.g, secretRgb.b);
+    const secretHex = rgbToHex(secretRgb.r, secretRgb.g, secretRgb.b);
     const guessers = this.eligibleGuessers();
     const byStanding = [...guessers].sort((a, b) => (this.players.get(b)!.score - this.players.get(a)!.score));
     const base = byStanding.map((id) => {
       const p = this.players.get(id)!;
       const hsl = p.pickedColor ?? { ...DEFAULT_COLOR };
       const rgb = hslFracToRgb(hsl.h, hsl.s / 100, hsl.l / 100);
-      const lab = rgbToLab(rgb.r, rgb.g, rgb.b);
-      const de = deltaE2000(lab, secretLab);
-      const baseScore = scoreFromDeltaE(de);
+      const hex = rgbToHex(rgb.r, rgb.g, rgb.b);
+      const { score: baseScore, deltaE: de } = calculateColorScore(hex, secretHex);
       return { id, p, hsl, de, baseScore };
     });
     const mvpId = base.length >= 2
@@ -286,7 +290,7 @@ export class Room {
 
     // Master's gain reflects clue quality (pure accuracy) — untouched by the
     // speed/MVP bonuses below, which reward individual guessers, not the clue.
-    const masterGain = base.length ? Math.round(base.reduce((s, g) => s + g.baseScore, 0) / base.length) : 0;
+    const masterGain = calculateMasterScore(base.map((g) => g.baseScore));
 
     const guesses = base.map(({ id, p, hsl, de, baseScore }) => {
       const speedBonus = baseScore > 0 ? Math.round(SPEED_BONUS_MAX * ((p.confirmedAtSeconds ?? 0) / PLACING_SECONDS)) : 0;
@@ -313,7 +317,7 @@ export class Room {
     }
 
     this.results = {
-      secretHsl, secretHex: rgbToHex(secretRgb.r, secretRgb.g, secretRgb.b),
+      secretHsl, secretHex,
       guesses, masterId, masterName, masterPrevScore, masterNewScore, masterGain,
     };
     this.phase = 'reveal';

@@ -1,4 +1,5 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { hslFracToRgb } from '@shared/color';
 import type { PlayerPublic, RoundResults } from '@shared/types';
 
 type Stage = 'guesses' | 'sorted' | 'filling' | 'final';
@@ -59,6 +60,14 @@ export default function RevealModal({ results, you, nextReady, onReadyNext }: Pr
   const guessesByStanding = results.guesses; // server orders these by pre-round standing already
   const guessesByRoundScore = [...results.guesses].sort((a, b) => b.score - a.score);
 
+  // The "sorted" stage washes the whole modal in the secret color — some
+  // secrets are near-white or near-black, which would make the default
+  // light title text (or the row backing) unreadable against it.
+  const secretRgb = hslFracToRgb(results.secretHsl.h, results.secretHsl.s / 100, results.secretHsl.l / 100);
+  const secretLum = (0.299 * secretRgb.r + 0.587 * secretRgb.g + 0.114 * secretRgb.b) / 255;
+  const onSecretBg = secretLum > 0.6 ? '#050507' : '#F4F2F8';
+  const onSecretBgMuted = secretLum > 0.6 ? 'rgba(5,5,7,0.7)' : 'rgba(244,242,248,0.65)';
+
   let rows: Row[] = [];
   let title = '', subtitle = '', revealBg = 'rgba(5,5,7,0.94)';
   let showMasterDivider = false;
@@ -72,11 +81,14 @@ export default function RevealModal({ results, you, nextReady, onReadyNext }: Pr
     subtitle = isSorted ? 'Quem se camuflou melhor no fundo, chegou mais perto' : 'Veja as cores que cada jogador escolheu para a frase';
     revealBg = isSorted ? `hsl(${hslToCss(results.secretHsl)})` : 'rgba(5,5,7,0.94)';
     const ordered = isSorted ? guessesByRoundScore : guessesByStanding;
+    // Round ranking treats guesses within 2 points of each other as tied.
+    const roundRanks = isSorted ? computeRoundRanks(guessesByRoundScore.map((g) => g.score)) : null;
     rows = ordered.map((g, i) => {
       const visible = isSorted || i < revealCount;
+      const pos = roundRanks ? roundRanks[i] : i + 1;
       return {
-        id: g.playerId, pos: i + 1, initial: g.initial, name: g.playerId === you.id ? 'Você' : g.name,
-        isTop: isSorted && progress >= 1 && i === 0,
+        id: g.playerId, pos, initial: g.initial, name: g.playerId === you.id ? 'Você' : g.name,
+        isTop: isSorted && progress >= 1 && pos === 1,
         badge: (isSorted && progress >= 1) ? g.badge : null,
         roundMvp: (isSorted && progress >= 1) ? g.isRoundMvp : false,
         currentScore: g.prevScore,
@@ -171,18 +183,18 @@ export default function RevealModal({ results, you, nextReady, onReadyNext }: Pr
     <div style={{ position: 'absolute', inset: 0, background: revealBg, transition: 'background 1.2s ease', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16, zIndex: 40, boxSizing: 'border-box' }}>
       <div className="corio-noscroll" style={{ width: '100%', maxHeight: '100%', overflowY: 'auto', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
         <div style={{ fontSize: 16, color: '#FFC93C', marginBottom: 4, animation: 'corio-twinkle 1.6s ease-in-out infinite' }}>✦</div>
-        <div style={{ fontFamily: "'Space Grotesk',sans-serif", fontWeight: 700, fontSize: 16, letterSpacing: 0.5, textAlign: 'center' }}>{title}</div>
-        <div style={{ fontSize: 10.5, color: 'rgba(244,242,248,0.65)', textAlign: 'center', marginTop: 2, marginBottom: 12 }}>{subtitle}</div>
+        <div style={{ fontFamily: "'Space Grotesk',sans-serif", fontWeight: 700, fontSize: 16, letterSpacing: 0.5, textAlign: 'center', color: stage === 'sorted' ? onSecretBg : undefined }}>{title}</div>
+        <div style={{ fontSize: 10.5, color: stage === 'sorted' ? onSecretBgMuted : 'rgba(244,242,248,0.65)', textAlign: 'center', marginTop: 2, marginBottom: 12 }}>{subtitle}</div>
 
         {showHeaderCols && (
           <div style={{ width: '100%', maxWidth: 360, display: 'flex', justifyContent: 'flex-end', gap: 18, paddingRight: 6, marginBottom: 6 }}>
-            <div style={{ fontSize: 7.5, fontWeight: 700, letterSpacing: 0.4, color: 'rgba(244,242,248,0.4)', width: 44, textAlign: 'center' }}>PONTOS ATUAIS</div>
-            <div style={{ fontSize: 7.5, fontWeight: 700, letterSpacing: 0.4, color: 'rgba(244,242,248,0.4)', width: 44, textAlign: 'center' }}>PONTOS RODADA</div>
+            <div style={{ fontSize: 7.5, fontWeight: 700, letterSpacing: 0.4, color: stage === 'sorted' ? onSecretBgMuted : 'rgba(244,242,248,0.4)', width: 44, textAlign: 'center' }}>PONTOS ATUAIS</div>
+            <div style={{ fontSize: 7.5, fontWeight: 700, letterSpacing: 0.4, color: stage === 'sorted' ? onSecretBgMuted : 'rgba(244,242,248,0.4)', width: 44, textAlign: 'center' }}>PONTOS RODADA</div>
           </div>
         )}
 
         {rows.map((r) => (
-          <div key={r.id} ref={(el) => { rowRefs.current[r.id] = el; }} style={{ width: '100%', maxWidth: 360, display: 'flex', alignItems: 'center', gap: 9, height: 52, borderRadius: 12, overflow: 'hidden', position: 'relative', background: (stage === 'sorted') ? 'rgba(10,10,14,0.4)' : 'rgba(20,20,26,0.9)', backdropFilter: (stage === 'guesses' || stage === 'sorted') ? 'blur(2px)' : undefined, marginBottom: 8, paddingRight: 8 }}>
+          <div key={r.id} ref={(el) => { rowRefs.current[r.id] = el; }} style={{ width: '100%', maxWidth: 360, display: 'flex', alignItems: 'center', gap: 9, height: 52, borderRadius: 12, overflow: 'hidden', position: 'relative', background: (stage === 'sorted') ? 'rgba(8,8,12,0.72)' : 'rgba(20,20,26,0.9)', backdropFilter: (stage === 'guesses' || stage === 'sorted') ? 'blur(2px)' : undefined, marginBottom: 8, paddingRight: 8 }}>
             <div style={{ width: 14, height: '100%', flex: 'none', background: r.stripeColor, opacity: r.stripeVisible ? 1 : 0, transition: 'background .7s ease, opacity .6s ease' }} />
             <div style={{ flex: 'none', width: 16, fontSize: 10, fontWeight: 700, color: 'rgba(244,242,248,0.45)', textAlign: 'center' }}>{r.pos || ''}</div>
             <div style={{ width: 22, height: 22, borderRadius: '50%', background: 'rgba(255,255,255,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 9, fontWeight: 700, flex: 'none' }}>{r.initial}</div>
@@ -230,6 +242,20 @@ export default function RevealModal({ results, you, nextReady, onReadyNext }: Pr
       </div>
     </div>
   );
+}
+
+// Round ranking: guesses within 2 points of the one above them share its
+// rank, so near-ties don't read as a meaningful ordering difference.
+function computeRoundRanks(scoresDesc: number[], tolerance = 2): number[] {
+  const ranks: number[] = [];
+  let lastScore: number | null = null;
+  let lastRank = 0;
+  scoresDesc.forEach((score, i) => {
+    if (lastScore === null || lastScore - score > tolerance) lastRank = i + 1;
+    ranks.push(lastRank);
+    lastScore = score;
+  });
+  return ranks;
 }
 
 function hslToCss(hsl: { h: number; s: number; l: number }): string {

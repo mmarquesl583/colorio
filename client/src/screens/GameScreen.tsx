@@ -103,7 +103,7 @@ export default function GameScreen({ conn }: { conn: RoomConnection }) {
               <div style={{ width: 28, height: 28, borderRadius: 8, background: 'rgba(139,92,246,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, flex: 'none' }}>{round.themeIcon}</div>
               <div style={{ minWidth: 0 }}>
                 <div className="corio-eyebrow" style={{ fontSize: 8, fontWeight: 700, letterSpacing: 0.6, color: '#A78BFA' }}>TEMA</div>
-                <div className="corio-card-title" style={{ fontSize: 13, fontWeight: 700 }}>{round.themeName}</div>
+                <div className="corio-card-title" style={{ fontSize: 13, fontWeight: 700, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{round.themeName}</div>
               </div>
             </div>
             <div style={{ width: 1, background: 'rgba(255,255,255,0.08)', flex: 'none' }} />
@@ -176,7 +176,7 @@ function Pill({ label, value, valueColor }: { label: string; value: string; valu
 
 function WaitingCard({ title, subtitle }: { title: string; subtitle: string }) {
   return (
-    <div className="corio-card" style={{ flex: 1, minHeight: 0, margin: '0 16px', background: '#12121a', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 16, padding: 16, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 10, textAlign: 'center' }}>
+    <div className="corio-card" style={{ flex: 1, minHeight: 0, margin: '0 16px', background: '#12121a', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 16, padding: 16, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 10, textAlign: 'center', animation: 'corio-rise .35s ease' }}>
       <div style={{ fontSize: 22, animation: 'corio-breathe 2.2s ease-in-out infinite' }}>🎨</div>
       <div className="corio-title" style={{ fontSize: 13, fontWeight: 700 }}>{title}</div>
       <div className="corio-subtitle" style={{ fontSize: 11, color: 'rgba(244,242,248,0.55)' }}>{subtitle}</div>
@@ -189,7 +189,7 @@ function WaitingCard({ title, subtitle }: { title: string; subtitle: string }) {
 
 function MasterWritingCard({ secretCss, hexLabel, spinning, draft, onDraftChange, onSubmit }: { secretCss: string; hexLabel: string; spinning: boolean; draft: string; onDraftChange: (v: string) => void; onSubmit: () => void }) {
   return (
-    <div className="corio-card corio-noscroll" style={{ flex: 1, minHeight: 0, margin: '0 16px', background: '#12121a', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 16, padding: 18, display: 'flex', flexDirection: 'column', overflowY: 'auto' }}>
+    <div className="corio-card corio-noscroll" style={{ flex: 1, minHeight: 0, margin: '0 16px', background: '#12121a', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 16, padding: 18, display: 'flex', flexDirection: 'column', overflowY: 'auto', animation: 'corio-rise .35s ease' }}>
       <div style={{ margin: 'auto 0', display: 'flex', flexDirection: 'column', gap: 16 }}>
         <div style={{ textAlign: 'center', position: 'relative' }}>
           <span className="corio-sparkle" style={{ left: '10%', top: 4, fontSize: 16, animation: 'corio-twinkle 1.8s ease-in-out infinite .3s' }}>✦</span>
@@ -231,7 +231,7 @@ function MasterWritingCard({ secretCss, hexLabel, spinning, draft, onDraftChange
 
 function MasterSentCard({ secretCss, waitingLabel }: { secretCss: string; waitingLabel: string }) {
   return (
-    <div className="corio-card" style={{ flex: 1, minHeight: 0, margin: '0 16px', background: '#12121a', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 16, padding: 14, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 10, textAlign: 'center', position: 'relative' }}>
+    <div className="corio-card" style={{ flex: 1, minHeight: 0, margin: '0 16px', background: '#12121a', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 16, padding: 14, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 10, textAlign: 'center', position: 'relative', animation: 'corio-rise .35s ease' }}>
       <div style={{ position: 'relative', width: 72, height: 72 }}>
         <div style={{ position: 'absolute', inset: -14, borderRadius: 26, background: secretCss, opacity: 0.35, filter: 'blur(14px)', animation: 'corio-glowring 2.4s ease-in-out infinite' }} />
         <div style={{ position: 'absolute', top: -8, right: -10, fontSize: 13, color: '#FFC93C', animation: 'corio-twinkle 1.8s ease-in-out infinite' }}>✦</div>
