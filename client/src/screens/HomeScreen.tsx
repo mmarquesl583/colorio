@@ -16,14 +16,14 @@ const IMG = '/images/home';
 interface Doodle { src: string; style: React.CSSProperties; rot: number; duration: number; delay: number; }
 
 const DOODLES: Doodle[] = [
-  { src: 'doodle-crown.webp', style: { top: '2%', left: '3%', width: 74 }, rot: -10, duration: 6, delay: 0 },
-  { src: 'doodle-star-big.webp', style: { top: '17%', left: '1%', width: 50 }, rot: -8, duration: 7, delay: .4 },
-  { src: 'doodle-speech-bubble.webp', style: { top: '3%', right: '2%', width: 96 }, rot: 6, duration: 6.5, delay: .2 },
-  { src: 'doodle-pencil.webp', style: { top: '46%', left: '-3%', width: 76 }, rot: -18, duration: 7.5, delay: .6 },
-  { src: 'doodle-lightning.webp', style: { top: '23%', right: '-4%', width: 66 }, rot: 10, duration: 6.2, delay: .3 },
-  { src: 'doodle-sparkle-yellow.webp', style: { bottom: '27%', right: '5%', width: 46 }, rot: 4, duration: 5, delay: .1 },
-  { src: 'doodle-sparkle-white.webp', style: { top: '9%', left: '36%', width: 30 }, rot: -6, duration: 5.4, delay: .5 },
-  { src: 'doodle-cursor-click.webp', style: { bottom: '19%', right: '1%', width: 58 }, rot: -12, duration: 6.8, delay: .7 },
+  { src: 'doodle-crown.webp', style: { top: '1.5%', left: '3%', width: 110 }, rot: -10, duration: 6, delay: 0 },
+  { src: 'doodle-star-big.webp', style: { top: '17%', left: '2%', width: 74 }, rot: -8, duration: 7, delay: .4 },
+  { src: 'doodle-speech-bubble.webp', style: { top: '3%', right: '2%', width: 128 }, rot: 6, duration: 6.5, delay: .2 },
+  { src: 'doodle-pencil.webp', style: { top: '42%', left: '-2%', width: 100 }, rot: -20, duration: 7.5, delay: .6 },
+  { src: 'doodle-lightning.webp', style: { top: '22%', right: '3%', width: 74 }, rot: 10, duration: 6.2, delay: .3 },
+  { src: 'doodle-sparkle-yellow.webp', style: { top: '54%', right: '4%', width: 50 }, rot: 4, duration: 5, delay: .1 },
+  { src: 'doodle-sparkle-white.webp', style: { top: '13%', left: '30%', width: 34 }, rot: -6, duration: 5.4, delay: .5 },
+  { src: 'doodle-cursor-click.webp', style: { bottom: '17%', right: '2%', width: 56 }, rot: -12, duration: 6.8, delay: .7 },
 ];
 
 export default function HomeScreen({ connecting, error, onClearError, onStartCreate, onJoin }: Props) {
@@ -83,14 +83,14 @@ export default function HomeScreen({ connecting, error, onClearError, onStartCre
       <div className="corio-noscroll corio-home-v2-content">
         <div className="corio-home-v2-hero">
           <div className="corio-home-v2-wheel">
-            <ColorWheelLogo width={168} />
+            <ColorWheelLogo width={240} />
           </div>
-          <div className="corio-home-v2-wordmark" style={{ marginTop: 4 }}>
-            <ColorIoWordmark size={40} />
-            <div className="corio-home-v2-splat" style={{ width: 62, height: 62, top: -22, right: -46 }} />
+          <div className="corio-home-v2-wordmark" style={{ marginTop: -6 }}>
+            <ColorIoWordmark fontSize="clamp(46px, 15vw, 60px)" strokeWidth={3.5} />
+            <div className="corio-home-v2-splat" style={{ width: 74, height: 74, top: -20, right: -52 }} />
           </div>
 
-          <div className="corio-home-v2-tagline" style={{ marginTop: 10, marginBottom: 18 }}>
+          <div className="corio-home-v2-tagline" style={{ marginTop: 14, marginBottom: 20 }}>
             Adivinhe a cor,<br />ganhe pontos, <mark>se divirta.</mark>
           </div>
         </div>

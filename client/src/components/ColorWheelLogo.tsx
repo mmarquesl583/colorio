@@ -70,19 +70,21 @@ export default function ColorWheelLogo({ width = 200 }: { width?: number }) {
   );
 }
 
-export function ColorIoWordmark({ size = 44 }: { size?: number }) {
+export function ColorIoWordmark({ fontSize = '44px', strokeWidth = 3, align = 'center' }: { fontSize?: string; strokeWidth?: number; align?: 'center' | 'left' }) {
   const base: CSSProperties = {
     fontFamily: "'Space Grotesk',sans-serif",
     fontWeight: 800,
-    fontSize: size,
+    fontSize,
     letterSpacing: -0.5,
-    WebkitTextStroke: `${Math.max(2, size * 0.055)}px #1B0B33`,
+    WebkitTextStroke: `${strokeWidth}px #12082B`,
     filter: 'drop-shadow(0 6px 0 rgba(0,0,0,0.35))',
   };
   return (
-    <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'center' }}>
+    <div className="corio-home-v2-wordmark-row" style={{ display: 'flex', alignItems: 'baseline', justifyContent: align === 'center' ? 'center' : 'flex-start' }}>
       <span style={{ ...base, color: '#FFFFFF' }}>color</span>
-      <span style={{ ...base, background: 'linear-gradient(90deg,#FF5C8A,#C084FC)', WebkitBackgroundClip: 'text', backgroundClip: 'text', color: 'transparent' }}>.io</span>
+      <span style={{ ...base, color: '#12082B' }}>.</span>
+      <span style={{ ...base, background: 'linear-gradient(180deg,#5EEAD4,#14B8A6)', WebkitBackgroundClip: 'text', backgroundClip: 'text', color: 'transparent' }}>i</span>
+      <span style={{ ...base, background: 'linear-gradient(180deg,#FF7AB8,#C084FC)', WebkitBackgroundClip: 'text', backgroundClip: 'text', color: 'transparent' }}>o</span>
     </div>
   );
 }
