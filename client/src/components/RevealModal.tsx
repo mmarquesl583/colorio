@@ -47,8 +47,14 @@ export default function RevealModal({ results, you, nextReady, onReadyNext }: Pr
       for (let i = 1; i <= 16; i++) t(110 * i, () => setProgress(i / 16));
     });
     return () => timers.forEach(clearTimeout);
+    // Every WS broadcast re-parses a brand-new `results` object even when
+    // nothing about the reveal changed (a chat message, another player
+    // readying up) — depending on the object itself restarted this whole
+    // animation on each one. secretHex is a primitive that's stable for
+    // the duration of a single round's reveal, so it only re-fires when
+    // the reveal actually changes.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [results]);
+  }, [results.secretHex]);
 
   const guessesByStanding = results.guesses; // server orders these by pre-round standing already
   const guessesByRoundScore = [...results.guesses].sort((a, b) => b.score - a.score);

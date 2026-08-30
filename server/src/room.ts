@@ -117,7 +117,8 @@ export class Room {
 
   startMatch(playerId: string) {
     if (playerId !== this.hostId || this.screen !== 'waiting') return;
-    if (this.order.filter((id) => this.players.get(id)?.connected).length < 2) return;
+    const minPlayers = this.config.phraseMode === 'ai' ? 1 : 2;
+    if (this.order.filter((id) => this.players.get(id)?.connected).length < minPlayers) return;
     this.screen = 'playing';
     this.startRound();
   }

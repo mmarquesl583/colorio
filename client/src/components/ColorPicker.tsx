@@ -110,9 +110,9 @@ export default function ColorPicker({ value, onChange, confirmed, onConfirm, col
         )}
       </div>
 
-      <div style={{ display: 'flex', gap: 8, flex: 1, minHeight: 0 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, flex: 1, minHeight: 0 }}>
         <div
-          style={{ position: 'relative', flex: 1, minWidth: 0, borderRadius: 12, overflow: 'hidden', border: '1px solid rgba(255,255,255,0.12)', touchAction: 'none' }}
+          style={{ position: 'relative', flex: 1, minWidth: 0, width: '100%', aspectRatio: '1.7', maxHeight: '100%', borderRadius: 12, overflow: 'hidden', border: '1px solid rgba(255,255,255,0.12)', touchAction: 'none' }}
           onPointerDown={(e) => { draggingRef.current = true; onChange(posFromSquareEvent(e)); }}
           onPointerMove={(e) => { if (draggingRef.current) onChange(posFromSquareEvent(e)); }}
           onPointerUp={() => { draggingRef.current = false; }}

@@ -86,14 +86,18 @@ export default function WaitingScreen({ conn }: { conn: RoomConnection }) {
           <div className="corio-card-title" style={{ fontSize: 11, fontWeight: 800 }}>{isHost ? 'O jogo vai começar!' : 'Aguardando o anfitrião...'}</div>
           <div className="corio-card-sub" style={{ fontSize: 8, color: 'rgba(244,242,248,0.5)' }}>{isHost ? 'Quando todos estiverem prontos.' : 'Ele decide a hora de começar.'}</div>
         </div>
-        {isHost && (
+        {isHost && (() => {
+          const minPlayers = s.config.phraseMode === 'ai' ? 1 : 2;
+          const canStart = s.players.length >= minPlayers;
+          return (
           <button
             onClick={() => conn.send({ type: 'start_match' })}
-            disabled={s.players.length < 2}
+            disabled={!canStart}
             className="corio-tap corio-btn-lg"
-            style={{ all: 'unset', cursor: s.players.length < 2 ? 'default' : 'pointer', display: 'flex', alignItems: 'center', gap: 6, background: 'linear-gradient(90deg,#8B5CF6,#FFC93C)', color: '#1a1024', fontWeight: 800, fontSize: 11, padding: '10px 14px', borderRadius: 11, whiteSpace: 'nowrap', opacity: s.players.length < 2 ? 0.5 : 1 }}
+            style={{ all: 'unset', cursor: canStart ? 'pointer' : 'default', display: 'flex', alignItems: 'center', gap: 6, background: 'linear-gradient(90deg,#8B5CF6,#FFC93C)', color: '#1a1024', fontWeight: 800, fontSize: 11, padding: '10px 14px', borderRadius: 11, whiteSpace: 'nowrap', opacity: canStart ? 1 : 0.5 }}
           >▶ COMEÇAR</button>
-        )}
+          );
+        })()}
       </div>
     </div>
   );
