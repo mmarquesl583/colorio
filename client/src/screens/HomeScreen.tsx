@@ -81,18 +81,21 @@ export default function HomeScreen({ connecting, error, onClearError, onStartCre
       </div>
 
       <div className="corio-noscroll corio-home-v2-content">
-        <div className="corio-home-v2-wheel">
-          <ColorWheelLogo width={168} />
-        </div>
-        <div style={{ marginTop: 4 }}>
-          <ColorIoWordmark size={40} />
+        <div className="corio-home-v2-hero">
+          <div className="corio-home-v2-wheel">
+            <ColorWheelLogo width={168} />
+          </div>
+          <div className="corio-home-v2-wordmark" style={{ marginTop: 4 }}>
+            <ColorIoWordmark size={40} />
+            <div className="corio-home-v2-splat" style={{ width: 62, height: 62, top: -22, right: -46 }} />
+          </div>
+
+          <div className="corio-home-v2-tagline" style={{ marginTop: 10, marginBottom: 18 }}>
+            Adivinhe a cor,<br />ganhe pontos, <mark>se divirta.</mark>
+          </div>
         </div>
 
-        <div className="corio-home-v2-tagline" style={{ marginTop: 10, marginBottom: 18 }}>
-          Adivinhe a cor,<br />ganhe pontos, <mark>se divirta.</mark>
-        </div>
-
-        <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: 12 }}>
+        <div className="corio-home-v2-form">
           <button
             onClick={() => chooseMode('create')}
             className={`corio-home-v2-btn corio-home-v2-btn-primary ${mode === 'create' ? 'is-active' : 'corio-home-v2-btn-inactive'}`}
@@ -108,13 +111,17 @@ export default function HomeScreen({ connecting, error, onClearError, onStartCre
             Entrar com código
           </button>
 
-          <input
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            maxLength={20}
-            placeholder="Seu nome"
-            className="corio-home-v2-input"
-          />
+          <div className="corio-home-v2-input-wrap">
+            <svg className="corio-home-v2-input-icon" width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="8" r="4" /><path d="M4 20c0-4.4 3.6-8 8-8s8 3.6 8 8" /></svg>
+            <input
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              maxLength={20}
+              placeholder="Seu nome"
+              className="corio-home-v2-input"
+            />
+            <svg className="corio-home-v2-input-scribble" width="20" height="14" viewBox="0 0 20 14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M1 11 L6 3 M8 11 L13 3 M15 11 L19 5" /></svg>
+          </div>
 
           {mode === 'join' && (
             <>
