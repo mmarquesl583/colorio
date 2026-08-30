@@ -75,6 +75,7 @@ export interface RoundView {
   phrase: string;
   isAiPhrase: boolean;
   aiDifficulty: 'facil' | 'media' | 'dificil' | null;
+  aiSource: string | null;
 }
 
 export interface YouView extends PlayerPublic {

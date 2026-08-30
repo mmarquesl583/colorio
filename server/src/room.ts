@@ -166,6 +166,7 @@ export class Room {
 
     let phrase = '';
     let aiDifficulty: AiDifficulty | null = null;
+    let aiSource: string | null = null;
     let secretHsl: HslColor = { h: Math.round(Math.random() * 360), s: Math.round(40 + Math.random() * 45), l: Math.round(22 + Math.random() * 45) };
     if (isAi) {
       const bank = AI_QUESTIONS[theme.id];
@@ -173,6 +174,7 @@ export class Room {
       if (q) {
         phrase = q.pergunta;
         aiDifficulty = q.dificuldade;
+        aiSource = q.fonte ?? null;
         const rgb = hexToRgb(q.hex);
         secretHsl = rgbToHslFrac(rgb.r, rgb.g, rgb.b);
       } else {
@@ -185,7 +187,7 @@ export class Room {
       idx: this.roundIdx, number,
       themeId: theme.id, themeIcon: theme.icon, themeName: theme.name,
       masterId, masterName,
-      phrase, isAiPhrase: isAi, aiDifficulty,
+      phrase, isAiPhrase: isAi, aiDifficulty, aiSource,
     };
     this.results = null;
     this.secretHsl = secretHsl;

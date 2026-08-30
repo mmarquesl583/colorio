@@ -7,9 +7,9 @@ function difficultyDot(d: 'facil' | 'media' | 'dificil'): string {
 export default function RoundIntroModal({ round, onClose }: { round: RoundView; onClose: () => void }) {
   return (
     <div style={{ position: 'absolute', inset: 0, background: 'rgba(5,5,7,0.82)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20, zIndex: 28 }}>
-      <div style={{ background: '#15151f', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 18, padding: 20, width: '100%', animation: 'corio-rise .35s ease', textAlign: 'center' }}>
+      <div style={{ background: '#15151f', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 18, padding: 20, width: '100%', maxWidth: 340, animation: 'corio-rise .35s ease', textAlign: 'center' }}>
         <div style={{ fontSize: 18, animation: 'corio-twinkle 1.6s ease-in-out infinite' }}>✦</div>
-        <div style={{ fontSize: 9, fontWeight: 700, letterSpacing: 0.6, color: '#A78BFA', marginTop: 4 }}>TEMA · {round.themeName}</div>
+        <div style={{ fontSize: 9, fontWeight: 700, letterSpacing: 0.6, color: '#A78BFA', marginTop: 4 }}>TEMA · {round.themeName}{round.aiSource ? ` — ${round.aiSource}` : ''}</div>
         <div style={{ fontSize: 14, fontWeight: 700, marginTop: 4 }}>
           {round.isAiPhrase ? '🤖 Frase da IA' : `✏️ Vez de ${round.masterName}`}
         </div>
