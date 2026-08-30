@@ -3,16 +3,32 @@ import {
   hslFracToRgb, rgbToHex, hexToRgb, rgbToHslFrac,
 } from '../../shared/color.ts';
 import { calculateColorScore, calculateMasterScore, badgeFromScore } from '../../shared/scoring.ts';
-import { LOBBY_THEMES, AI_PHRASE_BANK, PLAYER_PALETTE, PLACING_SECONDS, NEXT_ROUND_READY_TIMEOUT_MS, SPEED_BONUS_MAX, ROUND_MVP_BONUS } from '../../shared/gameData.ts';
+import {
+  LOBBY_THEMES, AI_PHRASE_BANK, PLAYER_PALETTE, PLACING_SECONDS, NEXT_ROUND_READY_TIMEOUT_MS,
+  SPEED_BONUS_MAX, ROUND_MVP_BONUS, AI_WIN_SCORE, AI_WIN_PERFECTS,
+} from '../../shared/gameData.ts';
 import { AI_QUESTIONS } from '../../shared/aiQuestions.ts';
 import type { AiDifficulty } from '../../shared/aiQuestions.ts';
 import type {
   RoomConfig, RoundPhase, ScreenState, HslColor, ChatEntry,
-  RoundView, RoundResults, RoomStateView, PlayerPublic,
+  RoundView, RoundResults, RoomStateView, PlayerPublic, MatchWinner,
 } from '../../shared/types.ts';
 import { newChatId } from './id.ts';
 
 const DEFAULT_COLOR: HslColor = { h: 260, s: 60, l: 55 };
+
+export interface QuestionReport {
+  roomCode: string;
+  reporterName: string;
+  themeId: string;
+  themeName: string;
+  phrase: string;
+  aiDifficulty: AiDifficulty | null;
+  aiSource: string | null;
+  secretHex: string;
+  note?: string;
+  ts: number;
+}
 
 interface InternalPlayer {
   id: string;
@@ -21,6 +37,7 @@ interface InternalPlayer {
   color: string;
   initial: string;
   score: number;
+  perfectCount: number;
   connected: boolean;
   confirmed: boolean;
   readyNext: boolean;
@@ -47,15 +64,19 @@ export class Room {
   secondsLeft: number | null = null;
   results: RoundResults | null = null;
   lastThemeId: string | null = null;
+  matchWinner: MatchWinner | null = null;
+  createdAt = Date.now();
 
   private tickHandle: ReturnType<typeof setInterval> | null = null;
   private nextReadyFallback: ReturnType<typeof setTimeout> | null = null;
   private onEmpty: () => void;
+  private onReport: (report: QuestionReport) => void;
 
-  constructor(code: string, config: RoomConfig, onEmpty: () => void) {
+  constructor(code: string, config: RoomConfig, onEmpty: () => void, onReport: (report: QuestionReport) => void) {
     this.code = code;
     this.config = config;
     this.onEmpty = onEmpty;
+    this.onReport = onReport;
   }
 
   private colorFor(index: number): string {
@@ -68,7 +89,7 @@ export class Room {
       id, ws, name: name.slice(0, 20) || 'Jogador',
       color: this.colorFor(idx),
       initial: (name.trim()[0] || 'J').toUpperCase(),
-      score: 0, connected: true, confirmed: false, readyNext: false,
+      score: 0, perfectCount: 0, connected: true, confirmed: false, readyNext: false,
       pickedColor: null, colorHistory: [], confirmedAtSeconds: null,
     };
     this.players.set(id, player);
@@ -298,14 +319,32 @@ export class Room {
       const speedBonus = baseScore > 0 ? Math.round(SPEED_BONUS_MAX * ((p.confirmedAtSeconds ?? 0) / PLACING_SECONDS)) : 0;
       const isRoundMvp = id === mvpId;
       const score = baseScore + speedBonus + (isRoundMvp ? ROUND_MVP_BONUS : 0);
+      const badge = badgeFromScore(baseScore);
+      if (badge === 'PERFEITO') p.perfectCount += 1;
       const prevScore = p.score;
       p.score += score;
       return {
         playerId: id, name: p.name, color: p.color, initial: p.initial,
-        hsl, deltaE: de, score, badge: badgeFromScore(baseScore), isRoundMvp,
+        hsl, deltaE: de, score, badge, isRoundMvp,
         prevScore, newScore: p.score,
       };
     });
+
+    // Frase da IA win condition: first to 10000 pontos or 5 acertos perfeitos.
+    // Checked against guessers only (the master's average-of-guessers gain
+    // below isn't a color match of their own, so it doesn't count).
+    if (this.config.phraseMode === 'ai' && !this.matchWinner) {
+      const qualifiers = guesses
+        .map((g) => ({ g, p: this.players.get(g.playerId)! }))
+        .filter(({ p }) => p.score >= AI_WIN_SCORE || p.perfectCount >= AI_WIN_PERFECTS);
+      if (qualifiers.length > 0) {
+        const winner = qualifiers.reduce((best, cur) => (cur.p.score > best.p.score ? cur : best), qualifiers[0]);
+        this.matchWinner = {
+          playerId: winner.g.playerId, name: winner.g.name, score: winner.p.score,
+          reason: winner.p.score >= AI_WIN_SCORE ? 'points' : 'perfect',
+        };
+      }
+    }
 
     let masterId: string | null = null, masterName: string | null = null;
     let masterPrevScore = 0, masterNewScore = 0;
@@ -327,7 +366,7 @@ export class Room {
     for (const p of this.players.values()) p.readyNext = false;
     this.broadcast();
 
-    this.nextReadyFallback = setTimeout(() => this.startRound(), NEXT_ROUND_READY_TIMEOUT_MS + 6000);
+    this.nextReadyFallback = setTimeout(() => this.advanceAfterReveal(), NEXT_ROUND_READY_TIMEOUT_MS + 6000);
   }
 
   readyNext(playerId: string) {
@@ -339,8 +378,61 @@ export class Room {
     this.broadcast();
     if (allReady) {
       if (this.nextReadyFallback) { clearTimeout(this.nextReadyFallback); this.nextReadyFallback = null; }
-      this.startRound();
+      this.advanceAfterReveal();
     }
+  }
+
+  private advanceAfterReveal() {
+    if (this.matchWinner) this.finishMatch();
+    else this.startRound();
+  }
+
+  private finishMatch() {
+    this.stopTimers();
+    this.screen = 'finished';
+    this.phase = null;
+    this.secondsLeft = null;
+    this.chat.push(sysMsg('#FFC93C', `🏆 ${this.matchWinner!.name} venceu a partida!`));
+    this.broadcast();
+  }
+
+  /** Host-only: replay in the same room with the same players, scores reset. */
+  restartMatch(playerId: string) {
+    if (playerId !== this.hostId || this.screen !== 'finished') return;
+    this.stopTimers();
+    for (const p of this.players.values()) {
+      p.score = 0; p.perfectCount = 0; p.confirmed = false; p.readyNext = false;
+      p.pickedColor = null; p.colorHistory = []; p.confirmedAtSeconds = null;
+    }
+    this.roundIdx = -1;
+    this.round = null;
+    this.phase = null;
+    this.secondsLeft = null;
+    this.results = null;
+    this.matchWinner = null;
+    this.screen = 'waiting';
+    this.chat.push(sysMsg('#94A3B8', 'O anfitrião reiniciou a partida'));
+    this.broadcast();
+  }
+
+  reportQuestion(playerId: string, note?: string) {
+    const p = this.players.get(playerId);
+    if (!p || !this.round || !this.round.isAiPhrase) return;
+    const secretRgb = hslFracToRgb(this.secretHsl.h, this.secretHsl.s / 100, this.secretHsl.l / 100);
+    this.onReport({
+      roomCode: this.code,
+      reporterName: p.name,
+      themeId: this.round.themeId,
+      themeName: this.round.themeName,
+      phrase: this.round.phrase,
+      aiDifficulty: this.round.aiDifficulty,
+      aiSource: this.round.aiSource,
+      secretHex: rgbToHex(secretRgb.r, secretRgb.g, secretRgb.b),
+      note: note?.trim().slice(0, 200) || undefined,
+      ts: Date.now(),
+    });
+    this.chat.push(sysMsg('#94A3B8', `${p.name} reportou esta pergunta`));
+    this.broadcast();
   }
 
   sendChat(playerId: string, text: string) {
@@ -392,6 +484,7 @@ export class Room {
         ready: activeIds.filter((id) => this.players.get(id)?.readyNext).length,
         total: activeIds.length,
       },
+      matchWinner: this.matchWinner,
     };
   }
 

@@ -122,6 +122,8 @@ export default function GameScreen({ conn }: { conn: RoomConnection }) {
             </div>
           </div>
 
+          {round.isAiPhrase && <ReportButton key={round.idx} onReport={() => conn.send({ type: 'report_question' })} />}
+
           {phase === 'master-writing' && you.isMaster && (
             <MasterWritingCard
               secretCss={cssFromHsl(masterSpin.color)}
@@ -249,6 +251,24 @@ function MasterSentCard({ secretCss, waitingLabel }: { secretCss: string; waitin
         <div style={{ fontSize: 10.5, color: 'rgba(244,242,248,0.5)' }}>{waitingLabel}</div>
       </div>
     </div>
+  );
+}
+
+function ReportButton({ onReport }: { onReport: () => void }) {
+  const [reported, setReported] = useState(false);
+  return (
+    <button
+      onClick={() => { if (!reported) { onReport(); setReported(true); } }}
+      disabled={reported}
+      className="corio-tap"
+      style={{
+        all: 'unset', cursor: reported ? 'default' : 'pointer', flex: 'none', display: 'flex', alignItems: 'center',
+        justifyContent: 'center', gap: 5, margin: '0 16px 8px', padding: '6px 10px', borderRadius: 10,
+        background: reported ? 'rgba(74,222,128,0.1)' : 'rgba(255,255,255,0.04)',
+        border: `1px solid ${reported ? 'rgba(74,222,128,0.3)' : 'rgba(255,255,255,0.1)'}`,
+        fontSize: 9.5, fontWeight: 700, color: reported ? '#4ADE80' : 'rgba(244,242,248,0.5)',
+      }}
+    >{reported ? '✓ Reportado — obrigado!' : '🚩 A cor não combina com a pergunta? Reportar'}</button>
   );
 }
 

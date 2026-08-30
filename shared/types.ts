@@ -10,7 +10,7 @@ export interface RoomConfig {
 }
 
 export type RoundPhase = 'master-writing' | 'placing' | 'reveal';
-export type ScreenState = 'waiting' | 'playing';
+export type ScreenState = 'waiting' | 'playing' | 'finished';
 
 export interface HslColor {
   h: number;
@@ -85,6 +85,14 @@ export interface YouView extends PlayerPublic {
   masterSecret: HslColor | null;
 }
 
+/** Set once a Frase da IA match hits its win condition (10000 pontos or 5 acertos perfeitos). */
+export interface MatchWinner {
+  playerId: string;
+  name: string;
+  score: number;
+  reason: 'points' | 'perfect';
+}
+
 export interface RoomStateView {
   code: string;
   screen: ScreenState;
@@ -98,6 +106,18 @@ export interface RoomStateView {
   secondsLeft: number | null;
   results: RoundResults | null;
   nextReady: { ready: number; total: number };
+  matchWinner: MatchWinner | null;
+}
+
+/** Summary shown in the "open rooms" list on the home screen (public rooms only). */
+export interface PublicRoomSummary {
+  code: string;
+  hostName: string;
+  playerCount: number;
+  numPlayers: number;
+  phraseMode: PhraseMode;
+  screen: ScreenState;
+  numRounds: number;
 }
 
 export type ClientMessage =
@@ -110,7 +130,9 @@ export type ClientMessage =
   | { type: 'confirm_color' }
   | { type: 'submit_phrase'; text: string }
   | { type: 'send_chat'; text: string }
-  | { type: 'ready_next' };
+  | { type: 'ready_next' }
+  | { type: 'restart_match' }
+  | { type: 'report_question' };
 
 export type ServerMessage =
   | { type: 'joined'; code: string; playerId: string }

@@ -10,3 +10,8 @@ services:
     envVars:
       - key: NPM_CONFIG_PRODUCTION
         value: "false"
+      # Set this in the Render dashboard to enable GET /reports?key=... for
+      # viewing "reportar pergunta" submissions from Frase da IA. Leave unset
+      # to keep the endpoint disabled (404).
+      - key: REPORTS_KEY
+        sync: false

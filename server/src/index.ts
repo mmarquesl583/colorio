@@ -1,12 +1,40 @@
 import { createServer } from 'node:http';
+import { appendFile } from 'node:fs/promises';
 import { WebSocketServer, WebSocket } from 'ws';
 import { newPlayerId, newRoomCode } from './id.ts';
-import { Room } from './room.ts';
+import { Room, type QuestionReport } from './room.ts';
 import { LOBBY_THEMES, MIN_PLAYERS, MAX_PLAYERS, MIN_ROUNDS, MAX_ROUNDS } from '../../shared/gameData.ts';
-import type { ClientMessage, RoomConfig, ServerMessage } from '../../shared/types.ts';
+import type { ClientMessage, RoomConfig, ServerMessage, PublicRoomSummary } from '../../shared/types.ts';
 
 const PORT = Number(process.env.PORT) || 8787;
 const rooms = new Map<string, Room>();
+
+// Question reports (Frase da IA "reportar pergunta" button) — kept in memory
+// for the running process and best-effort appended to a local file so they
+// survive a plain restart. Render's free-tier disk is NOT guaranteed to
+// survive a redeploy, so this is a mailbox to check periodically, not a
+// permanent archive.
+const reports: QuestionReport[] = [];
+function recordReport(report: QuestionReport) {
+  reports.push(report);
+  if (reports.length > 2000) reports.shift();
+  appendFile('reports.jsonl', JSON.stringify(report) + '\n', 'utf8').catch((err) => {
+    console.error('Failed to persist report to disk:', err);
+  });
+}
+
+function publicRoomSummary(room: Room): PublicRoomSummary {
+  const host = room.players.get(room.hostId ?? '');
+  return {
+    code: room.code,
+    hostName: host?.name ?? '?',
+    playerCount: [...room.players.values()].filter((p) => p.connected).length,
+    numPlayers: room.config.numPlayers,
+    phraseMode: room.config.phraseMode,
+    screen: room.screen,
+    numRounds: room.config.numRounds,
+  };
+}
 
 function sanitizeConfig(input: Partial<RoomConfig> | undefined): RoomConfig {
   const validThemeIds = new Set(LOBBY_THEMES.map((t) => t.id));
@@ -29,7 +57,28 @@ function send(ws: WebSocket, msg: ServerMessage) {
 }
 
 const httpServer = createServer((req, res) => {
-  if (req.url === '/health') { res.writeHead(200); res.end('ok'); return; }
+  const url = new URL(req.url ?? '/', 'http://localhost');
+
+  if (url.pathname === '/health') { res.writeHead(200); res.end('ok'); return; }
+
+  if (url.pathname === '/rooms') {
+    const list = [...rooms.values()]
+      .filter((r) => r.config.privacy === 'public' && r.players.size > 0)
+      .sort((a, b) => (a.screen === b.screen ? b.createdAt - a.createdAt : a.screen === 'waiting' ? -1 : 1))
+      .map(publicRoomSummary);
+    res.writeHead(200, { 'content-type': 'application/json', 'access-control-allow-origin': '*' });
+    res.end(JSON.stringify(list));
+    return;
+  }
+
+  if (url.pathname === '/reports') {
+    const key = url.searchParams.get('key');
+    if (!process.env.REPORTS_KEY || key !== process.env.REPORTS_KEY) { res.writeHead(404); res.end(); return; }
+    res.writeHead(200, { 'content-type': 'application/json' });
+    res.end(JSON.stringify(reports));
+    return;
+  }
+
   res.writeHead(404); res.end();
 });
 
@@ -46,7 +95,7 @@ wss.on('connection', (ws: WebSocket) => {
     if (msg.type === 'create_room') {
       const config = sanitizeConfig(msg.config);
       const code = newRoomCode((c) => rooms.has(c));
-      const newRoom = new Room(code, config, () => rooms.delete(code));
+      const newRoom = new Room(code, config, () => rooms.delete(code), recordReport);
       rooms.set(code, newRoom);
       playerId = newPlayerId();
       const player = newRoom.addPlayer(playerId, msg.name, ws);
@@ -59,7 +108,8 @@ wss.on('connection', (ws: WebSocket) => {
     if (msg.type === 'join_room') {
       const target = rooms.get(msg.code.toUpperCase());
       if (!target) { send(ws, { type: 'error', message: 'Sala não encontrada.' }); return; }
-      if (target.screen !== 'waiting') { send(ws, { type: 'error', message: 'A partida já começou.' }); return; }
+      // Rooms stay open for the whole match — joining mid-round just drops
+      // the newcomer in with 0 points and a chat announcement, no gate here.
       playerId = newPlayerId();
       target.addPlayer(playerId, msg.name, ws);
       room = target;
@@ -88,6 +138,8 @@ wss.on('connection', (ws: WebSocket) => {
       case 'submit_phrase': room.submitPhrase(playerId, msg.text); break;
       case 'send_chat': room.sendChat(playerId, msg.text); break;
       case 'ready_next': room.readyNext(playerId); break;
+      case 'restart_match': room.restartMatch(playerId); break;
+      case 'report_question': room.reportQuestion(playerId); break;
     }
   });
 

@@ -33,11 +33,15 @@ pontos" ou "o que é considerado válido", ela vai no `server/`, não no
 | Mudar cor, espaçamento, fonte, algo visual | inline no componente (`style={{...}}`) ou `client/src/styles/global.css` pras classes `corio-*` |
 | Adicionar/remover um tema (tipo "Clash Royale") | `shared/gameData.ts` → array `LOBBY_THEMES` |
 | Adicionar perguntas pro modo "Frase da IA" de um tema | `shared/aiQuestions.ts` → chave `AI_QUESTIONS[idDoTema]` (o `id` tem que bater com o `id` em `LOBBY_THEMES`) |
-| Mudar a fórmula de pontuação (curva de pontos por distância de cor) | `shared/scoring.ts` → `scoreFromDeltaE` |
+| Mudar a fórmula de pontuação (curva de pontos por Delta E) | `shared/scoring.ts` → `calculateColorScore` |
 | Mudar os bônus (velocidade, MVP da rodada) | `shared/gameData.ts` (valores `SPEED_BONUS_MAX`, `ROUND_MVP_BONUS`) + `server/src/room.ts` → `computeReveal()` (é onde os bônus são somados) |
-| Mudar quando os badges PERFEITO/QUASE PERFEITO/ÓTIMO aparecem | `shared/scoring.ts` → `badgeFromDeltaE` |
+| Mudar quando os badges PERFEITO/QUASE PERFEITO/MUITO PERTO/PERTO/DISTANTE aparecem | `shared/scoring.ts` → `badgeFromScore` |
 | Mudar quantos jogadores mínimo/máximo, rodadas, tempo de rodada | `shared/gameData.ts` (`MIN_PLAYERS`, `MAX_PLAYERS`, `MIN_ROUNDS`, `MAX_ROUNDS`, `PLACING_SECONDS`) |
 | Mudar as regras de "quantos jogadores pra começar a partida" | `server/src/room.ts` → `startMatch()` (hoje: 1 no modo IA, 2 nos outros) |
+| Mudar a condição de vitória do modo "Frase da IA" (hoje: 10.000 pontos ou 5 acertos perfeitos) | `shared/gameData.ts` (`AI_WIN_SCORE`, `AI_WIN_PERFECTS`) + `server/src/room.ts` → `computeReveal()` (onde checa) e `finishMatch()`/`restartMatch()` |
+| Mudar a tela de fim de partida (vencedor, placar final, "jogar novamente") | `client/src/screens/MatchEndScreen.tsx` |
+| Mudar a lista de salas abertas na Home (em vez de digitar código) | `client/src/screens/HomeScreen.tsx` (busca em `${HTTP_BASE}/rooms`) + `server/src/index.ts` → rota HTTP `/rooms` |
+| Mudar o botão "reportar pergunta" do modo IA ou onde os reports são salvos | `client/src/screens/GameScreen.tsx` → `ReportButton` + `server/src/room.ts` → `reportQuestion()` + `server/src/index.ts` → `recordReport`/rota `/reports` |
 | Mudar o seletor de cor (quadrado, barra de matiz, campos RGB) | `client/src/components/ColorPicker.tsx` |
 | Mudar a animação/telas de revelação do resultado da rodada | `client/src/components/RevealModal.tsx` |
 | Mudar o que acontece quando uma rodada começa/termina | `server/src/room.ts` → `startRound()` / `computeReveal()` |
@@ -54,8 +58,12 @@ pontos" ou "o que é considerado válido", ela vai no `server/`, não no
 
 ## Como uma partida funciona (visão geral)
 
-1. **Home** (`HomeScreen.tsx`) → jogador digita nome, escolhe criar ou
-   entrar com código.
+1. **Home** (`HomeScreen.tsx`) → jogador digita nome; pode criar uma
+   sala nova ou entrar numa sala pública clicando na lista (busca em
+   `GET /rooms`, atualizada a cada 5s) — código manual só existe como
+   opção secundária, pra salas privadas. Salas ficam sempre listadas e
+   entráveis, mesmo com a partida já em andamento: quem entra depois
+   só aparece no chat e começa com 0 pontos, sem travar nada.
 2. **Lobby** (`LobbyScreen.tsx`, só pra quem está criando) → escolhe
    jogadores/rodadas/temas/modo de frase, manda `create_room`.
 3. **Sala de espera** (`WaitingScreen.tsx`) → mostra o código, quem já
@@ -72,10 +80,17 @@ pontos" ou "o que é considerado válido", ela vai no `server/`, não no
    tempo acaba), o servidor calcula a distância de cada palpite até a
    cor secreta (Delta E 2000, `shared/color.ts`), converte em pontos
    (`shared/scoring.ts`), soma bônus, e manda o resultado. O cliente
-   anima a revelação em cima disso.
-6. Repete até `numRounds`, aí a sala fica no placar final (não tem uma
-   tela de "fim de jogo" dedicada hoje — os jogadores só veem o placar
-   subir a cada rodada).
+   anima a revelação em cima disso — a animação inteira é
+   automática/sincronizada (mesmo cronograma pra todo mundo, sem botão
+   pra acelerar), só o "Próxima rodada" final é uma ação do jogador.
+6. Repete até `numRounds` — **exceto no modo "Frase da IA"**, que pode
+   terminar antes: assim que alguém bate `AI_WIN_SCORE` pontos ou
+   `AI_WIN_PERFECTS` acertos PERFEITO (`shared/gameData.ts`), a sala
+   vai pra `screen: 'finished'` e mostra `MatchEndScreen.tsx` (vencedor
+   + placar final + botão "jogar novamente" só pro anfitrião, que
+   reinicia a mesma sala com os mesmos jogadores e pontuação zerada).
+   No modo "Frase dos jogadores" ainda não existe uma condição de fim
+   de partida — a sala só continua rodando rodadas.
 
 O estado inteiro de uma sala vive **na memória do servidor**, dentro
 de um objeto `Room` (`server/src/room.ts`). Não tem banco de dados —
@@ -95,6 +110,8 @@ some. Isso é intencional (é um jogo casual, não precisa persistir).
 - `screens/HomeScreen.tsx` — tela inicial (nome + criar/entrar).
 - `screens/LobbyScreen.tsx` — configurar a sala antes de criar.
 - `screens/WaitingScreen.tsx` — sala de espera antes da partida.
+- `screens/MatchEndScreen.tsx` — tela de fim de partida do modo "Frase
+  da IA" (vencedor, placar final, "jogar novamente" pro anfitrião).
 - `screens/GameScreen.tsx` — a tela da rodada em si (a mais complexa;
   contém os cards de "Mestre escrevendo", "cor enviada", os pills de
   SALA/RODADA/TEMPO, etc). O quadrado de escolher cor e o painel de
@@ -119,7 +136,10 @@ some. Isso é intencional (é um jogo casual, não precisa persistir).
 ### `server/src/`
 - `index.ts` — abre o servidor HTTP+WebSocket, roteia cada mensagem
   recebida (`create_room`, `join_room`, `pick_color`, etc.) pro método
-  certo da `Room`.
+  certo da `Room`. Também serve `GET /rooms` (lista de salas públicas,
+  usada pela Home) e `GET /reports?key=...` (lista dos "reportar
+  pergunta", só funciona se a env var `REPORTS_KEY` estiver definida
+  no Render — veja `render.yaml`).
 - `room.ts` — **o coração do jogo**. Uma instância de `Room` por sala
   ativa (guardadas no `Map` em `index.ts`). Métodos principais:
   `startMatch`, `startRound`, `submitPhrase`, `pickColor`,
@@ -179,6 +199,11 @@ some. Isso é intencional (é um jogo casual, não precisa persistir).
 - **Sem banco de dados.** Qualquer coisa que devesse "lembrar depois
   que a sala acabar" (histórico de partidas, estatísticas de longo
   prazo) precisaria de uma peça nova (banco + rota), não existe hoje.
+  Isso vale pros reports de pergunta também: ficam em memória +
+  `server/reports.jsonl` (best-effort, `.gitignore`d) — o disco do
+  Render no plano free **não é garantido sobreviver a um redeploy**,
+  então trate `GET /reports` como uma caixa de entrada pra checar de
+  vez em quando, não um arquivo permanente.
 
 ---
 

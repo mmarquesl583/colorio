@@ -5,6 +5,7 @@ import HomeScreen from './screens/HomeScreen.tsx';
 import LobbyScreen from './screens/LobbyScreen.tsx';
 import WaitingScreen from './screens/WaitingScreen.tsx';
 import GameScreen from './screens/GameScreen.tsx';
+import MatchEndScreen from './screens/MatchEndScreen.tsx';
 import type { RoomConfig } from '@shared/types';
 
 type Route = 'home' | 'create-lobby';
@@ -18,6 +19,9 @@ export default function App() {
     if (conn.state) {
       if (conn.state.screen === 'waiting') {
         return <WaitingScreen conn={conn} />;
+      }
+      if (conn.state.screen === 'finished') {
+        return <MatchEndScreen conn={conn} />;
       }
       return <GameScreen conn={conn} />;
     }

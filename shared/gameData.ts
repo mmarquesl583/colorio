@@ -51,3 +51,7 @@ export const MAX_ROUNDS = 12;
 // Scoring bonuses layered on top of the base Delta E curve (shared/scoring.ts).
 export const SPEED_BONUS_MAX = 30; // full bonus for confirming the instant the round starts
 export const ROUND_MVP_BONUS = 50; // awarded to the single closest guess of the round (needs 2+ guessers to be meaningful)
+
+// Frase da IA win condition: first player to hit either wins the match.
+export const AI_WIN_SCORE = 10000;
+export const AI_WIN_PERFECTS = 5;

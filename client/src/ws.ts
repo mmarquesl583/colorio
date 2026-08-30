@@ -4,6 +4,12 @@ import type { ClientMessage, RoomConfig, RoomStateView, ServerMessage } from '@s
 const WS_URL = (import.meta.env.VITE_WS_URL as string | undefined)
   || `${location.protocol === 'https:' ? 'wss' : 'ws'}://${location.host}/ws`;
 
+// Same-origin derivation as WS_URL above, but for plain HTTP calls (the open
+// rooms list). Used before any room WebSocket connection exists.
+export const HTTP_BASE = (import.meta.env.VITE_WS_URL as string | undefined)
+  ? (import.meta.env.VITE_WS_URL as string).replace(/^ws/, 'http').replace(/\/ws\/?$/, '')
+  : `${location.protocol}//${location.host}`;
+
 const SESSION_KEY = 'colorio.session';
 
 interface StoredSession {
