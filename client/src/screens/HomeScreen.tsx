@@ -34,7 +34,7 @@ const DOODLES: Doodle[] = [
   { src: 'doodle-lightning.webp', pos: { top: '4%', right: '18%' }, width: 62, rot: 10, duration: 6.2, delay: .3 },
   { src: 'doodle-sparkle-yellow.webp', pos: { top: '54%', right: '5%' }, width: 50, rot: 4, duration: 5, delay: .1 },
   { src: 'doodle-sparkle-white.webp', pos: { top: '13%', left: '30%' }, width: 34, rot: -6, duration: 5.4, delay: .5 },
-  { src: 'doodle-cursor-click.webp', pos: { bottom: '17%', right: '3%' }, width: 56, rot: -12, duration: 6.8, delay: .7 },
+  { src: 'doodle-cursor-click.webp', pos: { bottom: '6%', right: '4%' }, width: 56, rot: -12, duration: 6.8, delay: .7 },
 ];
 
 export default function HomeScreen({ connecting, error, onClearError, onStartCreate, onJoin }: Props) {
@@ -97,24 +97,12 @@ export default function HomeScreen({ connecting, error, onClearError, onStartCre
         <div className="corio-home-v2-hero">
           <img src={`${IMG}/logo-full.webp`} alt="color.io" className="corio-home-v2-logo-full" />
 
-          <div className="corio-home-v2-tagline" style={{ marginTop: 14, marginBottom: 20 }}>
+          <div className="corio-home-v2-tagline" style={{ marginTop: 8, marginBottom: 12 }}>
             Adivinhe a cor,<br />ganhe pontos, <mark>se divirta.</mark>
           </div>
         </div>
 
         <div className="corio-home-v2-form">
-          <div className="corio-home-v2-input-wrap">
-            <svg className="corio-home-v2-input-icon" width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="8" r="4" /><path d="M4 20c0-4.4 3.6-8 8-8s8 3.6 8 8" /></svg>
-            <input
-              value={name}
-              onChange={(e) => updateName(e.target.value)}
-              maxLength={NAME_MAX}
-              placeholder="Seu nome"
-              className="corio-home-v2-input"
-            />
-            <svg className="corio-home-v2-input-scribble" width="20" height="14" viewBox="0 0 20 14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M1 11 L6 3 M8 11 L13 3 M15 11 L19 5" /></svg>
-          </div>
-
           <button
             onClick={() => chooseMode('create')}
             className={`corio-home-v2-btn corio-home-v2-btn-primary ${mode === 'create' ? 'is-active' : 'corio-home-v2-btn-inactive'}`}
@@ -129,6 +117,18 @@ export default function HomeScreen({ connecting, error, onClearError, onStartCre
             <img src={`${IMG}/doodle-key.webp`} alt="" />
             Entrar com código
           </button>
+
+          <div className="corio-home-v2-input-wrap">
+            <svg className="corio-home-v2-input-icon" width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="8" r="4" /><path d="M4 20c0-4.4 3.6-8 8-8s8 3.6 8 8" /></svg>
+            <input
+              value={name}
+              onChange={(e) => updateName(e.target.value)}
+              maxLength={NAME_MAX}
+              placeholder="Seu nome"
+              className="corio-home-v2-input"
+            />
+            <svg className="corio-home-v2-input-scribble" width="20" height="14" viewBox="0 0 20 14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M1 11 L6 3 M8 11 L13 3 M15 11 L19 5" /></svg>
+          </div>
 
           {mode === 'join' && (
             <>
