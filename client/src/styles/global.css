@@ -263,11 +263,10 @@ input, textarea { font-family: inherit; touch-action: manipulation; }
   .corio-home-v2-content { max-width: 460px; padding-top: 28px; }
 }
 
-/* Desktop: two-column game-cover layout — wheel/wordmark on the left,
-   the button stack on the right — never a centered narrow mobile column
-   stretched into empty space. The whole block is centered as a unit (both
-   axes) so it doesn't read as pinned to the top with dead space below, or
-   drifting off-center relative to the doodles at the viewport edges. */
+/* Desktop: two-column game-cover layout — wheel/wordmark on the left
+   (~50% share), the button stack on the right (~40% share) — big, filling
+   most of the viewport, never a small block marooned in the center. The
+   whole block is still centered as a unit (both axes) within the viewport. */
 @media (min-width: 900px) {
   .corio-home-v2 {
     align-items: center;
@@ -277,21 +276,31 @@ input, textarea { font-family: inherit; touch-action: manipulation; }
   }
   .corio-home-v2-content {
     flex-direction: row;
+    flex-wrap: wrap;
     align-items: center;
     justify-content: center;
-    gap: 56px;
-    max-width: 1040px;
-    padding: 32px 40px;
+    gap: clamp(48px, 9vw, 150px);
+    width: 94vw;
+    max-width: 1600px;
+    padding: 32px 24px;
   }
-  .corio-home-v2-hero { align-items: flex-start; flex: none; width: auto; }
-  .corio-home-v2-logo-full { width: min(40vw, 480px); }
-  .corio-home-v2-doodle { width: calc(var(--corio-doodle-w) * 1.6); }
-  .corio-home-v2-tagline { text-align: left; font-size: 22px !important; margin-top: 18px !important; }
-  .corio-home-v2-form { width: 460px; flex: none; gap: 16px; }
-  .corio-home-v2-btn { font-size: 18px !important; padding: 24px 24px !important; }
-  .corio-home-v2-btn img { width: 38px !important; height: 38px !important; }
-  .corio-home-v2-continue { font-size: 20px !important; }
-  .corio-home-v2-input { padding-top: 18px !important; padding-bottom: 18px !important; font-size: 15.5px !important; }
+  .corio-home-v2-hero { align-items: flex-start; flex: none; }
+  .corio-home-v2-logo-full { width: clamp(380px, 38vw, 620px); max-width: 100%; }
+  .corio-home-v2-doodle { width: calc(var(--corio-doodle-w) * 1.75); }
+  .corio-home-v2-tagline { text-align: left; font-size: clamp(21px, 2vw, 28px) !important; line-height: 1.4 !important; margin-top: 24px !important; }
+  .corio-home-v2-form { flex: none; width: clamp(420px, 30vw, 580px); gap: 22px; }
+  .corio-home-v2-btn { font-size: clamp(22px, 2.1vw, 30px) !important; padding: clamp(26px,2.6vw,36px) 32px !important; border-radius: 26px !important; gap: 20px !important; }
+  .corio-home-v2-btn img { width: clamp(48px, 4.2vw, 66px) !important; height: clamp(48px, 4.2vw, 66px) !important; }
+  .corio-home-v2-continue { font-size: clamp(24px, 2.3vw, 32px) !important; }
+  .corio-home-v2-input {
+    padding-top: clamp(24px,2.4vw,30px) !important;
+    padding-bottom: clamp(24px,2.4vw,30px) !important;
+    padding-left: 58px !important;
+    font-size: clamp(18px,1.8vw,24px) !important;
+    border-radius: 22px !important;
+  }
+  .corio-home-v2-input-icon { width: 22px !important; height: 22px !important; left: 22px !important; }
+  .corio-home-v2-input-scribble { width: 28px !important; height: 20px !important; right: 22px !important; }
 }
 
 /* Game screen: single column on mobile, main + persistent sidebar on desktop. */
