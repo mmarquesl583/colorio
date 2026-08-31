@@ -56,15 +56,27 @@ input, textarea { font-family: inherit; touch-action: manipulation; }
   height: 100dvh;
   display: flex;
   flex-direction: column;
-  background:
-    radial-gradient(circle at 15% -10%, rgba(139,92,246,0.4), transparent 45%),
-    radial-gradient(circle at 105% 105%, rgba(41,231,255,0.14), transparent 50%),
-    #050507;
+  /* Same illustrated texture as the Home hero, darkened so dense in-game
+     text/cards still read clearly on top — every screen shares one identity
+     instead of Home being illustrated and the rest a plain dark app shell. */
+  background-image:
+    linear-gradient(180deg, rgba(8,4,18,0.62), rgba(8,4,18,0.8)),
+    url('/images/home/background-texture.webp');
+  background-size: cover;
+  background-position: center;
+  background-color: #1a0a33;
   color: #F4F2F8;
   font-family: Inter, system-ui, sans-serif;
   overflow: hidden;
   position: relative;
   padding-top: max(16px, env(safe-area-inset-top));
+}
+@media (min-width: 900px) {
+  .corio-screen {
+    background-image:
+      linear-gradient(180deg, rgba(8,4,18,0.62), rgba(8,4,18,0.8)),
+      url('/images/home/background-texture-desktop.webp');
+  }
 }
 
 /* Lobby / waiting: a centered column that grows (and gains a fuller grid)
@@ -86,6 +98,18 @@ input, textarea { font-family: inherit; touch-action: manipulation; }
    tuned inline sizes via !important; mobile is untouched below 900px. */
 .corio-eyebrow, .corio-title, .corio-subtitle, .corio-card, .corio-card-title, .corio-card-sub, .corio-value-lg, .corio-btn-lg {
   transition: none;
+}
+/* Same game-piece language as the Home hero (thick dark outline + heavy
+   drop shadow), applied without touching each card's own inline background
+   or border color (still used to signal state — selected theme, public vs
+   private, etc.) — only the weight/depth changes. */
+.corio-card {
+  border-width: 2px !important;
+  box-shadow: 0 3px 0 rgba(0,0,0,0.32), 0 6px 14px rgba(0,0,0,0.28) !important;
+}
+.corio-btn-lg {
+  border: 2.5px solid #1B0B33 !important;
+  box-shadow: 0 4px 0 rgba(0,0,0,0.4), 0 8px 16px rgba(0,0,0,0.32) !important;
 }
 @media (min-width: 900px) {
   .corio-eyebrow { font-size: 10.5px !important; letter-spacing: 1px !important; }
