@@ -5,7 +5,7 @@ import {
 import { calculateColorScore, calculateMasterScore, badgeFromScore } from '../../shared/scoring.ts';
 import {
   LOBBY_THEMES, AI_PHRASE_BANK, PLAYER_PALETTE, PLACING_SECONDS, NEXT_ROUND_READY_TIMEOUT_MS,
-  SPEED_BONUS_MAX, ROUND_MVP_BONUS, AI_WIN_SCORE, AI_WIN_PERFECTS,
+  SPEED_BONUS_MAX, ROUND_MVP_BONUS, AI_WIN_SCORE, AI_WIN_PERFECTS, LOBBY_RECONNECT_GRACE_MS,
 } from '../../shared/gameData.ts';
 import { AI_QUESTIONS } from '../../shared/aiQuestions.ts';
 import type { AiDifficulty } from '../../shared/aiQuestions.ts';
@@ -66,9 +66,12 @@ export class Room {
   lastThemeId: string | null = null;
   matchWinner: MatchWinner | null = null;
   createdAt = Date.now();
+  readySecondsLeft: number | null = null;
 
   private tickHandle: ReturnType<typeof setInterval> | null = null;
   private nextReadyFallback: ReturnType<typeof setTimeout> | null = null;
+  private readyTickHandle: ReturnType<typeof setInterval> | null = null;
+  private lobbyLeaveTimers = new Map<string, ReturnType<typeof setTimeout>>();
   private onEmpty: () => void;
   private onReport: (report: QuestionReport) => void;
 
@@ -104,6 +107,9 @@ export class Room {
     if (!p) return false;
     p.ws = ws;
     p.connected = true;
+    const pending = this.lobbyLeaveTimers.get(id);
+    if (pending) { clearTimeout(pending); this.lobbyLeaveTimers.delete(id); }
+    this.broadcast();
     return true;
   }
 
@@ -113,11 +119,24 @@ export class Room {
     p.connected = false;
     p.ws = null;
     if (this.screen === 'waiting') {
-      // In the lobby a disconnect frees the slot entirely.
-      this.players.delete(id);
-      this.order = this.order.filter((pid) => pid !== id);
-      if (this.hostId === id) this.hostId = this.order[0] ?? null;
-      this.chat.push(sysMsg('#94A3B8', `${p.name} saiu da sala`));
+      // A dropped connection in the lobby (tab backgrounded, flaky signal)
+      // gets a short grace period to reconnect before the slot actually
+      // frees up — a quick trip away shouldn't bump someone from the room.
+      this.chat.push(sysMsg('#94A3B8', `${p.name} está reconectando…`));
+      this.broadcast();
+      const timer = setTimeout(() => {
+        this.lobbyLeaveTimers.delete(id);
+        const still = this.players.get(id);
+        if (!still || still.connected) return;
+        this.players.delete(id);
+        this.order = this.order.filter((pid) => pid !== id);
+        if (this.hostId === id) this.hostId = this.order[0] ?? null;
+        this.chat.push(sysMsg('#94A3B8', `${still.name} saiu da sala`));
+        if (this.players.size === 0) { this.stopTimers(); this.onEmpty(); return; }
+        this.broadcast();
+      }, LOBBY_RECONNECT_GRACE_MS);
+      this.lobbyLeaveTimers.set(id, timer);
+      return;
     }
     if (this.players.size === 0 || this.order.every((pid) => !this.players.get(pid)?.connected)) {
       this.stopTimers();
@@ -125,6 +144,7 @@ export class Room {
       return;
     }
     if (this.screen === 'playing') this.maybeAdvanceFromPlacing();
+    this.broadcast();
   }
 
   isEmpty(): boolean {
@@ -366,7 +386,14 @@ export class Room {
     for (const p of this.players.values()) p.readyNext = false;
     this.broadcast();
 
-    this.nextReadyFallback = setTimeout(() => this.advanceAfterReveal(), NEXT_ROUND_READY_TIMEOUT_MS + 6000);
+    const totalReadyMs = NEXT_ROUND_READY_TIMEOUT_MS + 6000;
+    this.nextReadyFallback = setTimeout(() => this.advanceAfterReveal(), totalReadyMs);
+    this.readySecondsLeft = Math.round(totalReadyMs / 1000);
+    this.readyTickHandle = setInterval(() => {
+      if (this.readySecondsLeft === null) return;
+      this.readySecondsLeft = Math.max(0, this.readySecondsLeft - 1);
+      this.broadcast();
+    }, 1000);
   }
 
   readyNext(playerId: string) {
@@ -377,9 +404,15 @@ export class Room {
     const allReady = active.length > 0 && active.every((id) => this.players.get(id)?.readyNext);
     this.broadcast();
     if (allReady) {
-      if (this.nextReadyFallback) { clearTimeout(this.nextReadyFallback); this.nextReadyFallback = null; }
+      this.stopReadyWait();
       this.advanceAfterReveal();
     }
+  }
+
+  private stopReadyWait() {
+    if (this.nextReadyFallback) { clearTimeout(this.nextReadyFallback); this.nextReadyFallback = null; }
+    if (this.readyTickHandle) { clearInterval(this.readyTickHandle); this.readyTickHandle = null; }
+    this.readySecondsLeft = null;
   }
 
   private advanceAfterReveal() {
@@ -449,7 +482,9 @@ export class Room {
   }
   private stopTimers() {
     this.stopTicking();
-    if (this.nextReadyFallback) { clearTimeout(this.nextReadyFallback); this.nextReadyFallback = null; }
+    this.stopReadyWait();
+    for (const t of this.lobbyLeaveTimers.values()) clearTimeout(t);
+    this.lobbyLeaveTimers.clear();
   }
 
   private publicPlayer(p: InternalPlayer): PlayerPublic {
@@ -485,6 +520,7 @@ export class Room {
         total: activeIds.length,
       },
       matchWinner: this.matchWinner,
+      readySecondsLeft: this.readySecondsLeft,
     };
   }
 

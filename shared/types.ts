@@ -107,6 +107,8 @@ export interface RoomStateView {
   results: RoundResults | null;
   nextReady: { ready: number; total: number };
   matchWinner: MatchWinner | null;
+  /** Seconds until the reveal auto-advances even if not everyone readied up. */
+  readySecondsLeft: number | null;
 }
 
 /** Summary shown in the "open rooms" list on the home screen (public rooms only). */

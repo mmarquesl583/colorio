@@ -1,5 +1,6 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { hslFracToRgb } from '@shared/color';
+import { NEXT_ROUND_READY_TIMEOUT_MS } from '@shared/gameData';
 import type { PlayerPublic, RoundResults } from '@shared/types';
 
 type Stage = 'guesses' | 'sorted' | 'filling' | 'final';
@@ -7,6 +8,11 @@ type Stage = 'guesses' | 'sorted' | 'filling' | 'final';
 // How long the ranked/badged board stays on screen before auto-advancing.
 // Fixed and identical for every client — nobody can rush or stall it.
 const SORTED_VIEW_MS = 3000;
+
+// Matches the server's own fallback window (see room.ts computeReveal) —
+// only used to size the "loading" fill on the ready button, the server is
+// still the one actually deciding when to advance.
+const READY_TOTAL_SECONDS = Math.round((NEXT_ROUND_READY_TIMEOUT_MS + 6000) / 1000);
 
 interface Row {
   id: string;
@@ -27,10 +33,11 @@ interface Props {
   results: RoundResults;
   you: PlayerPublic;
   nextReady: { ready: number; total: number };
+  readySecondsLeft: number | null;
   onReadyNext: () => void;
 }
 
-export default function RevealModal({ results, you, nextReady, onReadyNext }: Props) {
+export default function RevealModal({ results, you, nextReady, readySecondsLeft, onReadyNext }: Props) {
   const [stage, setStage] = useState<Stage>('guesses');
   const [revealCount, setRevealCount] = useState(0);
   const [progress, setProgress] = useState(0);
@@ -233,9 +240,15 @@ export default function RevealModal({ results, you, nextReady, onReadyNext }: Pr
           </>
         )}
 
-        {showFinalContinue && !continued && (
-          <button onClick={clickNextRound} className="corio-tap" style={{ all: 'unset', cursor: 'pointer', display: 'block', background: 'linear-gradient(135deg,#8B5CF6,#7C3AED)', color: '#fff', fontWeight: 700, fontSize: 12.5, padding: '10px 22px', borderRadius: 12, marginTop: 8 }}>Próxima rodada →</button>
-        )}
+        {showFinalContinue && !continued && (() => {
+          const fillPct = readySecondsLeft === null ? 0 : Math.min(100, Math.max(0, ((READY_TOTAL_SECONDS - readySecondsLeft) / READY_TOTAL_SECONDS) * 100));
+          return (
+            <button onClick={clickNextRound} className="corio-tap" style={{ all: 'unset', position: 'relative', overflow: 'hidden', cursor: 'pointer', display: 'block', background: 'linear-gradient(135deg,#8B5CF6,#7C3AED)', color: '#fff', fontWeight: 700, fontSize: 12.5, padding: '10px 22px', borderRadius: 12, marginTop: 8 }}>
+              <div style={{ position: 'absolute', inset: 0, width: `${fillPct}%`, background: 'rgba(255,255,255,0.25)', transition: 'width 1s linear', pointerEvents: 'none' }} />
+              <span style={{ position: 'relative' }}>Próxima rodada →</span>
+            </button>
+          );
+        })()}
         {continued && (
           <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 10 }}>
             <div style={{ width: 6, height: 6, borderRadius: '50%', background: '#8B5CF6', animation: 'corio-pulse 1.2s infinite' }} />

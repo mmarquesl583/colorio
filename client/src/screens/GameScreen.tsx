@@ -165,7 +165,7 @@ export default function GameScreen({ conn }: { conn: RoomConnection }) {
 
       {showRoundIntro && <RoundIntroModal round={round} />}
       {phase === 'reveal' && s.results && (
-        <RevealModal results={s.results} you={you} nextReady={s.nextReady} onReadyNext={() => conn.send({ type: 'ready_next' })} />
+        <RevealModal results={s.results} you={you} nextReady={s.nextReady} readySecondsLeft={s.readySecondsLeft} onReadyNext={() => conn.send({ type: 'ready_next' })} />
       )}
     </>
   );

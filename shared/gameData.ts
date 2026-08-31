@@ -44,6 +44,9 @@ export const PLAYER_PALETTE: string[] = [
 
 export const PLACING_SECONDS = 35;
 export const NEXT_ROUND_READY_TIMEOUT_MS = 15000;
+// A dropped connection while still in the lobby (tab backgrounded, flaky
+// wifi) gets this long to reconnect before the slot actually frees up.
+export const LOBBY_RECONNECT_GRACE_MS = 45000;
 export const MIN_PLAYERS = 2;
 export const MAX_PLAYERS = 12;
 export const MIN_ROUNDS = 1;
