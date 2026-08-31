@@ -204,7 +204,7 @@ input, textarea { font-family: inherit; touch-action: manipulation; }
 
 .corio-home-v2-logo-full {
   display: block;
-  width: clamp(215px, 62vw, 290px);
+  width: clamp(255px, 74vw, 335px);
   height: auto;
   filter: drop-shadow(0 12px 20px rgba(0,0,0,0.45));
   animation: corio-wheel-in .7s cubic-bezier(.22,.61,.16,1), corio-breathe 4.5s ease-in-out 0.7s infinite;
