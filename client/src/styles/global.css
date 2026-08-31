@@ -279,14 +279,6 @@ input, textarea { font-family: inherit; touch-action: manipulation; }
 .corio-home-v2-input-icon { position: absolute; left: 13px; top: 50%; transform: translateY(-50%); color: #7C5BB5; pointer-events: none; }
 .corio-home-v2-input-scribble { position: absolute; right: 13px; top: 50%; transform: translateY(-50%); color: #2DD4BF; opacity: 0.8; pointer-events: none; }
 
-.corio-home-v2-continue {
-  background: linear-gradient(180deg,#4CE7D8,#0FB8C9);
-  color: #04222b;
-  justify-content: center;
-  font-size: 16px;
-  padding: 15px 20px;
-}
-
 @media (max-width: 899px) {
   .corio-home-v2-btn { justify-content: center; }
 }
@@ -323,7 +315,6 @@ input, textarea { font-family: inherit; touch-action: manipulation; }
   .corio-home-v2-form { flex: none; width: clamp(420px, 30vw, 580px); gap: 22px; }
   .corio-home-v2-btn { font-size: clamp(22px, 2.1vw, 30px) !important; padding: clamp(26px,2.6vw,36px) 32px !important; border-radius: 26px !important; gap: 20px !important; }
   .corio-home-v2-btn img { width: clamp(48px, 4.2vw, 66px) !important; height: clamp(48px, 4.2vw, 66px) !important; }
-  .corio-home-v2-continue { font-size: clamp(24px, 2.3vw, 32px) !important; }
   .corio-home-v2-input {
     padding-top: clamp(24px,2.4vw,30px) !important;
     padding-bottom: clamp(24px,2.4vw,30px) !important;

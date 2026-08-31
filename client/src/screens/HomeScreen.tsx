@@ -40,7 +40,7 @@ export default function HomeScreen({ connecting, error, onClearError, onStartCre
 
   const nameOk = name.trim().length > 0;
 
-  const updateName = (v: string) => { setName(v); saveName(v); };
+  const updateName = (v: string) => { setName(v); saveName(v); onClearError(); };
 
   return (
     <div className="corio-home-v2">
@@ -72,23 +72,6 @@ export default function HomeScreen({ connecting, error, onClearError, onStartCre
         </div>
 
         <div className="corio-home-v2-form">
-          <button
-            onClick={onClearError}
-            className="corio-home-v2-btn corio-home-v2-btn-primary is-active"
-          >
-            <img src={`${IMG}/doodle-rocket.webp`} alt="" />
-            Criar sala
-          </button>
-          <button
-            onClick={() => onFindRooms(name.trim())}
-            disabled={!nameOk}
-            className="corio-home-v2-btn corio-home-v2-btn-secondary"
-            style={{ opacity: nameOk ? 1 : 0.6 }}
-          >
-            <img src={`${IMG}/doodle-key.webp`} alt="" />
-            Procurar salas
-          </button>
-
           <div className="corio-home-v2-input-wrap">
             <svg className="corio-home-v2-input-icon" width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="8" r="4" /><path d="M4 20c0-4.4 3.6-8 8-8s8 3.6 8 8" /></svg>
             <input
@@ -108,10 +91,20 @@ export default function HomeScreen({ connecting, error, onClearError, onStartCre
           <button
             onClick={() => onStartCreate(name.trim())}
             disabled={connecting || !nameOk}
-            className="corio-home-v2-btn corio-home-v2-continue"
-            style={{ opacity: connecting || !nameOk ? 0.55 : 1 }}
+            className="corio-home-v2-btn corio-home-v2-btn-primary is-active"
+            style={{ opacity: connecting || !nameOk ? 0.6 : 1 }}
           >
-            {connecting ? 'Conectando…' : 'Continuar →'}
+            <img src={`${IMG}/doodle-rocket.webp`} alt="" />
+            {connecting ? 'Conectando…' : 'Criar sala'}
+          </button>
+          <button
+            onClick={() => onFindRooms(name.trim())}
+            disabled={!nameOk}
+            className="corio-home-v2-btn corio-home-v2-btn-secondary"
+            style={{ opacity: nameOk ? 1 : 0.6 }}
+          >
+            <img src={`${IMG}/doodle-key.webp`} alt="" />
+            Procurar salas
           </button>
         </div>
       </div>
