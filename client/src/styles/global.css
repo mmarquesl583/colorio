@@ -261,7 +261,6 @@ input, textarea { font-family: inherit; touch-action: manipulation; }
 .corio-home-v2-btn-secondary { background: linear-gradient(180deg,#9B6BFF,#6D28D9); }
 .corio-home-v2-btn-primary.is-active, .corio-home-v2-btn-secondary.is-active { outline: 3px solid #FFC93C; outline-offset: 2px; }
 
-.corio-home-v2-input-wrap { position: relative; width: 100%; }
 .corio-home-v2-input {
   width: 100%;
   box-sizing: border-box;
@@ -276,27 +275,6 @@ input, textarea { font-family: inherit; touch-action: manipulation; }
 }
 .corio-home-v2-input::placeholder { color: rgba(255,255,255,0.45); }
 .corio-home-v2-input:focus { border-color: #C084FC; }
-.corio-home-v2-input-icon { position: absolute; left: 13px; top: 50%; transform: translateY(-50%); color: #7C5BB5; pointer-events: none; }
-.corio-home-v2-input-scribble { position: absolute; right: 13px; top: 50%; transform: translateY(-50%); color: #2DD4BF; opacity: 0.8; pointer-events: none; }
-.corio-home-v2-input-confirm {
-  all: unset;
-  cursor: pointer;
-  box-sizing: border-box;
-  position: absolute;
-  right: 10px;
-  top: 50%;
-  transform: translateY(-50%);
-  width: 26px;
-  height: 26px;
-  border-radius: 50%;
-  background: #4ADE80;
-  color: #04220f;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 13px;
-  font-weight: 800;
-}
 
 /* "Entrar" reuses the chunky button look but with icon+label on the left
    and a chevron pinned right (space-between), unlike the centered
@@ -316,8 +294,7 @@ input, textarea { font-family: inherit; touch-action: manipulation; }
 }
 .corio-home-v2-chevron { font-size: 20px; font-weight: 800; opacity: 0.85; flex: none; }
 
-/* Compact "who's playing" row — replaces the Entrar button once logged in,
-   and replaces the guest name input once a name has already been saved. */
+/* Compact "who's playing" row — replaces the Entrar button once logged in. */
 .corio-home-v2-identity {
   width: 100%;
   box-sizing: border-box;
@@ -390,9 +367,6 @@ input, textarea { font-family: inherit; touch-action: manipulation; }
     font-size: clamp(18px,1.8vw,24px) !important;
     border-radius: 22px !important;
   }
-  .corio-home-v2-input-icon { width: 22px !important; height: 22px !important; left: 22px !important; }
-  .corio-home-v2-input-scribble { width: 28px !important; height: 20px !important; right: 22px !important; }
-  .corio-home-v2-input-confirm { width: 34px !important; height: 34px !important; right: 14px !important; font-size: 16px !important; }
   .corio-home-v2-entrar-icon { width: clamp(38px, 3.4vw, 52px); height: clamp(38px, 3.4vw, 52px); }
   .corio-home-v2-chevron { font-size: clamp(26px, 2.4vw, 34px); }
   .corio-home-v2-identity { padding: clamp(16px,1.6vw,22px) clamp(20px,2vw,28px) !important; border-radius: 22px !important; }

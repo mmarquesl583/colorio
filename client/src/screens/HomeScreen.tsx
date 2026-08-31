@@ -1,4 +1,3 @@
-import { useState } from 'react';
 import { supabase } from '../supabase.ts';
 import { accountName, useSession } from '../auth.ts';
 
@@ -12,15 +11,6 @@ interface Props {
 }
 
 const IMG = '/images/home';
-const NAME_KEY = 'colorio.playerName';
-const NAME_MAX = 24;
-
-function loadSavedName(): string {
-  try { return localStorage.getItem(NAME_KEY) ?? ''; } catch { return ''; }
-}
-function saveName(v: string) {
-  try { localStorage.setItem(NAME_KEY, v); } catch { /* ignore */ }
-}
 
 interface Doodle { src: string; pos: React.CSSProperties; width: number; rot: number; duration: number; delay: number; }
 
@@ -40,15 +30,8 @@ const DOODLES: Doodle[] = [
 
 export default function HomeScreen({ connecting, error, onClearError, onStartCreate, onFindRooms, onLogin }: Props) {
   const { session } = useSession();
-  const [name, setName] = useState(loadSavedName);
-  const [editingGuestName, setEditingGuestName] = useState(() => !loadSavedName().trim());
-
-  const guestNameOk = name.trim().length > 0;
   const loggedInName = accountName(session);
-  const effectiveName = loggedInName ?? name;
-  const nameOk = effectiveName.trim().length > 0;
-
-  const updateName = (v: string) => { setName(v); saveName(v); onClearError(); };
+  const nameOk = Boolean(loggedInName);
 
   return (
     <div className="corio-home-v2">
@@ -89,7 +72,7 @@ export default function HomeScreen({ connecting, error, onClearError, onStartCre
               <button onClick={() => supabase.auth.signOut()} className="corio-tap corio-home-v2-identity-link">Sair</button>
             </div>
           ) : (
-            <button onClick={onLogin} className="corio-home-v2-btn corio-home-v2-btn-secondary corio-home-v2-btn-split">
+            <button onClick={() => { onClearError(); onLogin(); }} className="corio-home-v2-btn corio-home-v2-btn-secondary corio-home-v2-btn-split">
               <span className="corio-home-v2-btn-split-left">
                 <span className="corio-home-v2-entrar-icon">
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="8" r="4" /><path d="M4 20c0-4.4 3.6-8 8-8s8 3.6 8 8" /></svg>
@@ -100,39 +83,12 @@ export default function HomeScreen({ connecting, error, onClearError, onStartCre
             </button>
           )}
 
-          {!loggedInName && (
-            editingGuestName ? (
-              <div className="corio-home-v2-input-wrap">
-                <svg className="corio-home-v2-input-icon" width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="8" r="4" /><path d="M4 20c0-4.4 3.6-8 8-8s8 3.6 8 8" /></svg>
-                <input
-                  value={name}
-                  onChange={(e) => updateName(e.target.value)}
-                  maxLength={NAME_MAX}
-                  placeholder="Seu nome"
-                  className="corio-home-v2-input"
-                  style={{ paddingRight: 44 }}
-                />
-                {guestNameOk && (
-                  <button onClick={() => setEditingGuestName(false)} className="corio-tap corio-home-v2-input-confirm" aria-label="Confirmar nome">✓</button>
-                )}
-              </div>
-            ) : (
-              <div className="corio-home-v2-identity">
-                <span className="corio-home-v2-identity-info">
-                  <span className="corio-home-v2-identity-avatar">{name[0]?.toUpperCase()}</span>
-                  <span className="corio-home-v2-identity-name">Jogando como {name}</span>
-                </span>
-                <button onClick={() => setEditingGuestName(true)} className="corio-tap corio-home-v2-identity-link">Trocar</button>
-              </div>
-            )
-          )}
-
           {error && (
             <div style={{ fontSize: 11.5, fontWeight: 700, color: '#fff', background: 'rgba(239,68,68,0.35)', border: '2px solid #EF4444', borderRadius: 12, padding: '9px 12px' }}>{error}</div>
           )}
 
           <button
-            onClick={() => onStartCreate(effectiveName.trim())}
+            onClick={() => loggedInName && onStartCreate(loggedInName)}
             disabled={connecting || !nameOk}
             className="corio-home-v2-btn corio-home-v2-btn-primary is-active"
             style={{ opacity: connecting || !nameOk ? 0.6 : 1 }}
@@ -141,7 +97,7 @@ export default function HomeScreen({ connecting, error, onClearError, onStartCre
             {connecting ? 'Conectando…' : 'Criar sala'}
           </button>
           <button
-            onClick={() => onFindRooms(effectiveName.trim())}
+            onClick={() => loggedInName && onFindRooms(loggedInName)}
             disabled={!nameOk}
             className="corio-home-v2-btn corio-home-v2-btn-secondary"
             style={{ opacity: nameOk ? 1 : 0.6 }}
