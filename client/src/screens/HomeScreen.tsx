@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { supabase } from '../supabase.ts';
 import { accountAvatar, accountName, useSession } from '../auth.ts';
-import { avatarSmallSrc } from '../avatarIcons.ts';
+import { avatarSmallSrc } from '@shared/avatarIcons';
 import AvatarPickerModal from '../components/AvatarPickerModal.tsx';
 
 interface Props {
@@ -11,9 +11,15 @@ interface Props {
   onStartCreate: (name: string) => void;
   onFindRooms: (name: string) => void;
   onLogin: () => void;
+  onOpenProfile: () => void;
 }
 
 const IMG = '/images/home';
+// The Home quick-picker doesn't fetch a per-user unlock list (that only
+// matters once a non-free avatar exists — none do yet, see
+// shared/avatarIcons.ts) — the full Profile screen's own picker instance
+// gets the real set once it does.
+const EMPTY_AVATAR_UNLOCKS = new Set<string>();
 
 interface Doodle { src: string; pos: React.CSSProperties; width: number; rot: number; duration: number; delay: number; }
 
@@ -31,7 +37,7 @@ const DOODLES: Doodle[] = [
   { src: 'doodle-cursor-click.webp', pos: { bottom: '6%', right: '4%' }, width: 56, rot: -12, duration: 6.8, delay: .7 },
 ];
 
-export default function HomeScreen({ connecting, error, onClearError, onStartCreate, onFindRooms, onLogin }: Props) {
+export default function HomeScreen({ connecting, error, onClearError, onStartCreate, onFindRooms, onLogin, onOpenProfile }: Props) {
   const { session } = useSession();
   const [showAvatarPicker, setShowAvatarPicker] = useState(false);
   const loggedInName = accountName(session);
@@ -74,7 +80,7 @@ export default function HomeScreen({ connecting, error, onClearError, onStartCre
                 <button onClick={() => setShowAvatarPicker(true)} className="corio-tap corio-home-v2-identity-avatar" aria-label="Trocar ícone">
                   {loggedInAvatar ? <img src={avatarSmallSrc(loggedInAvatar)} alt="" /> : loggedInName[0].toUpperCase()}
                 </button>
-                <span className="corio-home-v2-identity-name">{loggedInName}</span>
+                <button onClick={onOpenProfile} className="corio-tap corio-home-v2-identity-name" aria-label="Ver perfil">{loggedInName}</button>
               </span>
               <button onClick={() => supabase.auth.signOut()} className="corio-tap corio-home-v2-identity-link">Sair</button>
             </div>
@@ -119,6 +125,7 @@ export default function HomeScreen({ connecting, error, onClearError, onStartCre
         <AvatarPickerModal
           currentIcon={loggedInAvatar}
           fallbackLetter={loggedInName[0].toUpperCase()}
+          unlockedAvatarIds={EMPTY_AVATAR_UNLOCKS}
           onClose={() => setShowAvatarPicker(false)}
         />
       )}

@@ -3,6 +3,8 @@ import { appendFile } from 'node:fs/promises';
 import { WebSocketServer, WebSocket } from 'ws';
 import { newPlayerId, newRoomCode } from './id.ts';
 import { Room, type QuestionReport } from './room.ts';
+import { verifyUserToken } from './supabaseAdmin.ts';
+import { startStaleSessionSweep } from './stats.ts';
 import { LOBBY_THEMES, MIN_PLAYERS, MAX_PLAYERS, MIN_ROUNDS, MAX_ROUNDS } from '../../shared/gameData.ts';
 import type { ClientMessage, RoomConfig, ServerMessage, PublicRoomSummary } from '../../shared/types.ts';
 
@@ -88,17 +90,23 @@ wss.on('connection', (ws: WebSocket) => {
   let room: Room | null = null;
   let playerId: string | null = null;
 
-  ws.on('message', (raw) => {
+  ws.on('message', async (raw) => {
     let msg: ClientMessage;
     try { msg = JSON.parse(raw.toString()); } catch { return; }
 
     if (msg.type === 'create_room') {
+      // Verified once per join, not on every message — a valid token here
+      // just resolves to the real account id, attached to this player for
+      // the room's lifetime (stats attribution only, never sent back to
+      // any client). An unset/invalid token degrades to null: the room
+      // and match play out identically, that player just isn't tracked.
+      const userId = await verifyUserToken(msg.token);
       const config = sanitizeConfig(msg.config);
       const code = newRoomCode((c) => rooms.has(c));
       const newRoom = new Room(code, config, () => rooms.delete(code), recordReport);
       rooms.set(code, newRoom);
       playerId = newPlayerId();
-      const player = newRoom.addPlayer(playerId, msg.name, ws);
+      const player = newRoom.addPlayer(playerId, msg.name, ws, userId);
       room = newRoom;
       send(ws, { type: 'joined', code, playerId: player.id });
       room.broadcast();
@@ -108,10 +116,11 @@ wss.on('connection', (ws: WebSocket) => {
     if (msg.type === 'join_room') {
       const target = rooms.get(msg.code.toUpperCase());
       if (!target) { send(ws, { type: 'error', message: 'Sala não encontrada.' }); return; }
+      const userId = await verifyUserToken(msg.token);
       // Rooms stay open for the whole match — joining mid-round just drops
       // the newcomer in with 0 points and a chat announcement, no gate here.
       playerId = newPlayerId();
-      target.addPlayer(playerId, msg.name, ws);
+      target.addPlayer(playerId, msg.name, ws, userId);
       room = target;
       send(ws, { type: 'joined', code: target.code, playerId });
       room.broadcast();
@@ -147,6 +156,8 @@ wss.on('connection', (ws: WebSocket) => {
     if (room && playerId) room.disconnect(playerId);
   });
 });
+
+startStaleSessionSweep();
 
 httpServer.listen(PORT, () => {
   console.log(`color.io server listening on :${PORT}`);

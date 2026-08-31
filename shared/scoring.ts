@@ -60,3 +60,14 @@ export function badgeFromScore(score: number): 'PERFEITO' | 'QUASE PERFEITO' | '
   if (score >= 700) return 'PERTO';
   return 'DISTANTE';
 }
+
+// This game has no native right/wrong (it's a continuous color-distance
+// guess) — for stats purposes (correct/wrong answer counters, streaks),
+// "correct" is defined as MUITO PERTO or better (score >= 850), same
+// threshold the reveal screen already uses to color a guess as close. One
+// definition, reused everywhere a binary outcome is needed.
+export function roundOutcomeFromScore(score: number): 'perfect' | 'correct' | 'wrong' {
+  if (score >= 1000) return 'perfect';
+  if (score >= 850) return 'correct';
+  return 'wrong';
+}

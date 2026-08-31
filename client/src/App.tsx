@@ -5,12 +5,13 @@ import HomeScreen from './screens/HomeScreen.tsx';
 import LobbyScreen from './screens/LobbyScreen.tsx';
 import FindRoomScreen from './screens/FindRoomScreen.tsx';
 import AuthScreen from './screens/AuthScreen.tsx';
+import ProfileScreen from './screens/ProfileScreen.tsx';
 import WaitingScreen from './screens/WaitingScreen.tsx';
 import GameScreen from './screens/GameScreen.tsx';
 import MatchEndScreen from './screens/MatchEndScreen.tsx';
 import type { RoomConfig } from '@shared/types';
 
-type Route = 'home' | 'create-lobby' | 'find-room' | 'login';
+type Route = 'home' | 'create-lobby' | 'find-room' | 'login' | 'profile';
 
 export default function App() {
   const conn = useRoomConnection();
@@ -57,6 +58,9 @@ export default function App() {
         />
       );
     }
+    if (route === 'profile') {
+      return <ProfileScreen onBack={() => setRoute('home')} />;
+    }
     return (
       <HomeScreen
         connecting={conn.connecting}
@@ -65,6 +69,7 @@ export default function App() {
         onStartCreate={(name) => { setPendingName(name); setRoute('create-lobby'); }}
         onFindRooms={(name) => { setPendingName(name); setRoute('find-room'); }}
         onLogin={() => setRoute('login')}
+        onOpenProfile={() => setRoute('profile')}
       />
     );
   })();

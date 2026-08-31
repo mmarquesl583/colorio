@@ -17,3 +17,7 @@ export function newRoomCode(existing: (code: string) => boolean): string {
 export function newChatId(): string {
   return randomUUID();
 }
+
+export function newMatchId(): string {
+  return randomUUID();
+}

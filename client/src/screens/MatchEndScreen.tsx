@@ -7,7 +7,13 @@ export default function MatchEndScreen({ conn }: { conn: RoomConnection }) {
   const isHost = s.you.isHost;
   const ranked = [...s.players].sort((a, b) => b.score - a.score);
 
-  const reasonLabel = winner?.reason === 'perfect' ? 'conseguiu 5 acertos perfeitos' : 'chegou a 10.000 pontos';
+  const reasonLabel = winner?.reason === 'perfect'
+    ? 'conseguiu 5 acertos perfeitos'
+    : winner?.reason === 'rounds'
+      ? 'terminou com mais pontos'
+      : 'chegou a 10.000 pontos';
+  const winnerIds = new Set(winner?.winners.map((w) => w.playerId) ?? []);
+  const isDraw = Boolean(winner?.isDraw);
 
   return (
     <div className="corio-wide" style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', padding: '8px 16px 12px', gap: 8, animation: 'corio-rise .4s ease' }}>
@@ -18,29 +24,34 @@ export default function MatchEndScreen({ conn }: { conn: RoomConnection }) {
       </div>
 
       <div className="corio-card" style={{ flex: 'none', textAlign: 'center', background: 'linear-gradient(135deg,rgba(139,92,246,0.18),rgba(255,201,60,0.12))', border: '1px solid rgba(255,201,60,0.35)', borderRadius: 16, padding: '20px 14px', position: 'relative' }}>
-        <div style={{ fontSize: 30, animation: 'corio-breathe 2s ease-in-out infinite' }}>🏆</div>
+        <div style={{ fontSize: 30, animation: 'corio-breathe 2s ease-in-out infinite' }}>{isDraw ? '🤝' : '🏆'}</div>
         <div className="corio-title" style={{ fontFamily: "'Space Grotesk',sans-serif", fontWeight: 800, fontSize: 17, marginTop: 6 }}>
-          {winner?.playerId === s.you.id ? 'VOCÊ VENCEU!' : `${winner?.name ?? '—'} VENCEU!`}
+          {isDraw ? 'EMPATE!' : winnerIds.has(s.you.id) ? 'VOCÊ VENCEU!' : `${winner?.name ?? '—'} VENCEU!`}
         </div>
         <div className="corio-subtitle" style={{ fontSize: 11, color: 'rgba(244,242,248,0.6)', marginTop: 3 }}>
-          {winner ? `${winner.name} ${reasonLabel} — ${winner.score.toLocaleString('pt-BR')} pontos` : 'Partida encerrada'}
+          {!winner ? 'Partida encerrada' : isDraw
+            ? `${winner.winners.map((w) => w.name).join(' e ')} empataram com ${winner.score.toLocaleString('pt-BR')} pontos`
+            : `${winner.name} ${reasonLabel} — ${winner.score.toLocaleString('pt-BR')} pontos`}
         </div>
       </div>
 
       <div className="corio-card" style={{ flex: 1, minHeight: 0, background: '#12121a', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 14, padding: '9px 10px', display: 'flex', flexDirection: 'column' }}>
         <div className="corio-eyebrow" style={{ flex: 'none', fontSize: 9, fontWeight: 700, letterSpacing: 0.6, color: 'rgba(244,242,248,0.6)', marginBottom: 6 }}>PLACAR FINAL</div>
         <div className="corio-noscroll corio-player-grid" style={{ flex: 1, minHeight: 0, overflowY: 'auto' }}>
-          {ranked.map((p, i) => (
-            <div key={p.id} className="corio-card" style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 8px', borderRadius: 10, background: p.id === winner?.playerId ? 'rgba(255,201,60,0.1)' : 'rgba(255,255,255,0.03)', border: p.id === winner?.playerId ? '1px solid rgba(255,201,60,0.35)' : undefined, flex: 'none' }}>
-              <div style={{ width: 18, textAlign: 'center', fontSize: 11, fontWeight: 700, color: 'rgba(244,242,248,0.45)', flex: 'none' }}>{i + 1}</div>
-              <div style={{ width: 32, height: 32, borderRadius: '50%', background: `${p.color}33`, border: `1.5px solid ${p.color}`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 700, flex: 'none' }}>{p.initial}</div>
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div className="corio-card-title" style={{ fontSize: 11, fontWeight: 700, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.id === s.you.id ? 'Você' : p.name}</div>
+          {ranked.map((p, i) => {
+            const isWinner = winnerIds.has(p.id);
+            return (
+              <div key={p.id} className="corio-card" style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 8px', borderRadius: 10, background: isWinner ? 'rgba(255,201,60,0.1)' : 'rgba(255,255,255,0.03)', border: isWinner ? '1px solid rgba(255,201,60,0.35)' : undefined, flex: 'none' }}>
+                <div style={{ width: 18, textAlign: 'center', fontSize: 11, fontWeight: 700, color: 'rgba(244,242,248,0.45)', flex: 'none' }}>{i + 1}</div>
+                <div style={{ width: 32, height: 32, borderRadius: '50%', background: `${p.color}33`, border: `1.5px solid ${p.color}`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 700, flex: 'none' }}>{p.initial}</div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div className="corio-card-title" style={{ fontSize: 11, fontWeight: 700, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.id === s.you.id ? 'Você' : p.name}</div>
+                </div>
+                {isWinner && <div style={{ fontSize: 13, flex: 'none' }}>{isDraw ? '🤝' : '🏆'}</div>}
+                <div style={{ fontSize: 13, fontWeight: 800, fontFamily: "'Space Grotesk',sans-serif", flex: 'none' }}>{p.score.toLocaleString('pt-BR')}</div>
               </div>
-              {p.id === winner?.playerId && <div style={{ fontSize: 13, flex: 'none' }}>🏆</div>}
-              <div style={{ fontSize: 13, fontWeight: 800, fontFamily: "'Space Grotesk',sans-serif", flex: 'none' }}>{p.score.toLocaleString('pt-BR')}</div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </div>
 

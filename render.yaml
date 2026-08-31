@@ -15,3 +15,12 @@ services:
       # to keep the endpoint disabled (404).
       - key: REPORTS_KEY
         sync: false
+      # Player stats/history/achievements persistence (Supabase Postgres).
+      # Set both in the Render dashboard — SUPABASE_SERVICE_ROLE_KEY is the
+      # secret "service_role" key from Supabase Project Settings > API
+      # Keys (NOT the publishable/anon key the client uses). Leave unset to
+      # keep the server running with stats writes silently skipped.
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_SERVICE_ROLE_KEY
+        sync: false

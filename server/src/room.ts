@@ -2,7 +2,7 @@ import type { WebSocket } from 'ws';
 import {
   hslFracToRgb, rgbToHex, hexToRgb, rgbToHslFrac,
 } from '../../shared/color.ts';
-import { calculateColorScore, calculateMasterScore, badgeFromScore } from '../../shared/scoring.ts';
+import { calculateColorScore, calculateMasterScore, badgeFromScore, roundOutcomeFromScore } from '../../shared/scoring.ts';
 import {
   LOBBY_THEMES, AI_PHRASE_BANK, PLAYER_PALETTE, PLACING_SECONDS, NEXT_ROUND_READY_TIMEOUT_MS,
   SPEED_BONUS_MAX, ROUND_MVP_BONUS, AI_WIN_SCORE, AI_WIN_PERFECTS, LOBBY_RECONNECT_GRACE_MS,
@@ -13,7 +13,11 @@ import type {
   RoomConfig, RoundPhase, ScreenState, HslColor, ChatEntry,
   RoundView, RoundResults, RoomStateView, PlayerPublic, MatchWinner,
 } from '../../shared/types.ts';
-import { newChatId } from './id.ts';
+import { newChatId, newMatchId } from './id.ts';
+import {
+  openGameSession, closeGameSession, recordMatchResult, recordAbandonedMatch,
+  type RoundOutcome, type ThemeTally, type MatchParticipantSummary,
+} from './stats.ts';
 
 const DEFAULT_COLOR: HslColor = { h: 260, s: 60, l: 55 };
 
@@ -44,7 +48,17 @@ interface InternalPlayer {
   pickedColor: HslColor | null;
   colorHistory: string[];
   confirmedAtSeconds: number | null;
+  /** Real Supabase account id, when the client sent a valid access token —
+   * null for a failed/missing token. Never sent to any client, only used
+   * server-side to attribute stats. */
+  userId: string | null;
+  /** Open game_sessions row id for this player's current connection, or
+   * null when not tracked (no userId, or the session hasn't opened yet /
+   * already closed). */
+  sessionId: string | null;
 }
+
+interface ThemeTallyEntry { correct: number; wrong: number; perfects: number; bestScore: number; }
 
 function sysMsg(color: string, text: string): ChatEntry {
   return { id: newChatId(), type: 'sys', color, text, ts: Date.now() };
@@ -75,6 +89,17 @@ export class Room {
   private onEmpty: () => void;
   private onReport: (report: QuestionReport) => void;
 
+  // Per-match stats accumulators — built up round by round in
+  // computeReveal()/startRound(), consumed once in finishMatch(), reset by
+  // resetMatchAccumulators() on every startMatch(). Never persisted
+  // mid-match, never read outside this class.
+  private matchId = '';
+  private matchStartedAt = Date.now();
+  private matchOutcomes = new Map<string, RoundOutcome[]>();
+  private matchThemeTally = new Map<string, Map<string, ThemeTallyEntry>>();
+  private matchThemeIds = new Set<string>();
+  private matchDifficultyTally = new Map<AiDifficulty, number>();
+
   constructor(code: string, config: RoomConfig, onEmpty: () => void, onReport: (report: QuestionReport) => void) {
     this.code = code;
     this.config = config;
@@ -86,7 +111,7 @@ export class Room {
     return PLAYER_PALETTE[index % PLAYER_PALETTE.length];
   }
 
-  addPlayer(id: string, name: string, ws: WebSocket): InternalPlayer {
+  addPlayer(id: string, name: string, ws: WebSocket, userId: string | null): InternalPlayer {
     const idx = this.order.length;
     const player: InternalPlayer = {
       id, ws, name: name.slice(0, 24) || 'Jogador',
@@ -94,12 +119,30 @@ export class Room {
       initial: (name.trim()[0] || 'J').toUpperCase(),
       score: 0, perfectCount: 0, connected: true, confirmed: false, readyNext: false,
       pickedColor: null, colorHistory: [], confirmedAtSeconds: null,
+      userId, sessionId: null,
     };
     this.players.set(id, player);
     this.order.push(id);
     if (!this.hostId) this.hostId = id;
     this.chat.push(sysMsg('#94A3B8', `${player.name} entrou na sala`));
+    if (userId) this.openSessionFor(id, userId);
     return player;
+  }
+
+  // Opens a game_sessions row asynchronously and stashes its id on the
+  // player once it resolves — guarded against the player having already
+  // disconnected (or somehow already gotten a session) by then, in which
+  // case the just-opened session is closed right back out instead of
+  // leaking open forever.
+  private openSessionFor(id: string, userId: string) {
+    openGameSession(userId, this.code).then((sessionId) => {
+      const still = this.players.get(id);
+      if (still && still.connected && !still.sessionId) {
+        still.sessionId = sessionId;
+      } else if (sessionId) {
+        closeGameSession(sessionId);
+      }
+    });
   }
 
   reconnect(id: string, ws: WebSocket): boolean {
@@ -109,6 +152,7 @@ export class Room {
     p.connected = true;
     const pending = this.lobbyLeaveTimers.get(id);
     if (pending) { clearTimeout(pending); this.lobbyLeaveTimers.delete(id); }
+    if (p.userId && !p.sessionId) this.openSessionFor(id, p.userId);
     this.broadcast();
     return true;
   }
@@ -118,6 +162,7 @@ export class Room {
     if (!p) return;
     p.connected = false;
     p.ws = null;
+    if (p.sessionId) { closeGameSession(p.sessionId); p.sessionId = null; }
     if (this.screen === 'waiting') {
       // A dropped connection in the lobby (tab backgrounded, flaky signal)
       // gets a short grace period to reconnect before the slot actually
@@ -140,6 +185,15 @@ export class Room {
     }
     if (this.players.size === 0 || this.order.every((pid) => !this.players.get(pid)?.connected)) {
       this.stopTimers();
+      // The whole room is dying with a match still in progress (nobody left
+      // to reach finishMatch()'s own abandoned-player handling) — everyone
+      // who was in it counts as having abandoned that match.
+      if (this.screen === 'playing') {
+        const userIds = this.order
+          .map((pid) => this.players.get(pid)?.userId)
+          .filter((u): u is string => !!u);
+        recordAbandonedMatch(userIds);
+      }
       this.onEmpty();
       return;
     }
@@ -161,7 +215,21 @@ export class Room {
     const minPlayers = this.config.phraseMode === 'ai' ? 1 : 2;
     if (this.order.filter((id) => this.players.get(id)?.connected).length < minPlayers) return;
     this.screen = 'playing';
+    this.resetMatchAccumulators();
     this.startRound();
+  }
+
+  // Called once per match (only entry point into 'playing') — restartMatch()
+  // goes back through 'waiting' first, so startMatch() alone covers replays
+  // too. Nothing here is persisted; it's discarded once finishMatch() reads
+  // it, or overwritten wholesale on the next match.
+  private resetMatchAccumulators() {
+    this.matchId = newMatchId();
+    this.matchStartedAt = Date.now();
+    this.matchOutcomes = new Map();
+    this.matchThemeTally = new Map();
+    this.matchThemeIds = new Set();
+    this.matchDifficultyTally = new Map();
   }
 
   private pickTheme(): { id: string; icon: string; name: string } {
@@ -232,6 +300,8 @@ export class Room {
     };
     this.results = null;
     this.secretHsl = secretHsl;
+    this.matchThemeIds.add(theme.id);
+    if (aiDifficulty) this.matchDifficultyTally.set(aiDifficulty, (this.matchDifficultyTally.get(aiDifficulty) ?? 0) + 1);
 
     this.chat.push(sysMsg('#FF5C8A', `Tema da Rodada · ${theme.name}`));
     this.chat.push(sysMsg('#29E7FF', isAi ? '🤖 A IA escreveu a pista' : `✏️ Vez de ${masterName}`));
@@ -335,6 +405,7 @@ export class Room {
     // speed/MVP bonuses below, which reward individual guessers, not the clue.
     const masterGain = calculateMasterScore(base.map((g) => g.baseScore));
 
+    const themeId = this.round?.themeId ?? null;
     const guesses = base.map(({ id, p, hsl, de, baseScore }) => {
       const speedBonus = baseScore > 0 ? Math.round(SPEED_BONUS_MAX * ((p.confirmedAtSeconds ?? 0) / PLACING_SECONDS)) : 0;
       const isRoundMvp = id === mvpId;
@@ -343,6 +414,22 @@ export class Room {
       if (badge === 'PERFEITO') p.perfectCount += 1;
       const prevScore = p.score;
       p.score += score;
+
+      // Stats accumulators for this match only — read once in
+      // finishMatch(), reset by resetMatchAccumulators() on the next one.
+      const outcome = roundOutcomeFromScore(baseScore);
+      if (!this.matchOutcomes.has(id)) this.matchOutcomes.set(id, []);
+      this.matchOutcomes.get(id)!.push(outcome);
+      if (themeId) {
+        if (!this.matchThemeTally.has(id)) this.matchThemeTally.set(id, new Map());
+        const themeMap = this.matchThemeTally.get(id)!;
+        const entry = themeMap.get(themeId) ?? { correct: 0, wrong: 0, perfects: 0, bestScore: 0 };
+        if (outcome === 'wrong') entry.wrong += 1;
+        else { entry.correct += 1; if (outcome === 'perfect') entry.perfects += 1; }
+        entry.bestScore = Math.max(entry.bestScore, baseScore);
+        themeMap.set(themeId, entry);
+      }
+
       return {
         playerId: id, name: p.name, color: p.color, initial: p.initial,
         hsl, deltaE: de, score, badge, isRoundMvp,
@@ -362,6 +449,8 @@ export class Room {
         this.matchWinner = {
           playerId: winner.g.playerId, name: winner.g.name, score: winner.p.score,
           reason: winner.p.score >= AI_WIN_SCORE ? 'points' : 'perfect',
+          isDraw: false,
+          winners: [{ playerId: winner.g.playerId, name: winner.g.name, score: winner.p.score }],
         };
       }
     }
@@ -375,6 +464,28 @@ export class Room {
       masterPrevScore = master.score;
       master.score += masterGain;
       masterNewScore = master.score;
+    }
+
+    // Frase dos jogadores has no score/perfect win threshold — it ends
+    // after the configured number of rounds instead, decided by whoever
+    // has the highest cumulative score at that point (tied top scores are
+    // recorded as a draw, not resolved arbitrarily). Placed after the
+    // master's own score update above so their final-round gain counts.
+    if (this.config.phraseMode === 'players' && !this.matchWinner && this.roundIdx + 1 >= this.config.numRounds) {
+      const standings = this.order
+        .map((id) => this.players.get(id))
+        .filter((p): p is InternalPlayer => !!p);
+      if (standings.length > 0) {
+        const topScore = Math.max(...standings.map((p) => p.score));
+        const winners = standings.filter((p) => p.score === topScore);
+        const top = winners[0];
+        this.matchWinner = {
+          playerId: top.id, name: top.name, score: top.score,
+          reason: 'rounds',
+          isDraw: winners.length > 1,
+          winners: winners.map((p) => ({ playerId: p.id, name: p.name, score: p.score })),
+        };
+      }
     }
 
     this.results = {
@@ -425,8 +536,58 @@ export class Room {
     this.screen = 'finished';
     this.phase = null;
     this.secondsLeft = null;
-    this.chat.push(sysMsg('#FFC93C', `🏆 ${this.matchWinner!.name} venceu a partida!`));
+    this.chat.push(sysMsg('#FFC93C', this.matchWinner!.isDraw ? '🤝 A partida terminou empatada!' : `🏆 ${this.matchWinner!.name} venceu a partida!`));
+    this.recordMatchStats();
     this.broadcast();
+  }
+
+  // Snapshots everything the stats pipeline needs into plain objects before
+  // any async call — restartMatch() can zero p.score/p.perfectCount on
+  // these same InternalPlayer objects moments later if the host is quick,
+  // so nothing here can be read lazily after this point.
+  private recordMatchStats() {
+    const winner = this.matchWinner;
+    if (!winner) return;
+    const playedAt = new Date().toISOString();
+    const durationSeconds = Math.max(0, Math.round((Date.now() - this.matchStartedAt) / 1000));
+    const themeIds = [...this.matchThemeIds];
+    let difficulty: AiDifficulty | null = null;
+    if (this.matchDifficultyTally.size > 0) {
+      difficulty = [...this.matchDifficultyTally.entries()].reduce((best, cur) => (cur[1] > best[1] ? cur : best))[0];
+    }
+    const winnerIds = new Set(winner.winners.map((w) => w.playerId));
+
+    const summaries: MatchParticipantSummary[] = [];
+    const abandonedUserIds: string[] = [];
+
+    for (const id of this.order) {
+      const p = this.players.get(id);
+      if (!p || !p.userId) continue;
+      if (!p.connected) { abandonedUserIds.push(p.userId); continue; }
+
+      const result: 'won' | 'lost' | 'drawn' = winnerIds.has(id) ? (winner.isDraw ? 'drawn' : 'won') : 'lost';
+      const themeTallies: ThemeTally[] = [...(this.matchThemeTally.get(id)?.entries() ?? [])]
+        .map(([theme_id, t]) => ({ theme_id, correct: t.correct, wrong: t.wrong, perfects: t.perfects, best_score: t.bestScore }));
+
+      summaries.push({
+        userId: p.userId,
+        matchId: this.matchId,
+        roomCode: this.code,
+        modeId: this.config.phraseMode,
+        themeIds,
+        difficulty,
+        score: p.score,
+        perfects: p.perfectCount,
+        result,
+        durationSeconds,
+        playedAt,
+        roundOutcomes: this.matchOutcomes.get(id) ?? [],
+        themeTallies,
+      });
+    }
+
+    recordMatchResult(summaries);
+    recordAbandonedMatch(abandonedUserIds);
   }
 
   /** Host-only: replay in the same room with the same players, scores reset. */

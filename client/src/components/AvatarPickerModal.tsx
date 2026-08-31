@@ -1,14 +1,15 @@
 import { useEffect, useState } from 'react';
-import { AVATAR_ICONS, avatarSmallSrc } from '../avatarIcons.ts';
+import { AVATAR_ICONS, avatarSmallSrc } from '@shared/avatarIcons';
 import { setAccountAvatar } from '../auth.ts';
 
 interface Props {
   currentIcon: string | null;
   fallbackLetter: string;
+  unlockedAvatarIds: Set<string>;
   onClose: () => void;
 }
 
-export default function AvatarPickerModal({ currentIcon, fallbackLetter, onClose }: Props) {
+export default function AvatarPickerModal({ currentIcon, fallbackLetter, unlockedAvatarIds, onClose }: Props) {
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
@@ -46,18 +47,23 @@ export default function AvatarPickerModal({ currentIcon, fallbackLetter, onClose
               </button>
               <span className="corio-avatar-modal-label">Inicial</span>
             </div>
-            {AVATAR_ICONS.map((icon) => (
-              <div key={icon.id} className="corio-avatar-modal-item">
-                <button
-                  onClick={() => choose(icon.id)}
-                  className={`corio-tap corio-avatar-modal-option ${currentIcon === icon.id ? 'is-selected' : ''}`}
-                  aria-label={`Usar ícone ${icon.name}`}
-                >
-                  <img src={avatarSmallSrc(icon.id)} alt="" loading="lazy" />
-                </button>
-                <span className="corio-avatar-modal-label">{icon.name}</span>
-              </div>
-            ))}
+            {AVATAR_ICONS.map((icon) => {
+              const unlocked = icon.free || unlockedAvatarIds.has(icon.id);
+              return (
+                <div key={icon.id} className="corio-avatar-modal-item">
+                  <button
+                    onClick={() => unlocked && choose(icon.id)}
+                    disabled={!unlocked}
+                    className={`corio-tap corio-avatar-modal-option ${currentIcon === icon.id ? 'is-selected' : ''} ${unlocked ? '' : 'is-locked'}`}
+                    aria-label={unlocked ? `Usar ícone ${icon.name}` : `${icon.name} (bloqueado)`}
+                  >
+                    <img src={avatarSmallSrc(icon.id)} alt="" loading="lazy" />
+                    {!unlocked && <span className="corio-avatar-modal-lock">🔒</span>}
+                  </button>
+                  <span className="corio-avatar-modal-label">{icon.name}</span>
+                </div>
+              );
+            })}
           </div>
         )}
       </div>

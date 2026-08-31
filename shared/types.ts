@@ -85,12 +85,18 @@ export interface YouView extends PlayerPublic {
   masterSecret: HslColor | null;
 }
 
-/** Set once a Frase da IA match hits its win condition (10000 pontos or 5 acertos perfeitos). */
+/** Set once a match ends — either the Frase da IA win condition (10000
+ * pontos or 5 acertos perfeitos) or, in Frase dos jogadores, the last
+ * configured round finishing. `playerId`/`name`/`score` stay a single
+ * back-compat winner (first tied winner if it's a draw); `winners` is the
+ * full list, with 2+ entries only when `isDraw`. */
 export interface MatchWinner {
   playerId: string;
   name: string;
   score: number;
-  reason: 'points' | 'perfect';
+  reason: 'points' | 'perfect' | 'rounds';
+  isDraw: boolean;
+  winners: { playerId: string; name: string; score: number }[];
 }
 
 export interface RoomStateView {
@@ -123,8 +129,8 @@ export interface PublicRoomSummary {
 }
 
 export type ClientMessage =
-  | { type: 'create_room'; name: string; config: RoomConfig }
-  | { type: 'join_room'; code: string; name: string }
+  | { type: 'create_room'; name: string; config: RoomConfig; token: string | null }
+  | { type: 'join_room'; code: string; name: string; token: string | null }
   | { type: 'rejoin'; code: string; playerId: string }
   | { type: 'update_config'; config: Partial<RoomConfig> }
   | { type: 'start_match' }

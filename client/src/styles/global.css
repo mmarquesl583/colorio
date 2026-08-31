@@ -326,7 +326,18 @@ input, textarea { font-family: inherit; touch-action: manipulation; }
   overflow: hidden;
 }
 .corio-home-v2-identity-avatar img { width: 100%; height: 100%; object-fit: cover; }
-.corio-home-v2-identity-name { font-size: 14px; font-weight: 700; color: #fff; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.corio-home-v2-identity-name {
+  all: unset;
+  cursor: pointer;
+  box-sizing: border-box;
+  font-size: 14px;
+  font-weight: 700;
+  color: #fff;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+}
 .corio-home-v2-identity-link { all: unset; cursor: pointer; font-size: 11.5px; font-weight: 800; color: #FFC93C; flex: none; padding: 4px 6px; }
 
 .corio-avatar-modal-backdrop {
@@ -376,6 +387,7 @@ input, textarea { font-family: inherit; touch-action: manipulation; }
   all: unset;
   cursor: pointer;
   box-sizing: border-box;
+  position: relative;
   width: 100%;
   aspect-ratio: 1;
   border-radius: 16px;
@@ -388,7 +400,31 @@ input, textarea { font-family: inherit; touch-action: manipulation; }
 }
 .corio-avatar-modal-option img { width: 100%; height: 100%; object-fit: cover; }
 .corio-avatar-modal-option.is-selected { border-color: #FFC93C; box-shadow: 0 0 0 2px rgba(255,201,60,0.4); }
+.corio-avatar-modal-option.is-locked { cursor: default; opacity: 0.4; filter: grayscale(0.6); }
 .corio-avatar-modal-letter { font-family: 'Space Grotesk',sans-serif; font-weight: 800; font-size: 18px; color: #fff; }
+.corio-avatar-modal-lock { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 20px; background: rgba(0,0,0,0.35); }
+
+.corio-title-modal-list { display: flex; flex-direction: column; gap: 8px; max-height: 360px; overflow-y: auto; padding-bottom: 2px; }
+.corio-title-modal-option {
+  all: unset;
+  cursor: pointer;
+  box-sizing: border-box;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 12px 14px;
+  border-radius: 13px;
+  background: #12081F;
+  border: 2.5px solid #3A2260;
+  font-weight: 700;
+  font-size: 12.5px;
+  color: #fff;
+}
+.corio-title-modal-option.is-selected { border-color: #FFC93C; box-shadow: 0 0 0 2px rgba(255,201,60,0.4); }
+.corio-title-modal-option.is-locked { cursor: default; opacity: 0.45; }
+.corio-title-modal-lock { flex: none; font-size: 13px; }
 
 @media (max-width: 899px) {
   .corio-home-v2-btn { justify-content: center; }

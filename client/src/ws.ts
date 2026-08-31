@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { ClientMessage, RoomConfig, RoomStateView, ServerMessage } from '@shared/types';
+import { useSession } from './auth.ts';
 
 const WS_URL = (import.meta.env.VITE_WS_URL as string | undefined)
   || `${location.protocol === 'https:' ? 'wss' : 'ws'}://${location.host}/ws`;
@@ -44,6 +45,7 @@ export interface RoomConnection {
 }
 
 export function useRoomConnection(): RoomConnection {
+  const { session } = useSession();
   const [state, setState] = useState<RoomStateView | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [connecting, setConnecting] = useState(false);
@@ -142,17 +144,19 @@ export function useRoomConnection(): RoomConnection {
 
   const createRoom = useCallback((name: string, config: RoomConfig) => {
     intentionalCloseRef.current = false;
+    const token = session?.access_token ?? null;
     openSocket((ws) => {
-      ws.send(JSON.stringify({ type: 'create_room', name, config } satisfies ClientMessage));
+      ws.send(JSON.stringify({ type: 'create_room', name, config, token } satisfies ClientMessage));
     });
-  }, [openSocket]);
+  }, [openSocket, session]);
 
   const joinRoom = useCallback((code: string, name: string) => {
     intentionalCloseRef.current = false;
+    const token = session?.access_token ?? null;
     openSocket((ws) => {
-      ws.send(JSON.stringify({ type: 'join_room', code: code.toUpperCase(), name } satisfies ClientMessage));
+      ws.send(JSON.stringify({ type: 'join_room', code: code.toUpperCase(), name, token } satisfies ClientMessage));
     });
-  }, [openSocket]);
+  }, [openSocket, session]);
 
   const send = useCallback((msg: ClientMessage) => {
     const ws = wsRef.current;
