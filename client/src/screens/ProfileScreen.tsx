@@ -6,8 +6,7 @@ import { TITLE_CATALOG } from '@shared/titleCatalog';
 import { LOBBY_THEMES } from '@shared/gameData';
 import { useProfileData } from '../hooks/useProfileData.ts';
 import { accuracyPct, formatPlaytime } from '../stats.ts';
-import AvatarPickerModal from '../components/AvatarPickerModal.tsx';
-import TitlePickerModal from '../components/TitlePickerModal.tsx';
+import IdentityPickerModal from '../components/IdentityPickerModal.tsx';
 
 const MODE_LABELS: Record<string, string> = { players: 'Frase dos jogadores', ai: 'Frase da IA' };
 const THEME_BY_ID = new Map(LOBBY_THEMES.map((t) => [t.id, t]));
@@ -18,13 +17,16 @@ export default function ProfileScreen({ onBack }: { onBack: () => void }) {
   const { session } = useSession();
   const userId = session?.user.id ?? null;
   const { data, loading, history, historyHasMore, historyLoading, loadMoreHistory } = useProfileData(userId);
-  const [showAvatarPicker, setShowAvatarPicker] = useState(false);
-  const [showTitlePicker, setShowTitlePicker] = useState(false);
+  const [pickerMode, setPickerMode] = useState<'avatar' | 'title' | null>(null);
+  // undefined = no local override yet (still trusting whatever useProfileData
+  // last fetched); set the instant the picker actually equips a new title,
+  // since a full profile re-fetch isn't needed just to reflect that.
+  const [titleOverride, setTitleOverride] = useState<string | null | undefined>(undefined);
 
   const name = accountName(session) ?? 'Jogador';
   const avatarId = accountAvatar(session);
   const stats = data?.stats ?? null;
-  const titleId = data?.profile?.title_id ?? null;
+  const titleId = titleOverride !== undefined ? titleOverride : (data?.profile?.title_id ?? null);
   const titleName = TITLE_CATALOG.find((t) => t.id === titleId)?.name ?? 'Novato das Cores';
   const accuracy = accuracyPct(stats);
   const avatarCount = FREE_AVATAR_COUNT + (data?.unlockedAvatarIds.size ?? 0);
@@ -43,7 +45,7 @@ export default function ProfileScreen({ onBack }: { onBack: () => void }) {
 
       <div className="corio-card" style={{ flex: 'none', display: 'flex', alignItems: 'center', gap: 12, background: '#12121a', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 16, padding: 14 }}>
         <button
-          onClick={() => setShowAvatarPicker(true)}
+          onClick={() => setPickerMode('avatar')}
           className="corio-tap"
           style={{ all: 'unset', cursor: 'pointer', boxSizing: 'border-box', width: 56, height: 56, borderRadius: '50%', background: '#8B5CF6', color: '#fff', fontWeight: 800, fontSize: 22, display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', flex: 'none' }}
           aria-label="Trocar ícone"
@@ -52,7 +54,7 @@ export default function ProfileScreen({ onBack }: { onBack: () => void }) {
         </button>
         <div style={{ flex: 1, minWidth: 0 }}>
           <div className="corio-title" style={{ fontFamily: "'Space Grotesk',sans-serif", fontWeight: 800, fontSize: 16, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{name}</div>
-          <button onClick={() => setShowTitlePicker(true)} className="corio-tap" style={{ all: 'unset', cursor: 'pointer', display: 'inline-block', fontSize: 10.5, fontWeight: 700, color: '#FFC93C', marginTop: 3 }}>{titleName} ✏️</button>
+          <button onClick={() => setPickerMode('title')} className="corio-tap" style={{ all: 'unset', cursor: 'pointer', display: 'inline-block', fontSize: 10.5, fontWeight: 700, color: '#FFC93C', marginTop: 3 }}>{titleName} ✏️</button>
         </div>
       </div>
 
@@ -132,11 +134,11 @@ export default function ProfileScreen({ onBack }: { onBack: () => void }) {
       </div>
 
       <div style={{ flex: 'none', display: 'flex', gap: 8 }}>
-        <button onClick={() => setShowAvatarPicker(true)} className="corio-tap corio-card" style={collectionCardStyle}>
+        <button onClick={() => setPickerMode('avatar')} className="corio-tap corio-card" style={collectionCardStyle}>
           <div style={{ fontSize: 18 }}>🖼️</div>
           <div className="corio-card-title" style={{ fontSize: 10, fontWeight: 700, marginTop: 4 }}>{avatarCount} avatares</div>
         </button>
-        <button onClick={() => setShowTitlePicker(true)} className="corio-tap corio-card" style={collectionCardStyle}>
+        <button onClick={() => setPickerMode('title')} className="corio-tap corio-card" style={collectionCardStyle}>
           <div style={{ fontSize: 18 }}>🏅</div>
           <div className="corio-card-title" style={{ fontSize: 10, fontWeight: 700, marginTop: 4 }}>{titleCount} títulos</div>
         </button>
@@ -184,19 +186,18 @@ export default function ProfileScreen({ onBack }: { onBack: () => void }) {
         )}
       </div>
 
-      {showAvatarPicker && (
-        <AvatarPickerModal
-          currentIcon={avatarId}
+      {pickerMode && (
+        <IdentityPickerModal
+          initialMode={pickerMode}
+          playerName={name}
           fallbackLetter={name[0]?.toUpperCase() ?? '?'}
-          unlockedAvatarIds={data?.unlockedAvatarIds ?? new Set()}
-          onClose={() => setShowAvatarPicker(false)}
-        />
-      )}
-      {showTitlePicker && (
-        <TitlePickerModal
+          currentAvatarId={avatarId}
           currentTitleId={titleId}
+          unlockedAvatarIds={data?.unlockedAvatarIds ?? new Set()}
           unlockedTitleIds={data?.unlockedTitleIds ?? new Set()}
-          onClose={() => setShowTitlePicker(false)}
+          onAvatarEquipped={() => { /* useSession() auto-refreshes */ }}
+          onTitleEquipped={(id) => setTitleOverride(id)}
+          onClose={() => setPickerMode(null)}
         />
       )}
     </div>

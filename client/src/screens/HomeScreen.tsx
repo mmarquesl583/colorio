@@ -1,8 +1,10 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { supabase } from '../supabase.ts';
 import { accountAvatar, accountName, useSession } from '../auth.ts';
 import { avatarSmallSrc } from '@shared/avatarIcons';
-import AvatarPickerModal from '../components/AvatarPickerModal.tsx';
+import { TITLE_CATALOG } from '@shared/titleCatalog';
+import { fetchEquippedTitle } from '../stats.ts';
+import IdentityPickerModal from '../components/IdentityPickerModal.tsx';
 
 interface Props {
   connecting: boolean;
@@ -20,6 +22,7 @@ const IMG = '/images/home';
 // shared/avatarIcons.ts) — the full Profile screen's own picker instance
 // gets the real set once it does.
 const EMPTY_AVATAR_UNLOCKS = new Set<string>();
+const EMPTY_TITLE_UNLOCKS = new Set<string>();
 
 interface Doodle { src: string; pos: React.CSSProperties; width: number; rot: number; duration: number; delay: number; }
 
@@ -39,10 +42,21 @@ const DOODLES: Doodle[] = [
 
 export default function HomeScreen({ connecting, error, onClearError, onStartCreate, onFindRooms, onLogin, onOpenProfile }: Props) {
   const { session } = useSession();
-  const [showAvatarPicker, setShowAvatarPicker] = useState(false);
+  const [pickerMode, setPickerMode] = useState<'avatar' | 'title' | null>(null);
+  const [equippedTitleId, setEquippedTitleId] = useState<string | null>(null);
   const loggedInName = accountName(session);
   const loggedInAvatar = accountAvatar(session);
   const nameOk = Boolean(loggedInName);
+  const userId = session?.user.id ?? null;
+
+  useEffect(() => {
+    if (!userId) { setEquippedTitleId(null); return; }
+    let cancelled = false;
+    fetchEquippedTitle(userId).then((id) => { if (!cancelled) setEquippedTitleId(id); });
+    return () => { cancelled = true; };
+  }, [userId]);
+
+  const titleName = TITLE_CATALOG.find((t) => t.id === equippedTitleId)?.name ?? 'Novato das Cores';
 
   return (
     <div className="corio-home-v2">
@@ -77,10 +91,13 @@ export default function HomeScreen({ connecting, error, onClearError, onStartCre
           {loggedInName ? (
             <div className="corio-home-v2-identity">
               <span className="corio-home-v2-identity-info">
-                <button onClick={() => setShowAvatarPicker(true)} className="corio-tap corio-home-v2-identity-avatar" aria-label="Trocar ícone">
+                <button onClick={() => setPickerMode('avatar')} className="corio-tap corio-home-v2-identity-avatar" aria-label="Trocar ícone">
                   {loggedInAvatar ? <img src={avatarSmallSrc(loggedInAvatar)} alt="" /> : loggedInName[0].toUpperCase()}
                 </button>
-                <button onClick={onOpenProfile} className="corio-tap corio-home-v2-identity-name" aria-label="Ver perfil">{loggedInName}</button>
+                <span className="corio-home-v2-identity-text">
+                  <button onClick={onOpenProfile} className="corio-tap corio-home-v2-identity-name" aria-label="Ver perfil">{loggedInName}</button>
+                  <button onClick={() => setPickerMode('title')} className="corio-tap corio-home-v2-identity-title" aria-label="Trocar título">{titleName}</button>
+                </span>
               </span>
               <button onClick={() => supabase.auth.signOut()} className="corio-tap corio-home-v2-identity-link">Sair</button>
             </div>
@@ -121,12 +138,18 @@ export default function HomeScreen({ connecting, error, onClearError, onStartCre
         </div>
       </div>
 
-      {showAvatarPicker && loggedInName && (
-        <AvatarPickerModal
-          currentIcon={loggedInAvatar}
+      {pickerMode && loggedInName && (
+        <IdentityPickerModal
+          initialMode={pickerMode}
+          playerName={loggedInName}
           fallbackLetter={loggedInName[0].toUpperCase()}
+          currentAvatarId={loggedInAvatar}
+          currentTitleId={equippedTitleId}
           unlockedAvatarIds={EMPTY_AVATAR_UNLOCKS}
-          onClose={() => setShowAvatarPicker(false)}
+          unlockedTitleIds={EMPTY_TITLE_UNLOCKS}
+          onAvatarEquipped={() => { /* accountAvatar() re-derives from the session, which useSession() already refreshes */ }}
+          onTitleEquipped={(id) => setEquippedTitleId(id)}
+          onClose={() => setPickerMode(null)}
         />
       )}
     </div>

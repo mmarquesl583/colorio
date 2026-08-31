@@ -188,6 +188,15 @@ export function formatPlaytime(totalSeconds: number): string {
   return `${hours}h ${minutes}min`;
 }
 
+// Lightweight, single-column fetch for places that only need to display
+// the equipped title (e.g. the Home identity chip) without pulling the
+// whole profile — keeps that read cheap and separate from useProfileData.
+export async function fetchEquippedTitle(userId: string): Promise<string | null> {
+  const { data, error } = await supabase.from('profiles').select('title_id').eq('user_id', userId).maybeSingle();
+  if (error) { console.error('fetchEquippedTitle failed:', error.message); return null; }
+  return (data as { title_id: string | null } | null)?.title_id ?? null;
+}
+
 export async function equipTitle(titleId: string | null): Promise<void> {
   const { error } = await supabase.rpc('equip_title', { p_title_id: titleId });
   if (error) console.error('equip_title failed:', error.message);

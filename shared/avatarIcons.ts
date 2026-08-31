@@ -12,20 +12,39 @@
 // avatar that existed before the unlock system shipped is grandfathered
 // in as free so nobody loses access to what they already had. Only future
 // non-free avatars actually get gated behind player_avatars/achievements.
+export type AvatarCategory = 'animais' | 'divertidos' | 'especiais';
+export type Rarity = 'comum' | 'raro' | 'epico' | 'lendario';
+
 export interface AvatarIcon {
   id: string;
   name: string;
+  category: AvatarCategory;
+  rarity: Rarity;
+  description: string;
   free?: boolean;
 }
 
 export const AVATAR_ICONS: AvatarIcon[] = [
-  { id: 'avatar-cat', name: 'Morfeu', free: true },
-  { id: 'avatar-dog', name: 'Peter', free: true },
-  { id: 'avatar-jogador', name: 'Neymar', free: true },
-  { id: 'avatar-piloto', name: 'Dyna', free: true },
-  { id: 'avatar-raposa', name: 'Raposa Pequeno Príncipe', free: true },
-  { id: 'avatar-calopsita', name: 'Thor Doidão', free: true },
+  { id: 'avatar-cat', name: 'Morfeu', category: 'animais', rarity: 'epico', description: 'Sério por fora, mestre das cores por dentro.', free: true },
+  { id: 'avatar-dog', name: 'Peter', category: 'animais', rarity: 'raro', description: 'Sempre animado pra descobrir a próxima cor.', free: true },
+  { id: 'avatar-jogador', name: 'Neymar', category: 'divertidos', rarity: 'lendario', description: 'Craque dentro e fora do campo de cores.', free: true },
+  { id: 'avatar-piloto', name: 'Dyna', category: 'divertidos', rarity: 'epico', description: 'Acelera direto pra vitória mais colorida.', free: true },
+  { id: 'avatar-raposa', name: 'Raposa Pequeno Príncipe', category: 'especiais', rarity: 'raro', description: 'Cativa qualquer cor que encontra pelo caminho.', free: true },
+  { id: 'avatar-calopsita', name: 'Thor Doidão', category: 'divertidos', rarity: 'comum', description: 'Doido pra ganhar, mais doido ainda pra comemorar.', free: true },
 ];
+
+export const AVATAR_CATEGORIES: { id: AvatarCategory; label: string; icon: string }[] = [
+  { id: 'animais', label: 'Animais', icon: '🐾' },
+  { id: 'divertidos', label: 'Divertidos', icon: '😄' },
+  { id: 'especiais', label: 'Especiais', icon: '⭐' },
+];
+
+export const RARITY_LABELS: Record<Rarity, string> = {
+  comum: 'Comum',
+  raro: 'Raro',
+  epico: 'Épico',
+  lendario: 'Lendário',
+};
 
 export function avatarSmallSrc(icon: string): string {
   return `/images/avatars/${icon}-sm.webp`;
