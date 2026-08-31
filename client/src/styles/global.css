@@ -278,6 +278,74 @@ input, textarea { font-family: inherit; touch-action: manipulation; }
 .corio-home-v2-input:focus { border-color: #C084FC; }
 .corio-home-v2-input-icon { position: absolute; left: 13px; top: 50%; transform: translateY(-50%); color: #7C5BB5; pointer-events: none; }
 .corio-home-v2-input-scribble { position: absolute; right: 13px; top: 50%; transform: translateY(-50%); color: #2DD4BF; opacity: 0.8; pointer-events: none; }
+.corio-home-v2-input-confirm {
+  all: unset;
+  cursor: pointer;
+  box-sizing: border-box;
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: #4ADE80;
+  color: #04220f;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+/* "Entrar" reuses the chunky button look but with icon+label on the left
+   and a chevron pinned right (space-between), unlike the centered
+   Criar sala / Procurar salas pair — the compound selector below needs to
+   outrank the mobile `.corio-home-v2-btn { justify-content: center }` rule. */
+.corio-home-v2-btn.corio-home-v2-btn-split { justify-content: space-between; }
+.corio-home-v2-btn-split-left { display: flex; align-items: center; gap: 12px; }
+.corio-home-v2-entrar-icon {
+  width: 27px;
+  height: 27px;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+}
+.corio-home-v2-chevron { font-size: 20px; font-weight: 800; opacity: 0.85; flex: none; }
+
+/* Compact "who's playing" row — replaces the Entrar button once logged in,
+   and replaces the guest name input once a name has already been saved. */
+.corio-home-v2-identity {
+  width: 100%;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  background: #1A0A33;
+  border: 3px solid #4A2B7A;
+  border-radius: 16px;
+  padding: 12px 14px 12px 16px;
+}
+.corio-home-v2-identity-info { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.corio-home-v2-identity-avatar {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: #8B5CF6;
+  color: #fff;
+  font-weight: 800;
+  font-size: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+}
+.corio-home-v2-identity-name { font-size: 14px; font-weight: 700; color: #fff; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.corio-home-v2-identity-link { all: unset; cursor: pointer; font-size: 11.5px; font-weight: 800; color: #FFC93C; flex: none; padding: 4px 6px; }
 
 @media (max-width: 899px) {
   .corio-home-v2-btn { justify-content: center; }
@@ -324,6 +392,13 @@ input, textarea { font-family: inherit; touch-action: manipulation; }
   }
   .corio-home-v2-input-icon { width: 22px !important; height: 22px !important; left: 22px !important; }
   .corio-home-v2-input-scribble { width: 28px !important; height: 20px !important; right: 22px !important; }
+  .corio-home-v2-input-confirm { width: 34px !important; height: 34px !important; right: 14px !important; font-size: 16px !important; }
+  .corio-home-v2-entrar-icon { width: clamp(38px, 3.4vw, 52px); height: clamp(38px, 3.4vw, 52px); }
+  .corio-home-v2-chevron { font-size: clamp(26px, 2.4vw, 34px); }
+  .corio-home-v2-identity { padding: clamp(16px,1.6vw,22px) clamp(20px,2vw,28px) !important; border-radius: 22px !important; }
+  .corio-home-v2-identity-avatar { width: clamp(34px,3vw,44px); height: clamp(34px,3vw,44px); font-size: clamp(15px,1.4vw,19px); }
+  .corio-home-v2-identity-name { font-size: clamp(17px,1.6vw,22px) !important; }
+  .corio-home-v2-identity-link { font-size: clamp(13px,1.2vw,16px) !important; }
 }
 
 /* Game screen: single column on mobile, main + persistent sidebar on desktop. */

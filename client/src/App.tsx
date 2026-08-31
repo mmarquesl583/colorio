@@ -4,12 +4,13 @@ import AppShell from './components/AppShell.tsx';
 import HomeScreen from './screens/HomeScreen.tsx';
 import LobbyScreen from './screens/LobbyScreen.tsx';
 import FindRoomScreen from './screens/FindRoomScreen.tsx';
+import AuthScreen from './screens/AuthScreen.tsx';
 import WaitingScreen from './screens/WaitingScreen.tsx';
 import GameScreen from './screens/GameScreen.tsx';
 import MatchEndScreen from './screens/MatchEndScreen.tsx';
 import type { RoomConfig } from '@shared/types';
 
-type Route = 'home' | 'create-lobby' | 'find-room';
+type Route = 'home' | 'create-lobby' | 'find-room' | 'login';
 
 export default function App() {
   const conn = useRoomConnection();
@@ -48,6 +49,14 @@ export default function App() {
         />
       );
     }
+    if (route === 'login') {
+      return (
+        <AuthScreen
+          onBack={() => setRoute('home')}
+          onAuthed={() => setRoute('home')}
+        />
+      );
+    }
     return (
       <HomeScreen
         connecting={conn.connecting}
@@ -55,6 +64,7 @@ export default function App() {
         onClearError={conn.clearError}
         onStartCreate={(name) => { setPendingName(name); setRoute('create-lobby'); }}
         onFindRooms={(name) => { setPendingName(name); setRoute('find-room'); }}
+        onLogin={() => setRoute('login')}
       />
     );
   })();
