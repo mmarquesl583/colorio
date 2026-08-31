@@ -36,22 +36,27 @@ export default function AvatarPickerModal({ currentIcon, fallbackLetter, onClose
           <div className="corio-avatar-modal-empty">Em breve você vai poder escolher um ícone aqui. 🎨</div>
         ) : (
           <div className="corio-avatar-modal-grid">
-            <button
-              onClick={() => choose(null)}
-              className={`corio-tap corio-avatar-modal-option ${currentIcon === null ? 'is-selected' : ''}`}
-              aria-label="Usar inicial do nome"
-            >
-              <span className="corio-avatar-modal-letter">{fallbackLetter}</span>
-            </button>
-            {AVATAR_ICONS.map((icon) => (
+            <div className="corio-avatar-modal-item">
               <button
-                key={icon}
-                onClick={() => choose(icon)}
-                className={`corio-tap corio-avatar-modal-option ${currentIcon === icon ? 'is-selected' : ''}`}
-                aria-label="Usar este ícone"
+                onClick={() => choose(null)}
+                className={`corio-tap corio-avatar-modal-option ${currentIcon === null ? 'is-selected' : ''}`}
+                aria-label="Usar inicial do nome"
               >
-                <img src={avatarSmallSrc(icon)} alt="" loading="lazy" />
+                <span className="corio-avatar-modal-letter">{fallbackLetter}</span>
               </button>
+              <span className="corio-avatar-modal-label">Inicial</span>
+            </div>
+            {AVATAR_ICONS.map((icon) => (
+              <div key={icon.id} className="corio-avatar-modal-item">
+                <button
+                  onClick={() => choose(icon.id)}
+                  className={`corio-tap corio-avatar-modal-option ${currentIcon === icon.id ? 'is-selected' : ''}`}
+                  aria-label={`Usar ícone ${icon.name}`}
+                >
+                  <img src={avatarSmallSrc(icon.id)} alt="" loading="lazy" />
+                </button>
+                <span className="corio-avatar-modal-label">{icon.name}</span>
+              </div>
             ))}
           </div>
         )}

@@ -369,11 +369,14 @@ input, textarea { font-family: inherit; touch-action: manipulation; }
   flex: none;
 }
 .corio-avatar-modal-empty { font-size: 12.5px; font-weight: 600; color: rgba(244,242,248,0.6); text-align: center; padding: 24px 10px; line-height: 1.5; }
-.corio-avatar-modal-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; max-height: 320px; overflow-y: auto; }
+.corio-avatar-modal-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px 10px; max-height: 360px; overflow-y: auto; padding-bottom: 2px; }
+.corio-avatar-modal-item { display: flex; flex-direction: column; align-items: center; gap: 5px; min-width: 0; }
+.corio-avatar-modal-label { font-size: 9px; font-weight: 700; color: rgba(244,242,248,0.65); text-align: center; line-height: 1.25; }
 .corio-avatar-modal-option {
   all: unset;
   cursor: pointer;
   box-sizing: border-box;
+  width: 100%;
   aspect-ratio: 1;
   border-radius: 16px;
   background: #12081F;
