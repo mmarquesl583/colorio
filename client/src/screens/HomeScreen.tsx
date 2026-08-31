@@ -5,7 +5,7 @@ interface Props {
   error: string | null;
   onClearError: () => void;
   onStartCreate: (name: string) => void;
-  onJoin: (name: string, code: string) => void;
+  onFindRooms: (name: string) => void;
 }
 
 const IMG = '/images/home';
@@ -35,13 +35,11 @@ const DOODLES: Doodle[] = [
   { src: 'doodle-cursor-click.webp', pos: { bottom: '6%', right: '4%' }, width: 56, rot: -12, duration: 6.8, delay: .7 },
 ];
 
-export default function HomeScreen({ connecting, error, onClearError, onStartCreate }: Props) {
-  const [mode, setMode] = useState<'create' | 'join'>('create');
+export default function HomeScreen({ connecting, error, onClearError, onStartCreate, onFindRooms }: Props) {
   const [name, setName] = useState(loadSavedName);
 
   const nameOk = name.trim().length > 0;
 
-  const chooseMode = (m: 'create' | 'join') => { setMode(m); onClearError(); };
   const updateName = (v: string) => { setName(v); saveName(v); };
 
   return (
@@ -75,15 +73,17 @@ export default function HomeScreen({ connecting, error, onClearError, onStartCre
 
         <div className="corio-home-v2-form">
           <button
-            onClick={() => chooseMode('create')}
-            className={`corio-home-v2-btn corio-home-v2-btn-primary ${mode === 'create' ? 'is-active' : 'corio-home-v2-btn-inactive'}`}
+            onClick={onClearError}
+            className="corio-home-v2-btn corio-home-v2-btn-primary is-active"
           >
             <img src={`${IMG}/doodle-rocket.webp`} alt="" />
             Criar sala
           </button>
           <button
-            onClick={() => chooseMode('join')}
-            className={`corio-home-v2-btn corio-home-v2-btn-secondary ${mode === 'join' ? 'is-active' : 'corio-home-v2-btn-inactive'}`}
+            onClick={() => onFindRooms(name.trim())}
+            disabled={!nameOk}
+            className="corio-home-v2-btn corio-home-v2-btn-secondary"
+            style={{ opacity: nameOk ? 1 : 0.6 }}
           >
             <img src={`${IMG}/doodle-key.webp`} alt="" />
             Procurar salas
