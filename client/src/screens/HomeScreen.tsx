@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { supabase } from '../supabase.ts';
 import { accountAvatar, accountName, useSession } from '../auth.ts';
+import { avatarSmallSrc } from '../avatarIcons.ts';
 import AvatarPickerModal from '../components/AvatarPickerModal.tsx';
 
 interface Props {
@@ -71,7 +72,7 @@ export default function HomeScreen({ connecting, error, onClearError, onStartCre
             <div className="corio-home-v2-identity">
               <span className="corio-home-v2-identity-info">
                 <button onClick={() => setShowAvatarPicker(true)} className="corio-tap corio-home-v2-identity-avatar" aria-label="Trocar ícone">
-                  {loggedInAvatar ? <img src={`/images/avatars/${loggedInAvatar}`} alt="" /> : loggedInName[0].toUpperCase()}
+                  {loggedInAvatar ? <img src={avatarSmallSrc(loggedInAvatar)} alt="" /> : loggedInName[0].toUpperCase()}
                 </button>
                 <span className="corio-home-v2-identity-name">{loggedInName}</span>
               </span>

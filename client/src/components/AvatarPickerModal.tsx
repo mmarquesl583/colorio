@@ -1,8 +1,6 @@
 import { useEffect, useState } from 'react';
-import { AVATAR_ICONS } from '../avatarIcons.ts';
+import { AVATAR_ICONS, avatarSmallSrc } from '../avatarIcons.ts';
 import { setAccountAvatar } from '../auth.ts';
-
-const IMG = '/images/avatars';
 
 interface Props {
   currentIcon: string | null;
@@ -52,7 +50,7 @@ export default function AvatarPickerModal({ currentIcon, fallbackLetter, onClose
                 className={`corio-tap corio-avatar-modal-option ${currentIcon === icon ? 'is-selected' : ''}`}
                 aria-label="Usar este ícone"
               >
-                <img src={`${IMG}/${icon}`} alt="" />
+                <img src={avatarSmallSrc(icon)} alt="" loading="lazy" />
               </button>
             ))}
           </div>
