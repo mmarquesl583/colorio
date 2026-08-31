@@ -23,3 +23,13 @@ export function accountName(session: Session | null): string | null {
   const meta = session.user.user_metadata as { display_name?: string } | undefined;
   return meta?.display_name?.trim() || session.user.email?.split('@')[0] || null;
 }
+
+export function accountAvatar(session: Session | null): string | null {
+  if (!session) return null;
+  const meta = session.user.user_metadata as { avatar_icon?: string } | undefined;
+  return meta?.avatar_icon || null;
+}
+
+export function setAccountAvatar(icon: string | null) {
+  return supabase.auth.updateUser({ data: { avatar_icon: icon } });
+}

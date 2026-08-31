@@ -1,5 +1,7 @@
+import { useState } from 'react';
 import { supabase } from '../supabase.ts';
-import { accountName, useSession } from '../auth.ts';
+import { accountAvatar, accountName, useSession } from '../auth.ts';
+import AvatarPickerModal from '../components/AvatarPickerModal.tsx';
 
 interface Props {
   connecting: boolean;
@@ -30,7 +32,9 @@ const DOODLES: Doodle[] = [
 
 export default function HomeScreen({ connecting, error, onClearError, onStartCreate, onFindRooms, onLogin }: Props) {
   const { session } = useSession();
+  const [showAvatarPicker, setShowAvatarPicker] = useState(false);
   const loggedInName = accountName(session);
+  const loggedInAvatar = accountAvatar(session);
   const nameOk = Boolean(loggedInName);
 
   return (
@@ -66,7 +70,9 @@ export default function HomeScreen({ connecting, error, onClearError, onStartCre
           {loggedInName ? (
             <div className="corio-home-v2-identity">
               <span className="corio-home-v2-identity-info">
-                <span className="corio-home-v2-identity-avatar">{loggedInName[0].toUpperCase()}</span>
+                <button onClick={() => setShowAvatarPicker(true)} className="corio-tap corio-home-v2-identity-avatar" aria-label="Trocar ícone">
+                  {loggedInAvatar ? <img src={`/images/avatars/${loggedInAvatar}`} alt="" /> : loggedInName[0].toUpperCase()}
+                </button>
                 <span className="corio-home-v2-identity-name">{loggedInName}</span>
               </span>
               <button onClick={() => supabase.auth.signOut()} className="corio-tap corio-home-v2-identity-link">Sair</button>
@@ -107,6 +113,14 @@ export default function HomeScreen({ connecting, error, onClearError, onStartCre
           </button>
         </div>
       </div>
+
+      {showAvatarPicker && loggedInName && (
+        <AvatarPickerModal
+          currentIcon={loggedInAvatar}
+          fallbackLetter={loggedInName[0].toUpperCase()}
+          onClose={() => setShowAvatarPicker(false)}
+        />
+      )}
     </div>
   );
 }

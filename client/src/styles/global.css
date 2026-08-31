@@ -309,6 +309,9 @@ input, textarea { font-family: inherit; touch-action: manipulation; }
 }
 .corio-home-v2-identity-info { display: flex; align-items: center; gap: 10px; min-width: 0; }
 .corio-home-v2-identity-avatar {
+  all: unset;
+  cursor: pointer;
+  box-sizing: border-box;
   width: 26px;
   height: 26px;
   border-radius: 50%;
@@ -320,9 +323,69 @@ input, textarea { font-family: inherit; touch-action: manipulation; }
   align-items: center;
   justify-content: center;
   flex: none;
+  overflow: hidden;
 }
+.corio-home-v2-identity-avatar img { width: 100%; height: 100%; object-fit: cover; }
 .corio-home-v2-identity-name { font-size: 14px; font-weight: 700; color: #fff; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .corio-home-v2-identity-link { all: unset; cursor: pointer; font-size: 11.5px; font-weight: 800; color: #FFC93C; flex: none; padding: 4px 6px; }
+
+.corio-avatar-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(5,2,12,0.72);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 50;
+  padding: 20px;
+  box-sizing: border-box;
+}
+.corio-avatar-modal {
+  width: 100%;
+  max-width: 380px;
+  box-sizing: border-box;
+  background: #1A0A33;
+  border: 3px solid #4A2B7A;
+  border-radius: 22px;
+  padding: 18px;
+  box-shadow: 0 10px 0 rgba(0,0,0,0.35), 0 20px 40px rgba(0,0,0,0.4);
+  animation: corio-pop .2s ease;
+}
+.corio-avatar-modal-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+.corio-avatar-modal-title { font-family: 'Space Grotesk',sans-serif; font-weight: 800; font-size: 16px; color: #fff; }
+.corio-avatar-modal-close {
+  all: unset;
+  cursor: pointer;
+  box-sizing: border-box;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.1);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  flex: none;
+}
+.corio-avatar-modal-empty { font-size: 12.5px; font-weight: 600; color: rgba(244,242,248,0.6); text-align: center; padding: 24px 10px; line-height: 1.5; }
+.corio-avatar-modal-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; max-height: 320px; overflow-y: auto; }
+.corio-avatar-modal-option {
+  all: unset;
+  cursor: pointer;
+  box-sizing: border-box;
+  aspect-ratio: 1;
+  border-radius: 16px;
+  background: #12081F;
+  border: 2.5px solid #3A2260;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+.corio-avatar-modal-option img { width: 100%; height: 100%; object-fit: cover; }
+.corio-avatar-modal-option.is-selected { border-color: #FFC93C; box-shadow: 0 0 0 2px rgba(255,201,60,0.4); }
+.corio-avatar-modal-letter { font-family: 'Space Grotesk',sans-serif; font-weight: 800; font-size: 18px; color: #fff; }
 
 @media (max-width: 899px) {
   .corio-home-v2-btn { justify-content: center; }
