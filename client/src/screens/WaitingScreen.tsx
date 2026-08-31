@@ -2,6 +2,8 @@ import { useState } from 'react';
 import Logo from '../components/Logo.tsx';
 import { LOBBY_THEMES } from '@shared/gameData';
 import { AI_QUESTIONS } from '@shared/aiQuestions';
+import { avatarSmallSrc } from '@shared/avatarIcons';
+import { titleNameFor } from '@shared/titleCatalog';
 import type { PhraseMode } from '@shared/types';
 import type { RoomConnection } from '../ws.ts';
 
@@ -39,7 +41,9 @@ export default function WaitingScreen({ conn }: { conn: RoomConnection }) {
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
           <div onClick={conn.leaveRoom} className="corio-tap" style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4, background: 'rgba(239,68,68,0.12)', border: '1px solid rgba(239,68,68,0.35)', borderRadius: 999, padding: '5px 9px', fontSize: 9, fontWeight: 700, color: '#FCA5A5' }}>↩ SAIR</div>
           <div className="corio-you-chip">
-            <div style={{ width: 28, height: 28, borderRadius: '50%', background: `${s.you.color}33`, border: `1.5px solid ${s.you.color}`, fontSize: 12, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', flex: 'none' }}>{s.you.initial}</div>
+            <div style={{ width: 28, height: 28, borderRadius: '50%', background: `${s.you.color}33`, border: `1.5px solid ${s.you.color}`, fontSize: 12, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', flex: 'none', overflow: 'hidden' }}>
+              {s.you.avatarId ? <img src={avatarSmallSrc(s.you.avatarId)} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : s.you.initial}
+            </div>
             <div style={{ fontSize: 12.5, fontWeight: 700 }}>Você</div>
           </div>
         </div>
@@ -132,12 +136,15 @@ export default function WaitingScreen({ conn }: { conn: RoomConnection }) {
           <div className="corio-noscroll corio-player-grid" style={{ flex: 1, minHeight: 0, overflowY: 'auto' }}>
             {slots.map((p, i) => p ? (
               <div key={p.id} className="corio-card" style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 8px', borderRadius: 10, background: 'rgba(255,255,255,0.03)', flex: 'none' }}>
-                <div style={{ width: 32, height: 32, borderRadius: '50%', background: `${p.color}33`, border: `1.5px solid ${p.color}`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 700, flex: 'none' }}>{p.initial}</div>
+                <div style={{ width: 32, height: 32, borderRadius: '50%', background: `${p.color}33`, border: `1.5px solid ${p.color}`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 700, flex: 'none', overflow: 'hidden' }}>
+                  {p.avatarId ? <img src={avatarSmallSrc(p.avatarId)} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : p.initial}
+                </div>
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
                     <div className="corio-card-title" style={{ fontSize: 11, fontWeight: 700, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.id === s.you.id ? 'Você' : p.name}</div>
                     {p.isHost && <div style={{ fontSize: 6.5, fontWeight: 700, color: '#C4B5FD', background: 'rgba(139,92,246,0.2)', padding: '2px 5px', borderRadius: 999 }}>ANFITRIÃO</div>}
                   </div>
+                  <div style={{ fontSize: 8, fontWeight: 700, color: '#FFC93C', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{titleNameFor(p.titleId)}</div>
                   <div className="corio-card-sub" style={{ fontSize: 8.5, fontWeight: 600, color: p.connected ? '#4ADE80' : '#FCA5A5' }}>{p.connected ? 'Pronto para jogar!' : 'Reconectando…'}</div>
                 </div>
                 <div style={{ fontSize: 13, flex: 'none' }}>{p.connected ? '✅' : '🔄'}</div>

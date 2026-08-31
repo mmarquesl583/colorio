@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { ClientMessage, RoomConfig, RoomStateView, ServerMessage } from '@shared/types';
-import { useSession } from './auth.ts';
+import { accountAvatar, useSession } from './auth.ts';
+import { fetchEquippedTitle } from './stats.ts';
 
 const WS_URL = (import.meta.env.VITE_WS_URL as string | undefined)
   || `${location.protocol === 'https:' ? 'wss' : 'ws'}://${location.host}/ws`;
@@ -60,6 +61,19 @@ export function useRoomConnection(): RoomConnection {
   const intentionalCloseRef = useRef(false);
   const reconnectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const reconnectFnRef = useRef<() => void>(() => {});
+  // Equipped title lives in the `profiles` table (server-side), not in the
+  // Supabase session/user_metadata like the avatar — so unlike
+  // accountAvatar(session), it can't be read synchronously at create/join
+  // time. Refetched whenever the account changes and cached in a ref so
+  // createRoom/joinRoom can read it without turning into async callbacks.
+  const titleIdRef = useRef<string | null>(null);
+  const userId = session?.user.id ?? null;
+  useEffect(() => {
+    if (!userId) { titleIdRef.current = null; return; }
+    let cancelled = false;
+    fetchEquippedTitle(userId).then((id) => { if (!cancelled) titleIdRef.current = id; });
+    return () => { cancelled = true; };
+  }, [userId]);
 
   const openSocket = useCallback((onOpen: (ws: WebSocket) => void, opts?: { silent?: boolean }) => {
     if (reconnectTimerRef.current) { clearTimeout(reconnectTimerRef.current); reconnectTimerRef.current = null; }
@@ -145,16 +159,20 @@ export function useRoomConnection(): RoomConnection {
   const createRoom = useCallback((name: string, config: RoomConfig) => {
     intentionalCloseRef.current = false;
     const token = session?.access_token ?? null;
+    const avatarId = accountAvatar(session);
+    const titleId = titleIdRef.current;
     openSocket((ws) => {
-      ws.send(JSON.stringify({ type: 'create_room', name, config, token } satisfies ClientMessage));
+      ws.send(JSON.stringify({ type: 'create_room', name, config, token, avatarId, titleId } satisfies ClientMessage));
     });
   }, [openSocket, session]);
 
   const joinRoom = useCallback((code: string, name: string) => {
     intentionalCloseRef.current = false;
     const token = session?.access_token ?? null;
+    const avatarId = accountAvatar(session);
+    const titleId = titleIdRef.current;
     openSocket((ws) => {
-      ws.send(JSON.stringify({ type: 'join_room', code: code.toUpperCase(), name, token } satisfies ClientMessage));
+      ws.send(JSON.stringify({ type: 'join_room', code: code.toUpperCase(), name, token, avatarId, titleId } satisfies ClientMessage));
     });
   }, [openSocket, session]);
 

@@ -23,6 +23,8 @@ export interface PlayerPublic {
   name: string;
   color: string;
   initial: string;
+  avatarId: string | null;
+  titleId: string | null;
   score: number;
   connected: boolean;
   isHost: boolean;
@@ -44,6 +46,7 @@ export interface RevealPlayerResult {
   name: string;
   color: string;
   initial: string;
+  avatarId: string | null;
   hsl: HslColor;
   deltaE: number;
   score: number;
@@ -59,6 +62,7 @@ export interface RoundResults {
   guesses: RevealPlayerResult[];
   masterId: string | null;
   masterName: string | null;
+  masterAvatarId: string | null;
   masterPrevScore: number;
   masterNewScore: number;
   masterGain: number;
@@ -129,8 +133,8 @@ export interface PublicRoomSummary {
 }
 
 export type ClientMessage =
-  | { type: 'create_room'; name: string; config: RoomConfig; token: string | null }
-  | { type: 'join_room'; code: string; name: string; token: string | null }
+  | { type: 'create_room'; name: string; config: RoomConfig; token: string | null; avatarId: string | null; titleId: string | null }
+  | { type: 'join_room'; code: string; name: string; token: string | null; avatarId: string | null; titleId: string | null }
   | { type: 'rejoin'; code: string; playerId: string }
   | { type: 'update_config'; config: Partial<RoomConfig> }
   | { type: 'start_match' }

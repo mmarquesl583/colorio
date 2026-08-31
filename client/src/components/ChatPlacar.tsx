@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { avatarSmallSrc } from '@shared/avatarIcons';
 import type { ChatEntry, PlayerPublic } from '@shared/types';
 
 interface Props {
@@ -36,7 +37,9 @@ export default function ChatPlacar({ players, youId, chat, onSendChat }: Props) 
           {sorted.map((p, i) => (
             <div key={p.id} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '4px 0' }}>
               <div style={{ width: 14, fontSize: 9.5, fontWeight: 700, color: 'rgba(244,242,248,0.4)' }}>{i + 1}</div>
-              <div style={{ width: 22, height: 22, borderRadius: '50%', background: p.color, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 9, fontWeight: 700, color: '#050507', flex: 'none' }}>{p.initial}</div>
+              <div style={{ width: 22, height: 22, borderRadius: '50%', background: p.color, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 9, fontWeight: 700, color: '#050507', flex: 'none', overflow: 'hidden' }}>
+                {p.avatarId ? <img src={avatarSmallSrc(p.avatarId)} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : p.initial}
+              </div>
               <div style={{ flex: 1, fontSize: 11.5, fontWeight: 600 }}>{p.id === youId ? `${p.name} (você)` : p.name}{!p.connected && ' 💤'}</div>
               <div style={{ fontSize: 11.5, fontWeight: 700, fontFamily: "'Space Grotesk',sans-serif" }}>{p.score.toLocaleString('pt-BR')}</div>
             </div>

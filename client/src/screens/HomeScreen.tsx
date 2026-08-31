@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { supabase } from '../supabase.ts';
 import { accountAvatar, accountName, useSession } from '../auth.ts';
 import { avatarSmallSrc } from '@shared/avatarIcons';
-import { TITLE_CATALOG } from '@shared/titleCatalog';
+import { titleNameFor } from '@shared/titleCatalog';
 import { fetchEquippedTitle } from '../stats.ts';
 import IdentityPickerModal from '../components/IdentityPickerModal.tsx';
 
@@ -56,7 +56,7 @@ export default function HomeScreen({ connecting, error, onClearError, onStartCre
     return () => { cancelled = true; };
   }, [userId]);
 
-  const titleName = TITLE_CATALOG.find((t) => t.id === equippedTitleId)?.name ?? 'Novato das Cores';
+  const titleName = titleNameFor(equippedTitleId);
 
   return (
     <div className="corio-home-v2">

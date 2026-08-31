@@ -1,4 +1,6 @@
 import Logo from '../components/Logo.tsx';
+import { avatarSmallSrc } from '@shared/avatarIcons';
+import { titleNameFor } from '@shared/titleCatalog';
 import type { RoomConnection } from '../ws.ts';
 
 export default function MatchEndScreen({ conn }: { conn: RoomConnection }) {
@@ -43,9 +45,12 @@ export default function MatchEndScreen({ conn }: { conn: RoomConnection }) {
             return (
               <div key={p.id} className="corio-card" style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 8px', borderRadius: 10, background: isWinner ? 'rgba(255,201,60,0.1)' : 'rgba(255,255,255,0.03)', border: isWinner ? '1px solid rgba(255,201,60,0.35)' : undefined, flex: 'none' }}>
                 <div style={{ width: 18, textAlign: 'center', fontSize: 11, fontWeight: 700, color: 'rgba(244,242,248,0.45)', flex: 'none' }}>{i + 1}</div>
-                <div style={{ width: 32, height: 32, borderRadius: '50%', background: `${p.color}33`, border: `1.5px solid ${p.color}`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 700, flex: 'none' }}>{p.initial}</div>
+                <div style={{ width: 32, height: 32, borderRadius: '50%', background: `${p.color}33`, border: `1.5px solid ${p.color}`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 700, flex: 'none', overflow: 'hidden' }}>
+                  {p.avatarId ? <img src={avatarSmallSrc(p.avatarId)} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : p.initial}
+                </div>
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div className="corio-card-title" style={{ fontSize: 11, fontWeight: 700, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.id === s.you.id ? 'Você' : p.name}</div>
+                  <div style={{ fontSize: 8, fontWeight: 700, color: '#FFC93C', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{titleNameFor(p.titleId)}</div>
                 </div>
                 {isWinner && <div style={{ fontSize: 13, flex: 'none' }}>{isDraw ? '🤝' : '🏆'}</div>}
                 <div style={{ fontSize: 13, fontWeight: 800, fontFamily: "'Space Grotesk',sans-serif", flex: 'none' }}>{p.score.toLocaleString('pt-BR')}</div>

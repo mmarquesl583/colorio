@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import Logo from '../components/Logo.tsx';
+import { avatarSmallSrc } from '@shared/avatarIcons';
 import ColorPicker from '../components/ColorPicker.tsx';
 import ChatPlacar from '../components/ChatPlacar.tsx';
 import RoundIntroModal from '../components/RoundIntroModal.tsx';
@@ -88,7 +89,9 @@ export default function GameScreen({ conn }: { conn: RoomConnection }) {
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
           <button onClick={copyLink} className="corio-tap" style={{ all: 'unset', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6, fontSize: 11, fontWeight: 700, letterSpacing: 0.2, color: '#E9E4FF', background: 'rgba(139,92,246,0.12)', border: '1px solid rgba(139,92,246,0.4)', borderRadius: 999, padding: '8px 14px', whiteSpace: 'nowrap' }}>{copyLabel}</button>
           <div className="corio-you-chip">
-            <div style={{ width: 30, height: 30, borderRadius: '50%', background: `${you.color}33`, border: `1.5px solid ${you.color}`, fontSize: 12, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', flex: 'none' }}>{you.initial}</div>
+            <div style={{ width: 30, height: 30, borderRadius: '50%', background: `${you.color}33`, border: `1.5px solid ${you.color}`, fontSize: 12, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', flex: 'none', overflow: 'hidden' }}>
+              {you.avatarId ? <img src={avatarSmallSrc(you.avatarId)} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : you.initial}
+            </div>
             <div className="corio-you-name" style={{ fontSize: 12.5, fontWeight: 700 }}>{you.name}</div>
           </div>
         </div>

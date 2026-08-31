@@ -3,7 +3,7 @@ import {
   AVATAR_ICONS, AVATAR_CATEGORIES, RARITY_LABELS, avatarSmallSrc, avatarLargeSrc,
   type AvatarCategory,
 } from '@shared/avatarIcons';
-import { TITLE_CATALOG, TITLE_CATEGORIES, type TitleCategory } from '@shared/titleCatalog';
+import { TITLE_CATALOG, TITLE_CATEGORIES, titleNameFor, type TitleCategory } from '@shared/titleCatalog';
 import { setAccountAvatar } from '../auth.ts';
 import { equipTitle } from '../stats.ts';
 
@@ -43,7 +43,7 @@ export default function IdentityPickerModal({
   const titleList = TITLE_CATALOG.filter((t) => titleCat === 'todos' || t.category === titleCat);
   const previewAvatar = AVATAR_ICONS.find((a) => a.id === previewAvatarId) ?? null;
   const previewTitle = TITLE_CATALOG.find((t) => t.id === previewTitleId) ?? null;
-  const currentTitleName = TITLE_CATALOG.find((t) => t.id === currentTitleId)?.name ?? 'Novato das Cores';
+  const currentTitleName = titleNameFor(currentTitleId);
   const avatarChanged = previewAvatarId !== currentAvatarId;
   const titleChanged = previewTitleId !== currentTitleId;
 

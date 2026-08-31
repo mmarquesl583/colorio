@@ -40,6 +40,12 @@ interface InternalPlayer {
   name: string;
   color: string;
   initial: string;
+  /** Cosmetic display only — sent by the client at join time, same trust
+   * level as `name` (no ownership check against player_avatars/player_titles
+   * here; equip-time ownership is already enforced where it matters: the
+   * equip_title RPC and, for avatars, Supabase auth user_metadata). */
+  avatarId: string | null;
+  titleId: string | null;
   score: number;
   perfectCount: number;
   connected: boolean;
@@ -111,12 +117,13 @@ export class Room {
     return PLAYER_PALETTE[index % PLAYER_PALETTE.length];
   }
 
-  addPlayer(id: string, name: string, ws: WebSocket, userId: string | null): InternalPlayer {
+  addPlayer(id: string, name: string, ws: WebSocket, userId: string | null, avatarId: string | null, titleId: string | null): InternalPlayer {
     const idx = this.order.length;
     const player: InternalPlayer = {
       id, ws, name: name.slice(0, 24) || 'Jogador',
       color: this.colorFor(idx),
       initial: (name.trim()[0] || 'J').toUpperCase(),
+      avatarId, titleId,
       score: 0, perfectCount: 0, connected: true, confirmed: false, readyNext: false,
       pickedColor: null, colorHistory: [], confirmedAtSeconds: null,
       userId, sessionId: null,
@@ -431,7 +438,7 @@ export class Room {
       }
 
       return {
-        playerId: id, name: p.name, color: p.color, initial: p.initial,
+        playerId: id, name: p.name, color: p.color, initial: p.initial, avatarId: p.avatarId,
         hsl, deltaE: de, score, badge, isRoundMvp,
         prevScore, newScore: p.score,
       };
@@ -455,12 +462,13 @@ export class Room {
       }
     }
 
-    let masterId: string | null = null, masterName: string | null = null;
+    let masterId: string | null = null, masterName: string | null = null, masterAvatarId: string | null = null;
     let masterPrevScore = 0, masterNewScore = 0;
     if (this.round?.masterId) {
       masterId = this.round.masterId;
       const master = this.players.get(masterId)!;
       masterName = master.name;
+      masterAvatarId = master.avatarId;
       masterPrevScore = master.score;
       master.score += masterGain;
       masterNewScore = master.score;
@@ -490,7 +498,7 @@ export class Room {
 
     this.results = {
       secretHsl, secretHex,
-      guesses, masterId, masterName, masterPrevScore, masterNewScore, masterGain,
+      guesses, masterId, masterName, masterAvatarId, masterPrevScore, masterNewScore, masterGain,
     };
     this.phase = 'reveal';
     this.secondsLeft = null;
@@ -650,7 +658,8 @@ export class Room {
 
   private publicPlayer(p: InternalPlayer): PlayerPublic {
     return {
-      id: p.id, name: p.name, color: p.color, initial: p.initial, score: p.score,
+      id: p.id, name: p.name, color: p.color, initial: p.initial,
+      avatarId: p.avatarId, titleId: p.titleId, score: p.score,
       connected: p.connected, isHost: p.id === this.hostId, confirmed: p.confirmed, readyNext: p.readyNext,
     };
   }

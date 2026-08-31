@@ -27,3 +27,11 @@ export const TITLE_CATEGORIES: { id: TitleCategory; label: string }[] = [
   { id: 'especiais', label: 'Especiais' },
   { id: 'sazonais', label: 'Sazonais' },
 ];
+
+// Every player has a title to show even before equipping one — `novato` is
+// the always-free default. Centralized here since the same lookup+fallback
+// repeats everywhere a title is displayed (Home, Profile, the picker, and
+// now in-room player lists).
+export function titleNameFor(titleId: string | null): string {
+  return TITLE_CATALOG.find((t) => t.id === titleId)?.name ?? 'Novato das Cores';
+}

@@ -106,7 +106,7 @@ wss.on('connection', (ws: WebSocket) => {
       const newRoom = new Room(code, config, () => rooms.delete(code), recordReport);
       rooms.set(code, newRoom);
       playerId = newPlayerId();
-      const player = newRoom.addPlayer(playerId, msg.name, ws, userId);
+      const player = newRoom.addPlayer(playerId, msg.name, ws, userId, msg.avatarId ?? null, msg.titleId ?? null);
       room = newRoom;
       send(ws, { type: 'joined', code, playerId: player.id });
       room.broadcast();
@@ -120,7 +120,7 @@ wss.on('connection', (ws: WebSocket) => {
       // Rooms stay open for the whole match — joining mid-round just drops
       // the newcomer in with 0 points and a chat announcement, no gate here.
       playerId = newPlayerId();
-      target.addPlayer(playerId, msg.name, ws, userId);
+      target.addPlayer(playerId, msg.name, ws, userId, msg.avatarId ?? null, msg.titleId ?? null);
       room = target;
       send(ws, { type: 'joined', code: target.code, playerId });
       room.broadcast();

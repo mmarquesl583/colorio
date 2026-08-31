@@ -2,7 +2,7 @@ import { useState } from 'react';
 import Logo from '../components/Logo.tsx';
 import { useSession, accountAvatar, accountName } from '../auth.ts';
 import { AVATAR_ICONS, avatarSmallSrc } from '@shared/avatarIcons';
-import { TITLE_CATALOG } from '@shared/titleCatalog';
+import { TITLE_CATALOG, titleNameFor } from '@shared/titleCatalog';
 import { LOBBY_THEMES } from '@shared/gameData';
 import { useProfileData } from '../hooks/useProfileData.ts';
 import { accuracyPct, formatPlaytime } from '../stats.ts';
@@ -27,7 +27,7 @@ export default function ProfileScreen({ onBack }: { onBack: () => void }) {
   const avatarId = accountAvatar(session);
   const stats = data?.stats ?? null;
   const titleId = titleOverride !== undefined ? titleOverride : (data?.profile?.title_id ?? null);
-  const titleName = TITLE_CATALOG.find((t) => t.id === titleId)?.name ?? 'Novato das Cores';
+  const titleName = titleNameFor(titleId);
   const accuracy = accuracyPct(stats);
   const avatarCount = FREE_AVATAR_COUNT + (data?.unlockedAvatarIds.size ?? 0);
   const titleCount = FREE_TITLE_COUNT + (data?.unlockedTitleIds.size ?? 0);

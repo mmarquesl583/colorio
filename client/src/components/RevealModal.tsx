@@ -1,6 +1,7 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { hslFracToRgb } from '@shared/color';
 import { NEXT_ROUND_READY_TIMEOUT_MS } from '@shared/gameData';
+import { avatarSmallSrc } from '@shared/avatarIcons';
 import type { PlayerPublic, RoundResults } from '@shared/types';
 
 type Stage = 'guesses' | 'sorted' | 'filling' | 'final';
@@ -18,6 +19,7 @@ interface Row {
   id: string;
   pos: number;
   initial: string;
+  avatarId: string | null;
   name: string;
   isTop: boolean;
   badge: string | null;
@@ -107,7 +109,7 @@ export default function RevealModal({ results, you, nextReady, readySecondsLeft,
       const visible = isSorted || i < revealCount;
       const pos = roundRanks ? roundRanks[i] : i + 1;
       return {
-        id: g.playerId, pos, initial: g.initial, name: g.playerId === you.id ? 'Você' : g.name,
+        id: g.playerId, pos, initial: g.initial, avatarId: g.avatarId, name: g.playerId === you.id ? 'Você' : g.name,
         isTop: isSorted && progress >= 1 && pos === 1,
         badge: (isSorted && progress >= 1) ? g.badge : null,
         roundMvp: (isSorted && progress >= 1) ? g.isRoundMvp : false,
@@ -121,7 +123,7 @@ export default function RevealModal({ results, you, nextReady, readySecondsLeft,
     if (isSorted && results.masterId) {
       showMasterDivider = true;
       masterRow = {
-        id: results.masterId, pos: 0, initial: results.masterName?.[0] ?? 'M',
+        id: results.masterId, pos: 0, initial: results.masterName?.[0] ?? 'M', avatarId: results.masterAvatarId,
         name: results.masterId === you.id ? 'Você' : (results.masterName ?? ''),
         isTop: false, badge: null, roundMvp: false,
         currentScore: results.masterPrevScore,
@@ -134,13 +136,13 @@ export default function RevealModal({ results, you, nextReady, readySecondsLeft,
     subtitle = stage === 'filling' ? 'Cada cor representa quem escolheu ela' : 'Nova posição geral da sala';
     revealBg = 'rgba(5,5,7,0.94)';
     const entries = results.guesses.map((g) => ({
-      id: g.playerId, initial: g.initial, name: g.playerId === you.id ? 'Você' : g.name,
+      id: g.playerId, initial: g.initial, avatarId: g.avatarId, name: g.playerId === you.id ? 'Você' : g.name,
       score: stage === 'final' ? g.newScore : g.prevScore,
       stripe: `hsl(${g.hsl.h},${g.hsl.s}%,${g.hsl.l}%)`,
     }));
     if (results.masterId) {
       entries.push({
-        id: results.masterId, initial: results.masterName?.[0] ?? 'M',
+        id: results.masterId, initial: results.masterName?.[0] ?? 'M', avatarId: results.masterAvatarId,
         name: results.masterId === you.id ? 'Você' : (results.masterName ?? ''),
         score: stage === 'final' ? results.masterNewScore : results.masterPrevScore,
         stripe: '',
@@ -152,7 +154,7 @@ export default function RevealModal({ results, you, nextReady, readySecondsLeft,
       : [...entries.filter((e) => e.id !== results.masterId)].sort((a, b) => roundScoreOf(b.id) - roundScoreOf(a.id))
           .concat(entries.filter((e) => e.id === results.masterId));
     rows = ordered.map((e, i) => ({
-      id: e.id, pos: i + 1, initial: e.initial, name: e.name, isTop: false, badge: null, roundMvp: false,
+      id: e.id, pos: i + 1, initial: e.initial, avatarId: e.avatarId, name: e.name, isTop: false, badge: null, roundMvp: false,
       currentScore: e.score, gainLabel: '',
       stripeColor: e.stripe || 'transparent', stripeVisible: stage === 'final',
       isMasterRow: e.id === results.masterId,
@@ -211,7 +213,9 @@ export default function RevealModal({ results, you, nextReady, readySecondsLeft,
           <div key={r.id} ref={(el) => { rowRefs.current[r.id] = el; }} style={{ width: '100%', maxWidth: 360, display: 'flex', alignItems: 'center', gap: 9, height: 52, borderRadius: 12, overflow: 'hidden', position: 'relative', background: (stage === 'sorted') ? 'rgba(8,8,12,0.72)' : 'rgba(20,20,26,0.9)', backdropFilter: (stage === 'guesses' || stage === 'sorted') ? 'blur(2px)' : undefined, marginBottom: 8, paddingRight: 8 }}>
             <div style={{ width: 14, height: '100%', flex: 'none', background: r.stripeColor, opacity: r.stripeVisible ? 1 : 0, transition: 'background .7s ease, opacity .6s ease' }} />
             <div style={{ flex: 'none', width: 16, fontSize: 10, fontWeight: 700, color: 'rgba(244,242,248,0.45)', textAlign: 'center' }}>{r.pos || ''}</div>
-            <div style={{ width: 22, height: 22, borderRadius: '50%', background: 'rgba(255,255,255,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 9, fontWeight: 700, flex: 'none' }}>{r.initial}</div>
+            <div style={{ width: 22, height: 22, borderRadius: '50%', background: 'rgba(255,255,255,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 9, fontWeight: 700, flex: 'none', overflow: 'hidden' }}>
+              {r.avatarId ? <img src={avatarSmallSrc(r.avatarId)} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : r.initial}
+            </div>
             <div style={{ flex: 1, minWidth: 0, fontSize: 11.5, fontWeight: 700, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', gap: 5 }}>
               {r.name}
               {r.isTop && <span style={{ flex: 'none' }} title="Maior pontuação da rodada">🏆</span>}
@@ -228,7 +232,9 @@ export default function RevealModal({ results, you, nextReady, readySecondsLeft,
             <div style={{ width: '100%', maxWidth: 360, height: 1, background: 'rgba(255,255,255,0.12)', margin: '4px 0 10px' }} />
             <div ref={(el) => { rowRefs.current[masterRow!.id] = el; }} style={{ width: '100%', maxWidth: 360, display: 'flex', alignItems: 'center', gap: 9, height: 52, borderRadius: 12, overflow: 'hidden', background: 'rgba(20,20,26,0.9)', marginBottom: 8, padding: '0 8px', boxSizing: 'border-box' }}>
               <div style={{ width: 16, fontSize: 10, flex: 'none', textAlign: 'center' }}>🎨</div>
-              <div style={{ width: 22, height: 22, borderRadius: '50%', background: 'rgba(255,255,255,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 9, fontWeight: 700, flex: 'none' }}>{masterRow.initial}</div>
+              <div style={{ width: 22, height: 22, borderRadius: '50%', background: 'rgba(255,255,255,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 9, fontWeight: 700, flex: 'none', overflow: 'hidden' }}>
+                {masterRow.avatarId ? <img src={avatarSmallSrc(masterRow.avatarId)} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : masterRow.initial}
+              </div>
               <div style={{ flex: 1, minWidth: 0, fontSize: 11.5, fontWeight: 700 }}>Mestre {masterRow.name}</div>
               <div style={{ width: 44, textAlign: 'center', fontSize: 11.5, fontWeight: 700 }}>{masterRow.currentScore.toLocaleString('pt-BR')}</div>
               <div style={{ width: 44, textAlign: 'center', fontSize: 11.5, fontWeight: 700, color: '#FFC93C' }}>{masterRow.gainLabel}</div>
