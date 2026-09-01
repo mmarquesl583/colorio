@@ -20,6 +20,10 @@ export const TITLE_CATALOG: TitleOption[] = [
   { id: 'viciado-em-cores', name: 'Viciado em Cores', category: 'conquistas', description: '10 horas dedicadas ao Colorio.' },
   { id: 'imparavel', name: 'Imparável', category: 'conquistas', description: '20 acertos seguidos, sem errar uma vez.' },
   { id: 'mestre-das-cores', name: 'Mestre das Cores', category: 'conquistas', description: 'Completou o modo campanha inteiro.' },
+  { id: 'relampago', name: 'Relâmpago', category: 'conquistas', description: 'Acertou uma cor em menos de 2 segundos na Corrida contra o Tempo.' },
+  { id: 'velocista', name: 'Velocista', category: 'conquistas', description: '10 respostas com multiplicador 2x na Corrida contra o Tempo.' },
+  { id: 'sem-tempo-a-perder', name: 'Sem Tempo a Perder', category: 'conquistas', description: 'Completou uma partida de Corrida contra o Tempo sem nenhum timeout.' },
+  { id: 'olho-rapido', name: 'Olho Rápido', category: 'conquistas', description: '5 cores perfeitas na Corrida contra o Tempo.' },
 ];
 
 export const TITLE_CATEGORIES: { id: TitleCategory; label: string }[] = [

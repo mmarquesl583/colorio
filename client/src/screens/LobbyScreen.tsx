@@ -4,11 +4,17 @@ import { LOBBY_THEMES, MIN_PLAYERS, MAX_PLAYERS, MIN_ROUNDS, MAX_ROUNDS, PLAYER_
 import { AI_QUESTIONS } from '@shared/aiQuestions';
 import { avatarSmallSrc } from '@shared/avatarIcons';
 import { accountAvatar, useSession } from '../auth.ts';
-import type { PhraseMode, Privacy, RoomConfig } from '@shared/types';
+import type { Privacy, RoomConfig } from '@shared/types';
 
 // Only themes with a real curated question bank make sense in "Frase da
 // IA" — the rest would just fall back to the generic, unrelated phrase.
 const AI_ELIGIBLE_IDS = new Set(Object.keys(AI_QUESTIONS));
+
+// One UI choice that maps onto the two orthogonal server fields
+// (phraseMode/gameMode) — 'race' always implies phraseMode:'ai' under the
+// hood (the server's usesAiQuestions() already treats them the same way
+// for question sourcing), so the picker doesn't need a 4th combination.
+type ModeChoice = 'players' | 'ai' | 'race';
 
 interface Props {
   playerName: string;
@@ -23,7 +29,7 @@ export default function LobbyScreen({ playerName, connecting, error, onBack, onC
   const avatarId = accountAvatar(session);
   const [numPlayers, setNumPlayers] = useState(5);
   const [numRounds, setNumRounds] = useState(5);
-  const [phraseMode, setPhraseMode] = useState<PhraseMode>('players');
+  const [modeChoice, setModeChoice] = useState<ModeChoice>('players');
   const [privacy, setPrivacy] = useState<Privacy>('public');
   const [selectedThemes, setSelectedThemes] = useState<string[]>(LOBBY_THEMES.map((t) => t.id));
 
@@ -31,14 +37,19 @@ export default function LobbyScreen({ playerName, connecting, error, onBack, onC
     setSelectedThemes((s) => (s.includes(id) ? s.filter((x) => x !== id) : [...s, id]));
   };
 
-  const visibleThemes = phraseMode === 'ai' ? LOBBY_THEMES.filter((t) => AI_ELIGIBLE_IDS.has(t.id)) : LOBBY_THEMES;
-  const chooseMode = (mode: PhraseMode) => {
-    setPhraseMode(mode);
-    if (mode === 'ai') setSelectedThemes((s) => s.filter((id) => AI_ELIGIBLE_IDS.has(id)));
+  const needsAiThemes = modeChoice === 'ai' || modeChoice === 'race';
+  const visibleThemes = needsAiThemes ? LOBBY_THEMES.filter((t) => AI_ELIGIBLE_IDS.has(t.id)) : LOBBY_THEMES;
+  const chooseMode = (mode: ModeChoice) => {
+    setModeChoice(mode);
+    if (mode === 'ai' || mode === 'race') setSelectedThemes((s) => s.filter((id) => AI_ELIGIBLE_IDS.has(id)));
   };
 
   const create = () => {
-    onCreate({ numPlayers, numRounds, phraseMode, privacy, selectedThemes });
+    onCreate({
+      numPlayers, numRounds, privacy, selectedThemes,
+      phraseMode: modeChoice === 'players' ? 'players' : 'ai',
+      gameMode: modeChoice === 'race' ? 'race' : 'classic',
+    });
   };
 
   return (
@@ -90,19 +101,25 @@ export default function LobbyScreen({ playerName, connecting, error, onBack, onC
       </div>
 
       <div className="corio-card" style={{ flex: 'none', background: '#12121a', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 14, padding: '9px 10px' }}>
-        <div className="corio-eyebrow" style={{ fontSize: 8, fontWeight: 700, letterSpacing: 0.6, color: 'rgba(244,242,248,0.6)' }}>MODO DE FRASE</div>
+        <div className="corio-eyebrow" style={{ fontSize: 8, fontWeight: 700, letterSpacing: 0.6, color: 'rgba(244,242,248,0.6)' }}>MODO DE JOGO</div>
         <div style={{ display: 'flex', gap: 8, marginTop: 6 }}>
-          <div onClick={() => chooseMode('players')} className="corio-tap corio-card" style={modeCardStyle(phraseMode === 'players', 'rgba(139,92,246,0.15)', '#8B5CF6')}>
-            {phraseMode === 'players' && <div style={checkDotStyle('#8B5CF6')}>✓</div>}
+          <div onClick={() => chooseMode('players')} className="corio-tap corio-card" style={modeCardStyle(modeChoice === 'players', 'rgba(139,92,246,0.15)', '#8B5CF6')}>
+            {modeChoice === 'players' && <div style={checkDotStyle('#8B5CF6')}>✓</div>}
             <div style={{ fontSize: 16 }}>✏️</div>
             <div className="corio-card-title" style={{ fontSize: 10, fontWeight: 700, marginTop: 3 }}>Frase dos jogadores</div>
             <div className="corio-card-sub" style={{ fontSize: 7.5, color: 'rgba(244,242,248,0.45)', marginTop: 2, lineHeight: 1.25 }}>Cada jogador escreve a frase</div>
           </div>
-          <div onClick={() => chooseMode('ai')} className="corio-tap corio-card" style={modeCardStyle(phraseMode === 'ai', 'rgba(41,231,255,0.12)', '#29E7FF')}>
-            {phraseMode === 'ai' && <div style={checkDotStyle('#29E7FF', '#04222b')}>✓</div>}
+          <div onClick={() => chooseMode('ai')} className="corio-tap corio-card" style={modeCardStyle(modeChoice === 'ai', 'rgba(41,231,255,0.12)', '#29E7FF')}>
+            {modeChoice === 'ai' && <div style={checkDotStyle('#29E7FF', '#04222b')}>✓</div>}
             <div style={{ fontSize: 16 }}>🤖</div>
             <div className="corio-card-title" style={{ fontSize: 10, fontWeight: 700, marginTop: 3 }}>Frase da IA</div>
             <div className="corio-card-sub" style={{ fontSize: 7.5, color: 'rgba(244,242,248,0.45)', marginTop: 2, lineHeight: 1.25 }}>A IA cria frases desafiadoras</div>
+          </div>
+          <div onClick={() => chooseMode('race')} className="corio-tap corio-card" style={modeCardStyle(modeChoice === 'race', 'rgba(255,201,60,0.14)', '#FFC93C')}>
+            {modeChoice === 'race' && <div style={checkDotStyle('#FFC93C', '#1a1024')}>✓</div>}
+            <div style={{ fontSize: 16 }}>⏱️</div>
+            <div className="corio-card-title" style={{ fontSize: 10, fontWeight: 700, marginTop: 3 }}>Corrida contra o Tempo</div>
+            <div className="corio-card-sub" style={{ fontSize: 7.5, color: 'rgba(244,242,248,0.45)', marginTop: 2, lineHeight: 1.25 }}>10s por rodada — quanto mais rápido, mais pontos</div>
           </div>
         </div>
       </div>

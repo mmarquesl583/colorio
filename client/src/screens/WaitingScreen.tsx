@@ -4,10 +4,10 @@ import { LOBBY_THEMES } from '@shared/gameData';
 import { AI_QUESTIONS } from '@shared/aiQuestions';
 import { avatarSmallSrc } from '@shared/avatarIcons';
 import { titleNameFor } from '@shared/titleCatalog';
-import type { PhraseMode } from '@shared/types';
 import type { RoomConnection } from '../ws.ts';
 
 const AI_ELIGIBLE_IDS = new Set(Object.keys(AI_QUESTIONS));
+type ModeChoice = 'players' | 'ai' | 'race';
 
 export default function WaitingScreen({ conn }: { conn: RoomConnection }) {
   const s = conn.state!;
@@ -22,16 +22,25 @@ export default function WaitingScreen({ conn }: { conn: RoomConnection }) {
     setTimeout(() => setCopyLabel('🔗 Compartilhar'), 1500);
   };
 
-  const chooseMode = (mode: PhraseMode) => {
-    const nextThemes = mode === 'ai' ? s.config.selectedThemes.filter((id) => AI_ELIGIBLE_IDS.has(id)) : s.config.selectedThemes;
-    conn.send({ type: 'update_config', config: { phraseMode: mode, selectedThemes: nextThemes } });
+  const chooseMode = (mode: ModeChoice) => {
+    const needsAiThemes = mode === 'ai' || mode === 'race';
+    const nextThemes = needsAiThemes ? s.config.selectedThemes.filter((id) => AI_ELIGIBLE_IDS.has(id)) : s.config.selectedThemes;
+    conn.send({
+      type: 'update_config',
+      config: {
+        phraseMode: mode === 'players' ? 'players' : 'ai',
+        gameMode: mode === 'race' ? 'race' : 'classic',
+        selectedThemes: nextThemes,
+      },
+    });
   };
   const toggleTheme = (id: string) => {
     const has = s.config.selectedThemes.includes(id);
     const next = has ? s.config.selectedThemes.filter((x) => x !== id) : [...s.config.selectedThemes, id];
     conn.send({ type: 'update_config', config: { selectedThemes: next } });
   };
-  const visibleThemes = s.config.phraseMode === 'ai' ? LOBBY_THEMES.filter((t) => AI_ELIGIBLE_IDS.has(t.id)) : LOBBY_THEMES;
+  const currentModeChoice: ModeChoice = s.config.gameMode === 'race' ? 'race' : s.config.phraseMode === 'ai' ? 'ai' : 'players';
+  const visibleThemes = (s.config.phraseMode === 'ai' || s.config.gameMode === 'race') ? LOBBY_THEMES.filter((t) => AI_ELIGIBLE_IDS.has(t.id)) : LOBBY_THEMES;
 
   return (
     <div className="corio-wide" style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', padding: '8px 16px 12px', gap: 8, animation: 'corio-rise .4s ease' }}>
@@ -77,7 +86,7 @@ export default function WaitingScreen({ conn }: { conn: RoomConnection }) {
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6 }}>
             <ConfigChip label="👥 Jogadores" value={String(s.config.numPlayers)} />
             <ConfigChip label="⏱ Rodadas" value={String(s.config.numRounds)} />
-            <ConfigChip label="💬 Modo de frase" value={s.config.phraseMode === 'ai' ? 'Frase da IA' : 'Frase dos jogadores'} valueColor="#C4B5FD" span2 />
+            <ConfigChip label="🎮 Modo de jogo" value={currentModeChoice === 'race' ? 'Corrida contra o Tempo' : currentModeChoice === 'ai' ? 'Frase da IA' : 'Frase dos jogadores'} valueColor="#C4B5FD" span2 />
             <ConfigChip label="🎨 Temas" value={`${s.config.selectedThemes.length} selecionados`} valueColor="#4ADE80" span2 />
           </div>
         )}
@@ -89,15 +98,20 @@ export default function WaitingScreen({ conn }: { conn: RoomConnection }) {
               <ConfigChip label="⏱ Rodadas" value={String(s.config.numRounds)} />
             </div>
             <div style={{ display: 'flex', gap: 8 }}>
-              <div onClick={() => chooseMode('players')} className="corio-tap corio-card" style={modeCardStyle(s.config.phraseMode === 'players', 'rgba(139,92,246,0.15)', '#8B5CF6')}>
-                {s.config.phraseMode === 'players' && <div style={checkDotStyle('#8B5CF6')}>✓</div>}
+              <div onClick={() => chooseMode('players')} className="corio-tap corio-card" style={modeCardStyle(currentModeChoice === 'players', 'rgba(139,92,246,0.15)', '#8B5CF6')}>
+                {currentModeChoice === 'players' && <div style={checkDotStyle('#8B5CF6')}>✓</div>}
                 <div style={{ fontSize: 16 }}>✏️</div>
                 <div className="corio-card-title" style={{ fontSize: 10, fontWeight: 700, marginTop: 3 }}>Frase dos jogadores</div>
               </div>
-              <div onClick={() => chooseMode('ai')} className="corio-tap corio-card" style={modeCardStyle(s.config.phraseMode === 'ai', 'rgba(41,231,255,0.12)', '#29E7FF')}>
-                {s.config.phraseMode === 'ai' && <div style={checkDotStyle('#29E7FF', '#04222b')}>✓</div>}
+              <div onClick={() => chooseMode('ai')} className="corio-tap corio-card" style={modeCardStyle(currentModeChoice === 'ai', 'rgba(41,231,255,0.12)', '#29E7FF')}>
+                {currentModeChoice === 'ai' && <div style={checkDotStyle('#29E7FF', '#04222b')}>✓</div>}
                 <div style={{ fontSize: 16 }}>🤖</div>
                 <div className="corio-card-title" style={{ fontSize: 10, fontWeight: 700, marginTop: 3 }}>Frase da IA</div>
+              </div>
+              <div onClick={() => chooseMode('race')} className="corio-tap corio-card" style={modeCardStyle(currentModeChoice === 'race', 'rgba(255,201,60,0.14)', '#FFC93C')}>
+                {currentModeChoice === 'race' && <div style={checkDotStyle('#FFC93C', '#1a1024')}>✓</div>}
+                <div style={{ fontSize: 16 }}>⏱️</div>
+                <div className="corio-card-title" style={{ fontSize: 10, fontWeight: 700, marginTop: 3 }}>Corrida contra o Tempo</div>
               </div>
             </div>
             <div className="corio-eyebrow" style={{ fontSize: 7.5, fontWeight: 700, letterSpacing: 0.6, color: 'rgba(244,242,248,0.45)' }}>TEMAS</div>
@@ -168,7 +182,7 @@ export default function WaitingScreen({ conn }: { conn: RoomConnection }) {
             <div className="corio-card-sub" style={{ fontSize: 8, color: 'rgba(244,242,248,0.5)' }}>{isHost ? 'Quando todos estiverem prontos.' : 'Ele decide a hora de começar.'}</div>
           </div>
           {isHost && (() => {
-            const minPlayers = s.config.phraseMode === 'ai' ? 1 : 2;
+            const minPlayers = (s.config.phraseMode === 'ai' || s.config.gameMode === 'race') ? 1 : 2;
             const canStart = s.players.length >= minPlayers;
             return (
             <button

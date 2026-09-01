@@ -49,6 +49,14 @@ export interface ModeStats {
   perfects: number;
   best_score: number;
   total_score: number;
+  // Corrida contra o Tempo only — null for every other mode_id.
+  best_response_ms: number | null;
+  best_correct_response_ms: number | null;
+  best_multiplier: number | null;
+  multiplier_2x_count: number;
+  total_response_ms: number;
+  timed_rounds_count: number;
+  no_timeout_matches: number;
 }
 
 export interface ThemeStats {
@@ -68,6 +76,7 @@ export interface AchievementDef {
   criteria_type: string;
   criteria_value: number;
   sort_order: number;
+  required_mode_id: string | null;
 }
 
 export interface MatchHistoryRow {
@@ -84,6 +93,11 @@ export interface MatchHistoryRow {
   result: 'won' | 'lost' | 'drawn';
   duration_seconds: number;
   played_at: string;
+  // Corrida contra o Tempo only — null for every other mode_id.
+  race_score_normal_total: number | null;
+  race_avg_response_ms: number | null;
+  race_avg_multiplier: number | null;
+  race_best_multiplier: number | null;
 }
 
 export interface ProfileData {

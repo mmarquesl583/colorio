@@ -8,7 +8,7 @@ import { useProfileData } from '../hooks/useProfileData.ts';
 import { accuracyPct, formatPlaytime } from '../stats.ts';
 import IdentityPickerModal from '../components/IdentityPickerModal.tsx';
 
-const MODE_LABELS: Record<string, string> = { players: 'Frase dos jogadores', ai: 'Frase da IA' };
+const MODE_LABELS: Record<string, string> = { players: 'Frase dos jogadores', ai: 'Frase da IA', race: 'Corrida contra o Tempo' };
 const THEME_BY_ID = new Map(LOBBY_THEMES.map((t) => [t.id, t]));
 const FREE_AVATAR_COUNT = AVATAR_ICONS.filter((a) => a.free).length;
 const FREE_TITLE_COUNT = TITLE_CATALOG.filter((t) => t.free).length;

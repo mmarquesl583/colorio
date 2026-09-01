@@ -3,6 +3,7 @@ import {
   hslFracToRgb, rgbToHex, hexToRgb, rgbToHslFrac,
 } from '../../shared/color.ts';
 import { calculateColorScore, calculateMasterScore, badgeFromScore, roundOutcomeFromScore } from '../../shared/scoring.ts';
+import { RACE_MS, raceTimeMultiplier } from '../../shared/raceMode.ts';
 import {
   LOBBY_THEMES, AI_PHRASE_BANK, PLAYER_PALETTE, PLACING_SECONDS, NEXT_ROUND_READY_TIMEOUT_MS,
   SPEED_BONUS_MAX, ROUND_MVP_BONUS, AI_WIN_SCORE, AI_WIN_PERFECTS, LOBBY_RECONNECT_GRACE_MS,
@@ -54,6 +55,11 @@ interface InternalPlayer {
   pickedColor: HslColor | null;
   colorHistory: string[];
   confirmedAtSeconds: number | null;
+  /** gameMode:'race' only. null = hasn't confirmed yet / timed out (an
+   * explicit sentinel — never fed into raceTimeMultiplier as RACE_MS,
+   * which would land in the wrong bucket). A number 0..RACE_MS = confirmed
+   * that many ms after the round's deadline was set. */
+  raceResponseMs: number | null;
   /** Real Supabase account id, when the client sent a valid access token —
    * null for a failed/missing token. Never sent to any client, only used
    * server-side to attribute stats. */
@@ -65,6 +71,18 @@ interface InternalPlayer {
 }
 
 interface ThemeTallyEntry { correct: number; wrong: number; perfects: number; bestScore: number; }
+
+interface RaceTallyEntry {
+  scoreNormalTotal: number;
+  responseMsSum: number;
+  multiplierSum: number;
+  timedRounds: number;
+  bestResponseMs: number | null;
+  bestCorrectResponseMs: number | null;
+  bestMultiplier: number;
+  multiplier2xCount: number;
+  anyTimeout: boolean;
+}
 
 function sysMsg(color: string, text: string): ChatEntry {
   return { id: newChatId(), type: 'sys', color, text, ts: Date.now() };
@@ -88,7 +106,13 @@ export class Room {
   createdAt = Date.now();
   readySecondsLeft: number | null = null;
 
+  /** gameMode:'race' round deadline (epoch ms) — server-internal only,
+   * deliberately never sent on the wire (clients would have to compare it
+   * against their own clock, a clock-skew hazard). Clients instead get a
+   * freshly-computed raceMsLeft on every broadcast, see stateFor(). */
+  private raceDeadlineAt: number | null = null;
   private tickHandle: ReturnType<typeof setInterval> | null = null;
+  private raceTickHandle: ReturnType<typeof setInterval> | null = null;
   private nextReadyFallback: ReturnType<typeof setTimeout> | null = null;
   private readyTickHandle: ReturnType<typeof setInterval> | null = null;
   private lobbyLeaveTimers = new Map<string, ReturnType<typeof setTimeout>>();
@@ -105,6 +129,7 @@ export class Room {
   private matchThemeTally = new Map<string, Map<string, ThemeTallyEntry>>();
   private matchThemeIds = new Set<string>();
   private matchDifficultyTally = new Map<AiDifficulty, number>();
+  private matchRaceStats = new Map<string, RaceTallyEntry>();
 
   constructor(code: string, config: RoomConfig, onEmpty: () => void, onReport: (report: QuestionReport) => void) {
     this.code = code;
@@ -125,7 +150,7 @@ export class Room {
       initial: (name.trim()[0] || 'J').toUpperCase(),
       avatarId, titleId,
       score: 0, perfectCount: 0, connected: true, confirmed: false, readyNext: false,
-      pickedColor: null, colorHistory: [], confirmedAtSeconds: null,
+      pickedColor: null, colorHistory: [], confirmedAtSeconds: null, raceResponseMs: null,
       userId, sessionId: null,
     };
     this.players.set(id, player);
@@ -219,7 +244,7 @@ export class Room {
 
   startMatch(playerId: string) {
     if (playerId !== this.hostId || this.screen !== 'waiting') return;
-    const minPlayers = this.config.phraseMode === 'ai' ? 1 : 2;
+    const minPlayers = this.usesAiQuestions() ? 1 : 2;
     if (this.order.filter((id) => this.players.get(id)?.connected).length < minPlayers) return;
     this.screen = 'playing';
     this.resetMatchAccumulators();
@@ -237,13 +262,23 @@ export class Room {
     this.matchThemeTally = new Map();
     this.matchThemeIds = new Set();
     this.matchDifficultyTally = new Map();
+    this.matchRaceStats = new Map();
+  }
+
+  // "Which question source" is orthogonal to "which win condition" — race
+  // mode always pulls from the AI question bank (no clue-writing master,
+  // same source as phraseMode:'ai') but keeps its own rounds-based win
+  // condition, never the AI mode's score/perfect threshold — see the two
+  // separate checks in computeReveal().
+  private usesAiQuestions(): boolean {
+    return this.config.phraseMode === 'ai' || this.config.gameMode === 'race';
   }
 
   private pickTheme(): { id: string; icon: string; name: string } {
     let pool = this.config.selectedThemes.length
       ? LOBBY_THEMES.filter((t) => this.config.selectedThemes.includes(t.id))
       : LOBBY_THEMES;
-    if (this.config.phraseMode === 'ai') {
+    if (this.usesAiQuestions()) {
       const aiEligible = LOBBY_THEMES.filter((t) => AI_QUESTIONS[t.id]?.length);
       const inPool = pool.filter((t) => AI_QUESTIONS[t.id]?.length);
       pool = inPool.length ? inPool : aiEligible;
@@ -263,10 +298,11 @@ export class Room {
     this.stopTimers();
     this.roundIdx += 1;
     const theme = this.pickTheme();
-    const isAi = this.config.phraseMode === 'ai';
+    const isRace = this.config.gameMode === 'race';
+    const isAi = this.usesAiQuestions();
     const activeOrder = this.connectedOrder();
     let masterId: string | null = null;
-    let masterName = 'IA';
+    let masterName = isRace ? 'Corrida' : 'IA';
     if (!isAi && activeOrder.length > 0) {
       masterId = activeOrder[this.roundIdx % activeOrder.length];
       masterName = this.players.get(masterId)!.name;
@@ -278,6 +314,7 @@ export class Room {
       p.pickedColor = null;
       p.colorHistory = [];
       p.confirmedAtSeconds = null;
+      p.raceResponseMs = null;
     }
 
     let phrase = '';
@@ -307,13 +344,19 @@ export class Room {
     };
     this.results = null;
     this.secretHsl = secretHsl;
+    this.raceDeadlineAt = null;
     this.matchThemeIds.add(theme.id);
     if (aiDifficulty) this.matchDifficultyTally.set(aiDifficulty, (this.matchDifficultyTally.get(aiDifficulty) ?? 0) + 1);
 
     this.chat.push(sysMsg('#FF5C8A', `Tema da Rodada · ${theme.name}`));
-    this.chat.push(sysMsg('#29E7FF', isAi ? '🤖 A IA escreveu a pista' : `✏️ Vez de ${masterName}`));
+    this.chat.push(sysMsg('#29E7FF', isRace ? '⏱️ Corrida contra o Tempo — responda rápido!' : isAi ? '🤖 A IA escreveu a pista' : `✏️ Vez de ${masterName}`));
 
-    if (isAi) {
+    if (isRace) {
+      this.phase = 'placing';
+      this.secondsLeft = null;
+      this.raceDeadlineAt = Date.now() + RACE_MS;
+      this.startRaceTicking();
+    } else if (isAi) {
       this.phase = 'placing';
       this.secondsLeft = PLACING_SECONDS;
       this.startTicking();
@@ -359,7 +402,11 @@ export class Room {
     if (!p || this.phase !== 'placing' || p.confirmed) return;
     if (this.round?.masterId === playerId) return;
     p.confirmed = true;
-    p.confirmedAtSeconds = this.secondsLeft ?? 0;
+    if (this.config.gameMode === 'race' && this.raceDeadlineAt !== null) {
+      p.raceResponseMs = clamp(Date.now() - (this.raceDeadlineAt - RACE_MS), 0, RACE_MS);
+    } else {
+      p.confirmedAtSeconds = this.secondsLeft ?? 0;
+    }
     if (!p.pickedColor) p.pickedColor = { ...DEFAULT_COLOR };
     this.chat.push(sysMsg('#94A3B8', `${p.name} confirmou sua cor`));
     this.maybeAdvanceFromPlacing();
@@ -389,6 +436,26 @@ export class Room {
     }, 1000);
   }
 
+  // Deadline-based, not a decrementing counter — the actual remaining time
+  // (raceMsLeft, computed in stateFor()) is always freshly derived from
+  // Date.now() vs. raceDeadlineAt on every broadcast, so this 100ms tick is
+  // just what keeps the countdown visibly moving and detects the deadline;
+  // it never accumulates its own drift into the value clients see.
+  private startRaceTicking() {
+    this.raceTickHandle = setInterval(() => {
+      if (this.phase !== 'placing' || this.raceDeadlineAt === null) return;
+      if (Date.now() >= this.raceDeadlineAt) {
+        for (const id of this.eligibleGuessers()) {
+          const p = this.players.get(id)!;
+          if (!p.confirmed) { p.confirmed = true; p.raceResponseMs = null; if (!p.pickedColor) p.pickedColor = { ...DEFAULT_COLOR }; }
+        }
+        this.computeReveal();
+        return;
+      }
+      this.broadcast();
+    }, 100);
+  }
+
   private computeReveal() {
     this.stopTicking();
     const secretHsl = this.secretHsl;
@@ -413,10 +480,24 @@ export class Room {
     const masterGain = calculateMasterScore(base.map((g) => g.baseScore));
 
     const themeId = this.round?.themeId ?? null;
+    const isRace = this.config.gameMode === 'race';
     const guesses = base.map(({ id, p, hsl, de, baseScore }) => {
-      const speedBonus = baseScore > 0 ? Math.round(SPEED_BONUS_MAX * ((p.confirmedAtSeconds ?? 0) / PLACING_SECONDS)) : 0;
       const isRoundMvp = id === mvpId;
-      const score = baseScore + speedBonus + (isRoundMvp ? ROUND_MVP_BONUS : 0);
+      let score: number;
+      let timeMultiplier: number | undefined;
+      let raceResponseSeconds: number | null | undefined;
+      if (isRace) {
+        const responseMs = p.raceResponseMs;
+        timeMultiplier = responseMs === null ? 0 : raceTimeMultiplier(responseMs / 1000);
+        raceResponseSeconds = responseMs === null ? null : responseMs / 1000;
+        score = Math.round(baseScore * timeMultiplier);
+      } else {
+        const speedBonus = baseScore > 0 ? Math.round(SPEED_BONUS_MAX * ((p.confirmedAtSeconds ?? 0) / PLACING_SECONDS)) : 0;
+        score = baseScore + speedBonus + (isRoundMvp ? ROUND_MVP_BONUS : 0);
+      }
+      // Perfect is purely accuracy-driven (baseScore/ΔE) in every mode —
+      // speed is a fully separate axis, so "perfeito, mas com multiplicador
+      // baixo (até 0x)" is an intentional, valid outcome in race mode.
       const badge = badgeFromScore(baseScore);
       if (badge === 'PERFEITO') p.perfectCount += 1;
       const prevScore = p.score;
@@ -436,18 +517,44 @@ export class Room {
         entry.bestScore = Math.max(entry.bestScore, baseScore);
         themeMap.set(themeId, entry);
       }
+      if (isRace) {
+        const acc = this.matchRaceStats.get(id) ?? {
+          scoreNormalTotal: 0, responseMsSum: 0, multiplierSum: 0, timedRounds: 0,
+          bestResponseMs: null, bestCorrectResponseMs: null, bestMultiplier: 0,
+          multiplier2xCount: 0, anyTimeout: false,
+        };
+        acc.scoreNormalTotal += baseScore;
+        if (p.raceResponseMs === null) {
+          acc.anyTimeout = true;
+        } else {
+          acc.responseMsSum += p.raceResponseMs;
+          acc.multiplierSum += timeMultiplier ?? 0;
+          acc.timedRounds += 1;
+          acc.bestResponseMs = acc.bestResponseMs === null ? p.raceResponseMs : Math.min(acc.bestResponseMs, p.raceResponseMs);
+          acc.bestMultiplier = Math.max(acc.bestMultiplier, timeMultiplier ?? 0);
+          if (timeMultiplier === 2.0) acc.multiplier2xCount += 1;
+          if ((outcome === 'correct' || outcome === 'perfect')) {
+            acc.bestCorrectResponseMs = acc.bestCorrectResponseMs === null ? p.raceResponseMs : Math.min(acc.bestCorrectResponseMs, p.raceResponseMs);
+          }
+        }
+        this.matchRaceStats.set(id, acc);
+      }
 
       return {
         playerId: id, name: p.name, color: p.color, initial: p.initial, avatarId: p.avatarId,
         hsl, deltaE: de, score, badge, isRoundMvp,
         prevScore, newScore: p.score,
+        ...(isRace ? { baseScore, timeMultiplier, raceResponseSeconds } : {}),
       };
     });
 
     // Frase da IA win condition: first to 10000 pontos or 5 acertos perfeitos.
     // Checked against guessers only (the master's average-of-guessers gain
     // below isn't a color match of their own, so it doesn't count).
-    if (this.config.phraseMode === 'ai' && !this.matchWinner) {
+    // Explicitly excludes gameMode:'race' — race scores can blow past 10000
+    // in very few rounds (1000 base × up to 2.0x each), which would end a
+    // race unpredictably early instead of after the configured round count.
+    if (this.config.phraseMode === 'ai' && this.config.gameMode !== 'race' && !this.matchWinner) {
       const qualifiers = guesses
         .map((g) => ({ g, p: this.players.get(g.playerId)! }))
         .filter(({ p }) => p.score >= AI_WIN_SCORE || p.perfectCount >= AI_WIN_PERFECTS);
@@ -474,26 +581,16 @@ export class Room {
       masterNewScore = master.score;
     }
 
-    // Frase dos jogadores has no score/perfect win threshold — it ends
-    // after the configured number of rounds instead, decided by whoever
-    // has the highest cumulative score at that point (tied top scores are
-    // recorded as a draw, not resolved arbitrarily). Placed after the
-    // master's own score update above so their final-round gain counts.
-    if (this.config.phraseMode === 'players' && !this.matchWinner && this.roundIdx + 1 >= this.config.numRounds) {
-      const standings = this.order
-        .map((id) => this.players.get(id))
-        .filter((p): p is InternalPlayer => !!p);
-      if (standings.length > 0) {
-        const topScore = Math.max(...standings.map((p) => p.score));
-        const winners = standings.filter((p) => p.score === topScore);
-        const top = winners[0];
-        this.matchWinner = {
-          playerId: top.id, name: top.name, score: top.score,
-          reason: 'rounds',
-          isDraw: winners.length > 1,
-          winners: winners.map((p) => ({ playerId: p.id, name: p.name, score: p.score })),
-        };
-      }
+    // Frase dos jogadores AND Corrida contra o Tempo have no score/perfect
+    // win threshold — both end after the configured number of rounds
+    // instead, decided by whoever has the highest cumulative score at that
+    // point (tied top scores are recorded as a draw, not resolved
+    // arbitrarily). Placed after the master's own score update above so
+    // their final-round gain counts (race rounds have no master, so that's
+    // a no-op for them).
+    if ((this.config.phraseMode === 'players' || this.config.gameMode === 'race')
+        && !this.matchWinner && this.roundIdx + 1 >= this.config.numRounds) {
+      this.finishByTopScore();
     }
 
     this.results = {
@@ -502,6 +599,7 @@ export class Room {
     };
     this.phase = 'reveal';
     this.secondsLeft = null;
+    this.raceDeadlineAt = null;
     for (const p of this.players.values()) p.readyNext = false;
     this.broadcast();
 
@@ -513,6 +611,25 @@ export class Room {
       this.readySecondsLeft = Math.max(0, this.readySecondsLeft - 1);
       this.broadcast();
     }, 1000);
+  }
+
+  // Shared by the 'players' and 'race' rounds-exhausted win conditions —
+  // whoever has the highest cumulative score wins; a tied top score is a
+  // draw, never resolved arbitrarily.
+  private finishByTopScore() {
+    const standings = this.order
+      .map((id) => this.players.get(id))
+      .filter((p): p is InternalPlayer => !!p);
+    if (standings.length === 0) return;
+    const topScore = Math.max(...standings.map((p) => p.score));
+    const winners = standings.filter((p) => p.score === topScore);
+    const top = winners[0];
+    this.matchWinner = {
+      playerId: top.id, name: top.name, score: top.score,
+      reason: 'rounds',
+      isDraw: winners.length > 1,
+      winners: winners.map((p) => ({ playerId: p.id, name: p.name, score: p.score })),
+    };
   }
 
   readyNext(playerId: string) {
@@ -576,12 +693,17 @@ export class Room {
       const result: 'won' | 'lost' | 'drawn' = winnerIds.has(id) ? (winner.isDraw ? 'drawn' : 'won') : 'lost';
       const themeTallies: ThemeTally[] = [...(this.matchThemeTally.get(id)?.entries() ?? [])]
         .map(([theme_id, t]) => ({ theme_id, correct: t.correct, wrong: t.wrong, perfects: t.perfects, best_score: t.bestScore }));
+      const raceAcc = this.matchRaceStats.get(id);
 
       summaries.push({
         userId: p.userId,
         matchId: this.matchId,
         roomCode: this.code,
-        modeId: this.config.phraseMode,
+        // A distinct mode_id from 'ai' even though race rounds source
+        // questions the same way — it's a genuinely different ruleset
+        // (10s deadline, multiplicative scoring), and every stats/
+        // achievement table is already free-text mode_id by design.
+        modeId: this.config.gameMode === 'race' ? 'race' : this.config.phraseMode,
         themeIds,
         difficulty,
         score: p.score,
@@ -591,6 +713,17 @@ export class Room {
         playedAt,
         roundOutcomes: this.matchOutcomes.get(id) ?? [],
         themeTallies,
+        race: raceAcc ? {
+          scoreNormalTotal: raceAcc.scoreNormalTotal,
+          responseMsSum: raceAcc.responseMsSum,
+          multiplierSum: raceAcc.multiplierSum,
+          timedRounds: raceAcc.timedRounds,
+          bestResponseMs: raceAcc.bestResponseMs,
+          bestCorrectResponseMs: raceAcc.bestCorrectResponseMs,
+          bestMultiplier: raceAcc.bestMultiplier,
+          multiplier2xCount: raceAcc.multiplier2xCount,
+          noTimeout: !raceAcc.anyTimeout,
+        } : undefined,
       });
     }
 
@@ -604,12 +737,13 @@ export class Room {
     this.stopTimers();
     for (const p of this.players.values()) {
       p.score = 0; p.perfectCount = 0; p.confirmed = false; p.readyNext = false;
-      p.pickedColor = null; p.colorHistory = []; p.confirmedAtSeconds = null;
+      p.pickedColor = null; p.colorHistory = []; p.confirmedAtSeconds = null; p.raceResponseMs = null;
     }
     this.roundIdx = -1;
     this.round = null;
     this.phase = null;
     this.secondsLeft = null;
+    this.raceDeadlineAt = null;
     this.results = null;
     this.matchWinner = null;
     this.screen = 'waiting';
@@ -648,6 +782,7 @@ export class Room {
 
   private stopTicking() {
     if (this.tickHandle) { clearInterval(this.tickHandle); this.tickHandle = null; }
+    if (this.raceTickHandle) { clearInterval(this.raceTickHandle); this.raceTickHandle = null; }
   }
   private stopTimers() {
     this.stopTicking();
@@ -684,6 +819,12 @@ export class Room {
       round: this.round,
       phase: this.phase,
       secondsLeft: this.secondsLeft,
+      // Computed fresh on every single broadcast (never a ticker-only
+      // field) — pickColor() alone can fire dozens of broadcasts/second
+      // between raceTickHandle's own 100ms ticks, and every one of those
+      // needs an accurate, non-stale remaining time.
+      raceMsLeft: (this.phase === 'placing' && this.raceDeadlineAt !== null)
+        ? Math.max(0, this.raceDeadlineAt - Date.now()) : null,
       results: this.results,
       nextReady: {
         ready: activeIds.filter((id) => this.players.get(id)?.readyNext).length,

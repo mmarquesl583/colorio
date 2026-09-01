@@ -1,10 +1,15 @@
 export type PhraseMode = 'players' | 'ai';
 export type Privacy = 'public' | 'private';
+// Orthogonal to PhraseMode — 'race' always sources questions from the AI
+// bank and has no clue-writing master (see room.ts's usesAiQuestions()),
+// but is a distinct timing/scoring ruleset, not a 3rd clue source.
+export type GameMode = 'classic' | 'race';
 
 export interface RoomConfig {
   numPlayers: number;
   numRounds: number;
   phraseMode: PhraseMode;
+  gameMode: GameMode;
   privacy: Privacy;
   selectedThemes: string[];
 }
@@ -54,6 +59,13 @@ export interface RevealPlayerResult {
   isRoundMvp: boolean;
   prevScore: number;
   newScore: number;
+  /** Only set for gameMode:'race' rounds — baseScore is score before the
+   * time multiplier, timeMultiplier is what was applied (0 on timeout),
+   * raceResponseSeconds is null on timeout, otherwise the exact response
+   * time. Undefined for classic-mode rounds. */
+  baseScore?: number;
+  timeMultiplier?: number;
+  raceResponseSeconds?: number | null;
 }
 
 export interface RoundResults {
@@ -119,6 +131,12 @@ export interface RoomStateView {
   matchWinner: MatchWinner | null;
   /** Seconds until the reveal auto-advances even if not everyone readied up. */
   readySecondsLeft: number | null;
+  /** Milliseconds left in a gameMode:'race' round's 10s clock — recomputed
+   * from a server-side deadline on every single broadcast (never a
+   * ticker-only-updated field), so it's never stale between ticks. Always
+   * null outside an active race-mode 'placing' phase; classic-mode rounds
+   * keep using secondsLeft exactly as before, untouched. */
+  raceMsLeft: number | null;
 }
 
 /** Summary shown in the "open rooms" list on the home screen (public rooms only). */

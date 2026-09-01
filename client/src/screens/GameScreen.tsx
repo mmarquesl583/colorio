@@ -5,6 +5,7 @@ import ColorPicker from '../components/ColorPicker.tsx';
 import ChatPlacar from '../components/ChatPlacar.tsx';
 import RoundIntroModal from '../components/RoundIntroModal.tsx';
 import RevealModal from '../components/RevealModal.tsx';
+import RaceTimer from '../components/RaceTimer.tsx';
 import { randomSecretHsl, hslFracToRgb, rgbToHex } from '@shared/color';
 import { PLACING_SECONDS } from '@shared/gameData';
 import type { HslColor } from '@shared/types';
@@ -67,6 +68,7 @@ export default function GameScreen({ conn }: { conn: RoomConnection }) {
 
   const eligibleGuessers = s.players.filter((p) => p.id !== round.masterId);
   const confirmedCount = eligibleGuessers.filter((p) => p.confirmed).length;
+  const isRace = s.config.gameMode === 'race';
 
   const seconds = s.secondsLeft ?? 0;
   const mm = String(Math.floor(seconds / 60)).padStart(2, '0');
@@ -77,7 +79,11 @@ export default function GameScreen({ conn }: { conn: RoomConnection }) {
   const themeHint = round.phrase || (you.isMaster ? 'Escreva sua pista' : (round.isAiPhrase ? 'A IA está preparando a pista...' : 'Aguardando a pista...'));
 
   const showTabsPanel = !(phase === 'master-writing' && you.isMaster) && phase !== 'reveal';
-  const showRoundIntro = phase === 'placing' && !!round.phrase && !you.isMaster && seconds > PLACING_SECONDS - ROUND_INTRO_SECONDS;
+  // Race rounds never enter this phase state combo (isRace already implies
+  // secondsLeft stays null → seconds falls back to 0, which alone would
+  // already make this false) — the explicit !isRace just documents the
+  // intent: a 3s intro would eat 30% of a 10s race round.
+  const showRoundIntro = phase === 'placing' && !!round.phrase && !you.isMaster && !isRace && seconds > PLACING_SECONDS - ROUND_INTRO_SECONDS;
 
   return (
     <>
@@ -102,28 +108,35 @@ export default function GameScreen({ conn }: { conn: RoomConnection }) {
           <div style={{ flex: 'none', display: 'flex', gap: 8, padding: '0 16px 8px' }}>
             <Pill label="SALA" value={s.code} />
             <Pill label="RODADA" value={`${round.number} / ${s.config.numRounds}`} />
-            <Pill label="TEMPO" value={`⏱ ${mm}:${ss}`} valueColor={timerColor} />
+            {/* Race rounds show their own prominent timer in RaceQuestionCard
+               below instead of this small pill — secondsLeft stays null for
+               them anyway, so this pill would otherwise be stuck at 00:00. */}
+            {!isRace && <Pill label="TEMPO" value={`⏱ ${mm}:${ss}`} valueColor={timerColor} />}
           </div>
 
-          <div className="corio-card" style={{ flex: 'none', margin: '0 16px 8px', padding: '10px 12px', borderRadius: 14, background: '#12121a', border: '1px solid rgba(255,255,255,0.08)', display: 'flex', gap: 10 }}>
-            <div style={{ flex: 1.1, minWidth: 0, display: 'flex', gap: 8 }}>
-              <div style={{ width: 28, height: 28, borderRadius: 8, background: 'rgba(139,92,246,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, flex: 'none' }}>{round.themeIcon}</div>
-              <div style={{ minWidth: 0 }}>
-                <div className="corio-eyebrow" style={{ fontSize: 8, fontWeight: 700, letterSpacing: 0.6, color: '#A78BFA' }}>TEMA</div>
-                <div className="corio-card-title" style={{ fontSize: 13, fontWeight: 700, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{round.themeName}</div>
+          {isRace ? (
+            <RaceQuestionCard themeIcon={round.themeIcon} themeName={round.themeName} phrase={round.phrase} raceMsLeft={s.raceMsLeft} />
+          ) : (
+            <div className="corio-card" style={{ flex: 'none', margin: '0 16px 8px', padding: '10px 12px', borderRadius: 14, background: '#12121a', border: '1px solid rgba(255,255,255,0.08)', display: 'flex', gap: 10 }}>
+              <div style={{ flex: 1.1, minWidth: 0, display: 'flex', gap: 8 }}>
+                <div style={{ width: 28, height: 28, borderRadius: 8, background: 'rgba(139,92,246,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, flex: 'none' }}>{round.themeIcon}</div>
+                <div style={{ minWidth: 0 }}>
+                  <div className="corio-eyebrow" style={{ fontSize: 8, fontWeight: 700, letterSpacing: 0.6, color: '#A78BFA' }}>TEMA</div>
+                  <div className="corio-card-title" style={{ fontSize: 13, fontWeight: 700, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{round.themeName}</div>
+                </div>
+              </div>
+              <div style={{ width: 1, background: 'rgba(255,255,255,0.08)', flex: 'none' }} />
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div className="corio-eyebrow" style={{ fontSize: 8, fontWeight: 700, letterSpacing: 0.6, color: '#FFC93C' }}>VEZ DE {you.isMaster ? '👑' : ''}</div>
+                <div className="corio-card-title" style={{ fontSize: 13, fontWeight: 700, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{masterLabel}</div>
+              </div>
+              <div style={{ width: 1, background: 'rgba(255,255,255,0.08)', flex: 'none' }} />
+              <div style={{ flex: 1.4, minWidth: 0 }}>
+                <div className="corio-eyebrow" style={{ fontSize: 8, fontWeight: 700, letterSpacing: 0.6, color: '#5CE1F0' }}>FRASE {round.aiDifficulty && difficultyDot(round.aiDifficulty)}</div>
+                <div className="corio-card-sub" style={{ fontSize: 11.5, fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{themeHint}</div>
               </div>
             </div>
-            <div style={{ width: 1, background: 'rgba(255,255,255,0.08)', flex: 'none' }} />
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <div className="corio-eyebrow" style={{ fontSize: 8, fontWeight: 700, letterSpacing: 0.6, color: '#FFC93C' }}>VEZ DE {you.isMaster ? '👑' : ''}</div>
-              <div className="corio-card-title" style={{ fontSize: 13, fontWeight: 700, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{masterLabel}</div>
-            </div>
-            <div style={{ width: 1, background: 'rgba(255,255,255,0.08)', flex: 'none' }} />
-            <div style={{ flex: 1.4, minWidth: 0 }}>
-              <div className="corio-eyebrow" style={{ fontSize: 8, fontWeight: 700, letterSpacing: 0.6, color: '#5CE1F0' }}>FRASE {round.aiDifficulty && difficultyDot(round.aiDifficulty)}</div>
-              <div className="corio-card-sub" style={{ fontSize: 11.5, fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{themeHint}</div>
-            </div>
-          </div>
+          )}
 
           {round.isAiPhrase && <ReportButton key={round.idx} onReport={() => conn.send({ type: 'report_question' })} />}
 
@@ -168,7 +181,7 @@ export default function GameScreen({ conn }: { conn: RoomConnection }) {
 
       {showRoundIntro && <RoundIntroModal round={round} />}
       {phase === 'reveal' && s.results && (
-        <RevealModal results={s.results} you={you} nextReady={s.nextReady} readySecondsLeft={s.readySecondsLeft} onReadyNext={() => conn.send({ type: 'ready_next' })} />
+        <RevealModal results={s.results} you={you} gameMode={s.config.gameMode} nextReady={s.nextReady} readySecondsLeft={s.readySecondsLeft} onReadyNext={() => conn.send({ type: 'ready_next' })} />
       )}
     </>
   );
@@ -179,6 +192,16 @@ function Pill({ label, value, valueColor }: { label: string; value: string; valu
     <div className="corio-card" style={{ flex: 1, minWidth: 0, background: '#12121a', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 14, padding: '7px 10px' }}>
       <div className="corio-eyebrow" style={{ fontSize: 7.5, fontWeight: 700, letterSpacing: 1, color: 'rgba(244,242,248,0.4)' }}>{label}</div>
       <div className="corio-value-lg" style={{ fontFamily: "'Space Grotesk',sans-serif", fontSize: 13.5, fontWeight: 700, color: valueColor }}>{value}</div>
+    </div>
+  );
+}
+
+function RaceQuestionCard({ themeIcon, themeName, phrase, raceMsLeft }: { themeIcon: string; themeName: string; phrase: string; raceMsLeft: number | null }) {
+  return (
+    <div className="corio-card corio-race-card" style={{ flex: 'none', margin: '0 16px 8px', padding: '16px 14px', borderRadius: 16, background: '#12121a', border: '1px solid rgba(255,255,255,0.08)', animation: 'corio-rise .35s ease' }}>
+      <div className="corio-race-card-theme"><span>{themeIcon}</span><span>{themeName}</span></div>
+      <div className="corio-race-card-phrase">{phrase || 'Preparando a próxima pergunta...'}</div>
+      <RaceTimer raceMsLeft={raceMsLeft} />
     </div>
   );
 }

@@ -2,7 +2,7 @@ import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { hslFracToRgb } from '@shared/color';
 import { NEXT_ROUND_READY_TIMEOUT_MS } from '@shared/gameData';
 import { avatarSmallSrc } from '@shared/avatarIcons';
-import type { PlayerPublic, RoundResults } from '@shared/types';
+import type { GameMode, PlayerPublic, RoundResults } from '@shared/types';
 
 type Stage = 'guesses' | 'sorted' | 'filling' | 'final';
 
@@ -29,17 +29,19 @@ interface Row {
   stripeColor: string;
   stripeVisible: boolean;
   isMasterRow: boolean;
+  timeMultiplier?: number;
 }
 
 interface Props {
   results: RoundResults;
   you: PlayerPublic;
+  gameMode: GameMode;
   nextReady: { ready: number; total: number };
   readySecondsLeft: number | null;
   onReadyNext: () => void;
 }
 
-export default function RevealModal({ results, you, nextReady, readySecondsLeft, onReadyNext }: Props) {
+export default function RevealModal({ results, you, gameMode, nextReady, readySecondsLeft, onReadyNext }: Props) {
   const [stage, setStage] = useState<Stage>('guesses');
   const [revealCount, setRevealCount] = useState(0);
   const [progress, setProgress] = useState(0);
@@ -77,6 +79,7 @@ export default function RevealModal({ results, you, nextReady, readySecondsLeft,
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [results.secretHex]);
 
+  const yourGuess = results.guesses.find((g) => g.playerId === you.id);
   const guessesByStanding = results.guesses; // server orders these by pre-round standing already
   // Ranking is by round score; equal scores are tied and break by the lower
   // (more accurate) Delta E rather than an arbitrary order.
@@ -118,6 +121,7 @@ export default function RevealModal({ results, you, nextReady, readySecondsLeft,
         stripeColor: visible ? `hsl(${hslToCss(g.hsl)})` : '#2a2a35',
         stripeVisible: true,
         isMasterRow: false,
+        timeMultiplier: (isSorted && progress >= 1) ? g.timeMultiplier : undefined,
       };
     });
     if (isSorted && results.masterId) {
@@ -221,11 +225,46 @@ export default function RevealModal({ results, you, nextReady, readySecondsLeft,
               {r.isTop && <span style={{ flex: 'none' }} title="Maior pontuação da rodada">🏆</span>}
               {r.roundMvp && <span style={{ flex: 'none' }} title="Palpite mais preciso da rodada">🎯</span>}
               {r.badge && <span style={{ fontSize: 7.5, fontWeight: 700, letterSpacing: 0.3, background: '#FFC93C', color: '#151007', padding: '2px 5px', borderRadius: 5, flex: 'none' }}>{r.badge}</span>}
+              {r.timeMultiplier != null && (
+                <span style={{ fontSize: 7.5, fontWeight: 700, letterSpacing: 0.3, background: r.timeMultiplier > 0 ? 'rgba(41,231,255,0.18)' : 'rgba(239,68,68,0.18)', color: r.timeMultiplier > 0 ? '#29E7FF' : '#FCA5A5', padding: '2px 5px', borderRadius: 5, flex: 'none' }} title="Bônus de velocidade">
+                  ×{r.timeMultiplier.toFixed(1).replace('.', ',')}
+                </span>
+              )}
             </div>
             <div style={{ width: 44, textAlign: 'center', fontSize: 11.5, fontWeight: 700 }}>{r.currentScore.toLocaleString('pt-BR')}</div>
             {showHeaderCols && <div style={{ width: 44, textAlign: 'center', fontSize: 11.5, fontWeight: 700, color: '#A78BFA' }}>{r.gainLabel}</div>}
           </div>
         ))}
+
+        {gameMode === 'race' && yourGuess && stage !== 'guesses' && (stage !== 'sorted' || progress >= 1) && (
+          <div style={{ width: '100%', maxWidth: 360, marginBottom: 10, background: 'rgba(139,92,246,0.12)', border: '1px solid rgba(139,92,246,0.35)', borderRadius: 14, padding: '12px 14px', display: 'flex', flexDirection: 'column', gap: 8, animation: 'corio-rise .3s ease' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <div style={{ width: 30, height: 30, borderRadius: 9, background: `hsl(${hslToCss(yourGuess.hsl)})`, flex: 'none', border: '1px solid rgba(255,255,255,0.25)' }} />
+              <div style={{ minWidth: 0 }}>
+                <div style={{ fontSize: 8, fontWeight: 700, letterSpacing: 0.5, color: 'rgba(244,242,248,0.5)' }}>SUA COR</div>
+                <div style={{ fontSize: 12, fontWeight: 700 }}>{yourGuess.badge}</div>
+              </div>
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8, textAlign: 'center' }}>
+              <div>
+                <div style={{ fontSize: 7.5, fontWeight: 700, letterSpacing: 0.4, color: 'rgba(244,242,248,0.5)' }}>PRECISÃO</div>
+                <div style={{ fontFamily: "'Space Grotesk',sans-serif", fontWeight: 800, fontSize: 15 }}>{(yourGuess.baseScore ?? 0).toLocaleString('pt-BR')}</div>
+              </div>
+              <div>
+                <div style={{ fontSize: 7.5, fontWeight: 700, letterSpacing: 0.4, color: 'rgba(244,242,248,0.5)' }}>BÔNUS DE VELOCIDADE</div>
+                <div style={{ fontFamily: "'Space Grotesk',sans-serif", fontWeight: 800, fontSize: 15, color: '#29E7FF' }}>×{(yourGuess.timeMultiplier ?? 0).toFixed(1).replace('.', ',')}</div>
+              </div>
+              <div>
+                <div style={{ fontSize: 7.5, fontWeight: 700, letterSpacing: 0.4, color: 'rgba(244,242,248,0.5)' }}>TEMPO</div>
+                <div style={{ fontFamily: "'Space Grotesk',sans-serif", fontWeight: 800, fontSize: 15 }}>{yourGuess.raceResponseSeconds != null ? `${yourGuess.raceResponseSeconds.toFixed(1).replace('.', ',')}s` : '—'}</div>
+              </div>
+            </div>
+            <div style={{ textAlign: 'center', borderTop: '1px solid rgba(255,255,255,0.1)', paddingTop: 8 }}>
+              <div style={{ fontSize: 7.5, fontWeight: 700, letterSpacing: 0.4, color: '#FFC93C' }}>PONTUAÇÃO DA RODADA</div>
+              <div style={{ fontFamily: "'Space Grotesk',sans-serif", fontWeight: 800, fontSize: 20, color: '#FFC93C' }}>{yourGuess.score.toLocaleString('pt-BR')}</div>
+            </div>
+          </div>
+        )}
 
         {showMasterDivider && masterRow && (
           <>

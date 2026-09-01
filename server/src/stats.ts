@@ -15,6 +15,21 @@ export interface ThemeTally {
   best_score: number;
 }
 
+/** gameMode:'race' match-level aggregate — undefined for every other mode.
+ * Raw sums/counts only (never pre-computed averages), same convention as
+ * the rest of the stats pipeline. */
+export interface RaceMatchSummary {
+  scoreNormalTotal: number;
+  responseMsSum: number;
+  multiplierSum: number;
+  timedRounds: number;
+  bestResponseMs: number | null;
+  bestCorrectResponseMs: number | null;
+  bestMultiplier: number;
+  multiplier2xCount: number;
+  noTimeout: boolean;
+}
+
 export interface MatchParticipantSummary {
   userId: string;
   matchId: string;
@@ -29,6 +44,7 @@ export interface MatchParticipantSummary {
   playedAt: string; // ISO timestamp
   roundOutcomes: RoundOutcome[];
   themeTallies: ThemeTally[];
+  race?: RaceMatchSummary;
 }
 
 export async function openGameSession(userId: string, roomCode: string): Promise<string | null> {
@@ -60,6 +76,7 @@ export function recordAbandonedMatch(userIds: string[]): void {
 }
 
 async function applyOne(p: MatchParticipantSummary): Promise<void> {
+  const race = p.race;
   const { error } = await supabaseAdmin!.rpc('apply_match_result', {
     p_user_id: p.userId,
     p_match_id: p.matchId,
@@ -74,10 +91,24 @@ async function applyOne(p: MatchParticipantSummary): Promise<void> {
     p_played_at: p.playedAt,
     p_round_outcomes: p.roundOutcomes,
     p_theme_tallies: p.themeTallies,
+    // All null when `race` is undefined (every non-race mode) — the SQL
+    // function's own default null/0 params make this a pure no-op for them.
+    p_race_score_normal_total: race?.scoreNormalTotal ?? null,
+    p_race_response_ms_sum: race?.responseMsSum ?? null,
+    p_race_multiplier_sum: race?.multiplierSum ?? null,
+    p_race_timed_rounds: race?.timedRounds ?? null,
+    p_race_best_response_ms: race?.bestResponseMs ?? null,
+    p_race_best_correct_response_ms: race?.bestCorrectResponseMs ?? null,
+    p_race_best_multiplier: race?.bestMultiplier ?? null,
+    p_race_multiplier_2x_count: race?.multiplier2xCount ?? null,
+    p_race_no_timeout: race ? race.noTimeout : null,
   });
   if (error) { console.error('apply_match_result failed:', error.message); return; }
 
-  const { error: achError } = await supabaseAdmin!.rpc('check_and_grant_achievements', { p_user_id: p.userId });
+  // p_mode_id lets check_and_grant_achievements evaluate mode-scoped
+  // achievements (required_mode_id set) against this match's mode in
+  // addition to the always-checked global ones (required_mode_id null).
+  const { error: achError } = await supabaseAdmin!.rpc('check_and_grant_achievements', { p_user_id: p.userId, p_mode_id: p.modeId });
   if (achError) console.error('check_and_grant_achievements failed:', achError.message);
 }
 
