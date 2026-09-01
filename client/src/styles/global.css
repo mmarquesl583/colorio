@@ -678,32 +678,32 @@ input, textarea { font-family: inherit; touch-action: manipulation; }
     flex-wrap: wrap;
     align-items: center;
     justify-content: center;
-    gap: clamp(48px, 9vw, 150px);
-    width: 94vw;
-    max-width: 1600px;
-    padding: 32px 24px;
+    gap: clamp(32px, 6vw, 90px);
+    width: 92vw;
+    max-width: 1200px;
+    padding: 28px 24px;
   }
   .corio-home-v2-hero { align-items: flex-start; flex: none; }
-  .corio-home-v2-logo-full { width: clamp(380px, 38vw, 620px); max-width: 100%; }
-  .corio-home-v2-doodle { width: calc(var(--corio-doodle-w) * 1.75); }
-  .corio-home-v2-tagline { text-align: left; font-size: clamp(21px, 2vw, 28px) !important; line-height: 1.4 !important; margin-top: 24px !important; }
-  .corio-home-v2-form { flex: none; width: clamp(420px, 30vw, 580px); gap: 22px; }
-  .corio-home-v2-btn { font-size: clamp(22px, 2.1vw, 30px) !important; padding: clamp(26px,2.6vw,36px) 32px !important; border-radius: 26px !important; gap: 20px !important; }
-  .corio-home-v2-btn img { width: clamp(48px, 4.2vw, 66px) !important; height: clamp(48px, 4.2vw, 66px) !important; }
+  .corio-home-v2-logo-full { width: clamp(280px, 24vw, 420px); max-width: 100%; }
+  .corio-home-v2-doodle { width: calc(var(--corio-doodle-w) * 1.4); }
+  .corio-home-v2-tagline { text-align: left; font-size: clamp(16px, 1.3vw, 19px) !important; line-height: 1.4 !important; margin-top: 18px !important; }
+  .corio-home-v2-form { flex: none; width: clamp(340px, 20vw, 420px); gap: 16px; }
+  .corio-home-v2-btn { font-size: clamp(16px, 1.3vw, 18px) !important; padding: clamp(18px,1.6vw,22px) 24px !important; border-radius: 20px !important; gap: 14px !important; }
+  .corio-home-v2-btn img { width: clamp(28px, 2.2vw, 34px) !important; height: clamp(28px, 2.2vw, 34px) !important; }
   .corio-home-v2-input {
-    padding-top: clamp(24px,2.4vw,30px) !important;
-    padding-bottom: clamp(24px,2.4vw,30px) !important;
-    padding-left: 58px !important;
-    font-size: clamp(18px,1.8vw,24px) !important;
-    border-radius: 22px !important;
+    padding-top: clamp(16px,1.4vw,19px) !important;
+    padding-bottom: clamp(16px,1.4vw,19px) !important;
+    padding-left: 44px !important;
+    font-size: clamp(15px,1.2vw,17px) !important;
+    border-radius: 18px !important;
   }
-  .corio-home-v2-entrar-icon { width: clamp(38px, 3.4vw, 52px); height: clamp(38px, 3.4vw, 52px); }
-  .corio-home-v2-chevron { font-size: clamp(26px, 2.4vw, 34px); }
-  .corio-home-v2-identity { padding: clamp(16px,1.6vw,22px) clamp(20px,2vw,28px) !important; border-radius: 22px !important; }
-  .corio-home-v2-identity-avatar { width: clamp(34px,3vw,44px); height: clamp(34px,3vw,44px); font-size: clamp(15px,1.4vw,19px); }
-  .corio-home-v2-identity-name { font-size: clamp(17px,1.6vw,22px) !important; }
-  .corio-home-v2-identity-title { font-size: clamp(12px,1.1vw,15px) !important; }
-  .corio-home-v2-identity-link { font-size: clamp(13px,1.2vw,16px) !important; }
+  .corio-home-v2-entrar-icon { width: clamp(30px, 2.4vw, 36px); height: clamp(30px, 2.4vw, 36px); }
+  .corio-home-v2-chevron { font-size: clamp(20px, 1.6vw, 24px); }
+  .corio-home-v2-identity { padding: clamp(13px,1.1vw,16px) clamp(16px,1.4vw,20px) !important; border-radius: 18px !important; }
+  .corio-home-v2-identity-avatar { width: clamp(30px,2.2vw,36px); height: clamp(30px,2.2vw,36px); font-size: clamp(13px,1vw,15px); }
+  .corio-home-v2-identity-name { font-size: clamp(14px,1.1vw,16px) !important; }
+  .corio-home-v2-identity-title { font-size: clamp(10.5px,0.9vw,12px) !important; }
+  .corio-home-v2-identity-link { font-size: clamp(11px,0.9vw,13px) !important; }
 }
 
 /* Game screen: single column on mobile, main + persistent sidebar on desktop. */
