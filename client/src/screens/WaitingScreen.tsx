@@ -43,7 +43,7 @@ export default function WaitingScreen({ conn }: { conn: RoomConnection }) {
   const visibleThemes = (s.config.phraseMode === 'ai' || s.config.gameMode === 'race') ? LOBBY_THEMES.filter((t) => AI_ELIGIBLE_IDS.has(t.id)) : LOBBY_THEMES;
 
   return (
-    <div className="corio-wide" style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', padding: '8px 16px 12px', gap: 8, animation: 'corio-rise .4s ease' }}>
+    <div className="corio-wide corio-noscroll" style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', padding: '8px 16px 12px', gap: 8, overflowY: 'auto', animation: 'corio-rise .4s ease' }}>
       <div style={{ flex: 'none', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <div style={{ width: 28 }} />
         <Logo size={17} />

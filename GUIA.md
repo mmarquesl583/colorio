@@ -35,7 +35,7 @@ pontos" ou "o que é considerado válido", ela vai no `server/`, não no
 | Adicionar perguntas pro modo "Frase da IA" de um tema | `shared/aiQuestions.ts` → chave `AI_QUESTIONS[idDoTema]` (o `id` tem que bater com o `id` em `LOBBY_THEMES`) |
 | Mudar a fórmula de pontuação (curva de pontos por Delta E) | `shared/scoring.ts` → `calculateColorScore` |
 | Mudar os bônus (velocidade, MVP da rodada) | `shared/gameData.ts` (valores `SPEED_BONUS_MAX`, `ROUND_MVP_BONUS`) + `server/src/room.ts` → `computeReveal()` (é onde os bônus são somados) |
-| Mudar quando os badges PERFEITO/QUASE PERFEITO/MUITO PERTO/PERTO/DISTANTE aparecem | `shared/scoring.ts` → `badgeFromScore` |
+| Mudar quando os badges PERFEITO/CIRÚRGICO/MUITO PERTO/PERTO/QUASE LÁ/NEM PERTO/PASSOU LONGE aparecem (pontuação vai de -100 a 1000) | `shared/scoring.ts` → `badgeFromScore` |
 | Mudar quantos jogadores mínimo/máximo, rodadas, tempo de rodada | `shared/gameData.ts` (`MIN_PLAYERS`, `MAX_PLAYERS`, `MIN_ROUNDS`, `MAX_ROUNDS`, `PLACING_SECONDS`) |
 | Mudar as regras de "quantos jogadores pra começar a partida" | `server/src/room.ts` → `startMatch()` (hoje: 1 no modo IA, 2 nos outros) |
 | Mudar a condição de vitória do modo "Frase da IA" (hoje: 10.000 pontos ou 5 acertos perfeitos) | `shared/gameData.ts` (`AI_WIN_SCORE`, `AI_WIN_PERFECTS`) + `server/src/room.ts` → `computeReveal()` (onde checa) e `finishMatch()`/`restartMatch()` |

@@ -216,15 +216,42 @@ export default function IdentityPickerModal({
               <div className="corio-picker-list corio-noscroll">
                 {titleList.map((t) => {
                   const unlocked = t.free || unlockedTitleIds.has(t.id);
+                  // Locked rows get their own progress readout right in the
+                  // list — no need to tap into the preview panel just to see
+                  // "how close am I". Fill width is the completion percent;
+                  // lowerIsBetter (time-based) criteria skip the fill (a bar
+                  // would read backwards) and just show the record instead.
+                  let fillPct: number | null = null;
+                  let progressLabel: string | null = null;
+                  if (!unlocked) {
+                    const ach = achievementForTitle(t.id, progress?.achievements ?? [], progress?.achievementRewards ?? []);
+                    const prog = ach ? achievementProgress(ach, progress?.stats ?? null, progress?.modeStats ?? []) : null;
+                    if (prog) {
+                      if (prog.lowerIsBetter) {
+                        progressLabel = formatProgressValue(prog.current, ach!.criteria_type);
+                      } else {
+                        fillPct = Math.max(0, Math.min(100, (prog.current / prog.target) * 100));
+                        progressLabel = `${formatProgressValue(prog.current, ach!.criteria_type)}/${formatProgressValue(prog.target, ach!.criteria_type)}`;
+                      }
+                    }
+                  }
                   return (
                     <button
                       key={t.id}
                       onClick={() => setPreviewTitleId(t.id)}
                       className={`corio-tap corio-picker-list-item ${previewTitleId === t.id ? 'is-selected' : ''} ${unlocked ? '' : 'is-locked'}`}
-                      aria-label={unlocked ? `Usar título ${t.name}` : `Ver como desbloquear ${t.name}`}
+                      aria-label={unlocked ? `Usar título ${t.name}` : `Ver como desbloquear ${t.name}${progressLabel ? ` — ${progressLabel}` : ''}`}
                     >
-                      <span>{t.name}</span>
-                      {unlocked ? <span className="corio-picker-radio">{previewTitleId === t.id ? '●' : '○'}</span> : <span className="corio-picker-lock">🔒</span>}
+                      {fillPct !== null && <div className="corio-picker-list-fill" style={{ width: `${fillPct}%` }} />}
+                      <span className="corio-picker-list-name">{t.name}</span>
+                      {unlocked ? (
+                        <span className="corio-picker-radio">{previewTitleId === t.id ? '●' : '○'}</span>
+                      ) : (
+                        <span className="corio-picker-list-progress">
+                          {progressLabel && <span className="corio-picker-list-progress-text">{progressLabel}</span>}
+                          <span className="corio-picker-lock">🔒</span>
+                        </span>
+                      )}
                     </button>
                   );
                 })}

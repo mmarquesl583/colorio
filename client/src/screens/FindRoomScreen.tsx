@@ -36,7 +36,7 @@ export default function FindRoomScreen({ playerName, connecting, error, onBack, 
   const joinRoom = (roomCode: string) => { if (!connecting) onJoin(playerName, roomCode); };
 
   return (
-    <div className="corio-wide" style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', padding: '10px 16px 14px', gap: 10, animation: 'corio-rise .4s ease' }}>
+    <div className="corio-wide corio-noscroll" style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', padding: '10px 16px 14px', gap: 10, overflowY: 'auto', animation: 'corio-rise .4s ease' }}>
       <div style={{ flex: 'none', position: 'relative' }}>
         <img src={`${IMG}/doodle-star-big.webp`} alt="" style={{ position: 'absolute', top: -6, left: 34, width: 26, opacity: 0.85, pointerEvents: 'none' }} />
         <img src={`${IMG}/doodle-crown.webp`} alt="" style={{ position: 'absolute', top: -10, right: 2, width: 44, opacity: 0.9, pointerEvents: 'none' }} />

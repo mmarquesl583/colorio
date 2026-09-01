@@ -33,3 +33,7 @@ export function accountAvatar(session: Session | null): string | null {
 export function setAccountAvatar(icon: string | null) {
   return supabase.auth.updateUser({ data: { avatar_icon: icon } });
 }
+
+export function setAccountName(name: string) {
+  return supabase.auth.updateUser({ data: { display_name: name } });
+}

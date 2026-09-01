@@ -260,29 +260,37 @@ export default function RevealModal({ results, you, gameMode, nextReady, readySe
                 const total = revealed ? Math.round(base + (g.score - base) * progress) : base;
                 return (
                   <div key={g.playerId} ref={(el) => { rowRefs.current[g.playerId] = el; }} className="corio-race-reveal-card">
-                    <div className="corio-race-reveal-card-top">
-                      <div className="corio-race-reveal-rank">{ranks[i]}</div>
-                      <div className="corio-race-reveal-avatar">
-                        {g.avatarId ? <img src={avatarSmallSrc(g.avatarId)} alt="" /> : g.initial}
-                      </div>
-                      <div className="corio-race-reveal-name">{g.playerId === you.id ? 'Você' : g.name}</div>
-                      {g.isRoundMvp && <span title="Palpite mais preciso da rodada">🎯</span>}
-                      <span className="corio-race-reveal-badge">{g.badge}</span>
-                    </div>
-                    <div className="corio-race-reveal-stats">
-                      <div className="corio-race-reveal-stat">
-                        <div className="corio-race-reveal-stat-label">PONTUAÇÃO</div>
-                        <div className="corio-race-reveal-stat-value">{base.toLocaleString('pt-BR')}</div>
-                      </div>
-                      <div className="corio-race-reveal-stat">
-                        <div className="corio-race-reveal-stat-label">MULTI</div>
-                        <div className={`corio-race-reveal-stat-value corio-race-reveal-multi ${revealed ? 'is-shown' : ''}`}>
-                          {revealed ? `×${mult.toFixed(1).replace('.', ',')}` : '—'}
+                    {/* The chosen color sits against the modal's own
+                       background (washed in the secret color once sorted)
+                       — seeing them side by side is the whole point of this
+                       reveal, no need to read the badge to know how close
+                       it was. */}
+                    <div className="corio-race-reveal-swatch" style={{ background: `hsl(${hslToCss(g.hsl)})` }} title="Sua cor escolhida" />
+                    <div className="corio-race-reveal-card-body">
+                      <div className="corio-race-reveal-card-top">
+                        <div className="corio-race-reveal-rank">{ranks[i]}</div>
+                        <div className="corio-race-reveal-avatar">
+                          {g.avatarId ? <img src={avatarSmallSrc(g.avatarId)} alt="" /> : g.initial}
                         </div>
+                        <div className="corio-race-reveal-name">{g.playerId === you.id ? 'Você' : g.name}</div>
+                        {g.isRoundMvp && <span title="Palpite mais preciso da rodada">🎯</span>}
+                        <span className="corio-race-reveal-badge">{g.badge}</span>
                       </div>
-                      <div className="corio-race-reveal-stat corio-race-reveal-stat-total">
-                        <div className="corio-race-reveal-stat-label">TOTAL</div>
-                        <div className="corio-race-reveal-stat-value">{total.toLocaleString('pt-BR')}</div>
+                      <div className="corio-race-reveal-stats">
+                        <div className="corio-race-reveal-stat">
+                          <div className="corio-race-reveal-stat-label">PONTUAÇÃO</div>
+                          <div className="corio-race-reveal-stat-value">{base.toLocaleString('pt-BR')}</div>
+                        </div>
+                        <div className="corio-race-reveal-stat">
+                          <div className="corio-race-reveal-stat-label">MULTI</div>
+                          <div className={`corio-race-reveal-stat-value corio-race-reveal-multi ${revealed ? 'is-shown' : ''}`}>
+                            {revealed ? `×${mult.toFixed(1).replace('.', ',')}` : '—'}
+                          </div>
+                        </div>
+                        <div className="corio-race-reveal-stat corio-race-reveal-stat-total">
+                          <div className="corio-race-reveal-stat-label">TOTAL</div>
+                          <div className="corio-race-reveal-stat-value">{total.toLocaleString('pt-BR')}</div>
+                        </div>
                       </div>
                     </div>
                   </div>

@@ -56,7 +56,7 @@ export default function AuthScreen({ onBack, onAuthed }: Props) {
   };
 
   return (
-    <div className="corio-wide" style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', justifyContent: 'center', padding: '10px 16px 14px', gap: 10, animation: 'corio-rise .4s ease' }}>
+    <div className="corio-wide corio-noscroll" style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', justifyContent: 'safe center', padding: '10px 16px 14px', gap: 10, overflowY: 'auto', animation: 'corio-rise .4s ease' }}>
       <div style={{ flex: 'none', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <button
           onClick={onBack}

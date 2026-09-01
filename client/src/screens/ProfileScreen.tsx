@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import Logo from '../components/Logo.tsx';
-import { useSession, accountAvatar, accountName } from '../auth.ts';
+import { useSession, accountAvatar, accountName, setAccountName } from '../auth.ts';
 import { AVATAR_ICONS, avatarSmallSrc } from '@shared/avatarIcons';
 import { TITLE_CATALOG, titleNameFor } from '@shared/titleCatalog';
 import { LOBBY_THEMES } from '@shared/gameData';
@@ -22,6 +22,12 @@ export default function ProfileScreen({ onBack }: { onBack: () => void }) {
   // last fetched); set the instant the picker actually equips a new title,
   // since a full profile re-fetch isn't needed just to reflect that.
   const [titleOverride, setTitleOverride] = useState<string | null | undefined>(undefined);
+  // null = not currently being edited — the input mirrors `name` straight
+  // from the session. Set on every keystroke, reset back to null once a
+  // save round-trips (useSession() picks up the new display_name itself,
+  // same auto-refresh pattern as the avatar picker below).
+  const [nameDraft, setNameDraft] = useState<string | null>(null);
+  const [savingName, setSavingName] = useState(false);
 
   const name = accountName(session) ?? 'Jogador';
   const avatarId = accountAvatar(session);
@@ -31,6 +37,14 @@ export default function ProfileScreen({ onBack }: { onBack: () => void }) {
   const accuracy = accuracyPct(stats);
   const avatarCount = FREE_AVATAR_COUNT + (data?.unlockedAvatarIds.size ?? 0);
   const titleCount = FREE_TITLE_COUNT + (data?.unlockedTitleIds.size ?? 0);
+
+  const commitName = async () => {
+    const trimmed = (nameDraft ?? '').trim();
+    if (!trimmed || trimmed === name) { setNameDraft(null); return; }
+    setSavingName(true);
+    await setAccountName(trimmed).finally(() => setSavingName(false));
+    setNameDraft(null);
+  };
 
   return (
     <div className="corio-wide corio-noscroll" style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', padding: '8px 16px 16px', gap: 10, overflowY: 'auto', animation: 'corio-rise .4s ease' }}>
@@ -53,7 +67,26 @@ export default function ProfileScreen({ onBack }: { onBack: () => void }) {
           {avatarId ? <img src={avatarSmallSrc(avatarId)} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : name[0]?.toUpperCase()}
         </button>
         <div style={{ flex: 1, minWidth: 0 }}>
-          <div className="corio-title" style={{ fontFamily: "'Space Grotesk',sans-serif", fontWeight: 800, fontSize: 16, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{name}</div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            <input
+              value={nameDraft ?? name}
+              onChange={(e) => setNameDraft(e.target.value.slice(0, 24))}
+              onFocus={() => setNameDraft((d) => d ?? name)}
+              onBlur={commitName}
+              onKeyDown={(e) => { if (e.key === 'Enter') (e.target as HTMLInputElement).blur(); }}
+              disabled={savingName}
+              aria-label="Editar nome de usuário"
+              className="corio-title"
+              style={{
+                all: 'unset', boxSizing: 'border-box', minWidth: 0, flex: 1,
+                fontFamily: "'Space Grotesk',sans-serif", fontWeight: 800, fontSize: 16, color: '#fff',
+                overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                borderBottom: '1px dashed rgba(255,255,255,0.25)', paddingBottom: 2,
+                opacity: savingName ? 0.6 : 1,
+              }}
+            />
+            <span style={{ flex: 'none', fontSize: 11 }} aria-hidden="true">{savingName ? '…' : '✏️'}</span>
+          </div>
           <button onClick={() => setPickerMode('title')} className="corio-tap" style={{ all: 'unset', cursor: 'pointer', display: 'inline-block', fontSize: 10.5, fontWeight: 700, color: '#FFC93C', marginTop: 3 }}>{titleName} ✏️</button>
         </div>
       </div>

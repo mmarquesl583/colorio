@@ -97,7 +97,7 @@ export default function GameScreen({ conn }: { conn: RoomConnection }) {
 
   return (
     <>
-      <div className="corio-game-header" style={{ flex: 'none', padding: '10px 16px 8px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
+      <div className="corio-game-header" style={{ flex: 'none', padding: '8px 16px 6px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <Logo size={21} />
           <button onClick={conn.leaveRoom} className="corio-tap" style={{ all: 'unset', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4, background: 'rgba(239,68,68,0.12)', border: '1px solid rgba(239,68,68,0.35)', borderRadius: 999, padding: '5px 9px', fontSize: 9, fontWeight: 700, color: '#FCA5A5' }}>↩ SAIR</button>
@@ -116,8 +116,8 @@ export default function GameScreen({ conn }: { conn: RoomConnection }) {
       <div className="corio-game-body">
         <div className="corio-game-main">
           {isRace ? (
-            <div style={{ flex: 'none', display: 'flex', alignItems: 'stretch', gap: 8, padding: '0 16px 8px' }}>
-              <Pill label="RODADA" value={`${round.number} / ${s.config.numRounds}`} flex="none" minWidth={82} />
+            <div style={{ flex: 'none', display: 'flex', alignItems: 'stretch', gap: 8, padding: '0 16px 6px' }}>
+              <Pill label="RODADA" value={`${round.number} / ${s.config.numRounds}`} flex="none" minWidth={82} compact />
               {/* Room code drops from the header entirely in race mode — it
                  only shows via the Compartilhar button's own confirmation
                  label now (see copyLink) — all the freed width goes to a
@@ -151,6 +151,7 @@ export default function GameScreen({ conn }: { conn: RoomConnection }) {
                 roundIdx={round.idx}
                 themeIcon={round.themeIcon}
                 themeName={round.themeName}
+                aiSource={round.aiSource}
                 phrase={round.phrase}
                 urgent={raceUrgent}
                 onReport={() => conn.send({ type: 'report_question' })}
@@ -166,11 +167,30 @@ export default function GameScreen({ conn }: { conn: RoomConnection }) {
                     <div className="corio-card-title" style={{ fontSize: 13, fontWeight: 700, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{round.themeName}</div>
                   </div>
                 </div>
-                <div style={{ width: 1, background: 'rgba(255,255,255,0.08)', flex: 'none' }} />
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div className="corio-eyebrow" style={{ fontSize: 8, fontWeight: 700, letterSpacing: 0.6, color: '#FFC93C' }}>VEZ DE {you.isMaster ? '👑' : ''}</div>
-                  <div className="corio-card-title" style={{ fontSize: 13, fontWeight: 700, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{masterLabel}</div>
-                </div>
+                {/* AI-sourced rounds have no "whose turn" to show — every
+                   round is the AI's — so that second column becomes the
+                   question's specific sub-theme (e.g. which show/franchise
+                   within "Cartoon") instead. Some AI banks don't tag a
+                   source (aiSource null); those just drop the column and
+                   let TEMA take the full row. */}
+                {(!round.isAiPhrase || round.aiSource) && (
+                  <>
+                    <div style={{ width: 1, background: 'rgba(255,255,255,0.08)', flex: 'none' }} />
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      {round.isAiPhrase ? (
+                        <>
+                          <div className="corio-eyebrow" style={{ fontSize: 8, fontWeight: 700, letterSpacing: 0.6, color: '#FFC93C' }}>SUBTEMA</div>
+                          <div className="corio-card-title" style={{ fontSize: 13, fontWeight: 700, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{round.aiSource}</div>
+                        </>
+                      ) : (
+                        <>
+                          <div className="corio-eyebrow" style={{ fontSize: 8, fontWeight: 700, letterSpacing: 0.6, color: '#FFC93C' }}>VEZ DE {you.isMaster ? '👑' : ''}</div>
+                          <div className="corio-card-title" style={{ fontSize: 13, fontWeight: 700, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{masterLabel}</div>
+                        </>
+                      )}
+                    </div>
+                  </>
+                )}
               </div>
               {/* Full-width row so long AI questions wrap and stay readable
                  instead of being clipped to a narrow ellipsis-truncated
@@ -230,9 +250,9 @@ export default function GameScreen({ conn }: { conn: RoomConnection }) {
   );
 }
 
-function Pill({ label, value, valueColor, flex, minWidth }: { label: string; value: string; valueColor?: string; flex?: React.CSSProperties['flex']; minWidth?: number }) {
+function Pill({ label, value, valueColor, flex, minWidth, compact }: { label: string; value: string; valueColor?: string; flex?: React.CSSProperties['flex']; minWidth?: number; compact?: boolean }) {
   return (
-    <div className="corio-card" style={{ flex: flex ?? 1, minWidth: minWidth ?? 0, background: '#12121a', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 14, padding: '7px 10px' }}>
+    <div className="corio-card" style={{ flex: flex ?? 1, minWidth: minWidth ?? 0, background: '#12121a', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 14, padding: compact ? '5px 10px' : '7px 10px' }}>
       <div className="corio-eyebrow" style={{ fontSize: 7.5, fontWeight: 700, letterSpacing: 1, color: 'rgba(244,242,248,0.4)' }}>{label}</div>
       <div className="corio-value-lg" style={{ fontFamily: "'Space Grotesk',sans-serif", fontSize: 13.5, fontWeight: 700, color: valueColor }}>{value}</div>
     </div>
@@ -242,10 +262,10 @@ function Pill({ label, value, valueColor, flex, minWidth }: { label: string; val
 // The live timer/bonus now lives in the header row (GameScreen), not here
 // — this card is just theme + phrase, which shrinks out of the way once
 // `urgent` (last 3s) so the timer above reads as the main event.
-function RaceQuestionCard({ roundIdx, themeIcon, themeName, phrase, urgent, onReport }: { roundIdx: number; themeIcon: string; themeName: string; phrase: string; urgent: boolean; onReport: () => void }) {
+function RaceQuestionCard({ roundIdx, themeIcon, themeName, aiSource, phrase, urgent, onReport }: { roundIdx: number; themeIcon: string; themeName: string; aiSource: string | null; phrase: string; urgent: boolean; onReport: () => void }) {
   return (
     <div className={`corio-card corio-race-card${urgent ? ' is-urgent' : ''}`} style={{ position: 'relative', flex: 'none', margin: '0 16px 8px', padding: '10px 14px', borderRadius: 16, background: '#12121a', border: '1px solid rgba(255,255,255,0.08)', animation: 'corio-rise .35s ease' }}>
-      <div className="corio-race-card-theme"><span>{themeIcon}</span><span>{themeName}</span></div>
+      <div className="corio-race-card-theme"><span>{themeIcon}</span><span>{themeName}{aiSource ? ` · ${aiSource}` : ''}</span></div>
       <div className="corio-race-card-phrase">{phrase || 'Preparando a próxima pergunta...'}</div>
       <ReportButton key={roundIdx} onReport={onReport} />
     </div>

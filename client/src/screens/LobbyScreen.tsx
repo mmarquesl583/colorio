@@ -53,7 +53,7 @@ export default function LobbyScreen({ playerName, connecting, error, onBack, onC
   };
 
   return (
-    <div className="corio-wide" style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', justifyContent: 'center', padding: '8px 16px 12px', gap: 6, animation: 'corio-rise .4s ease' }}>
+    <div className="corio-wide corio-noscroll" style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', justifyContent: 'safe center', padding: '8px 16px 12px', gap: 6, overflowY: 'auto', animation: 'corio-rise .4s ease' }}>
       <div style={{ flex: 'none', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <div onClick={onBack} className="corio-tap corio-back-btn" style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6, width: 28, height: 28, borderRadius: 9, background: 'rgba(255,255,255,0.06)', justifyContent: 'center', fontSize: 13 }}>
           <span>‹</span>
