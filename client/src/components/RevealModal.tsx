@@ -213,7 +213,7 @@ export default function RevealModal({ results, you, nextReady, readySecondsLeft,
           <div key={r.id} ref={(el) => { rowRefs.current[r.id] = el; }} style={{ width: '100%', maxWidth: 360, display: 'flex', alignItems: 'center', gap: 9, height: 52, borderRadius: 12, overflow: 'hidden', position: 'relative', background: (stage === 'sorted') ? 'rgba(8,8,12,0.72)' : 'rgba(20,20,26,0.9)', backdropFilter: (stage === 'guesses' || stage === 'sorted') ? 'blur(2px)' : undefined, marginBottom: 8, paddingRight: 8 }}>
             <div style={{ width: 14, height: '100%', flex: 'none', background: r.stripeColor, opacity: r.stripeVisible ? 1 : 0, transition: 'background .7s ease, opacity .6s ease' }} />
             <div style={{ flex: 'none', width: 16, fontSize: 10, fontWeight: 700, color: 'rgba(244,242,248,0.45)', textAlign: 'center' }}>{r.pos || ''}</div>
-            <div style={{ width: 22, height: 22, borderRadius: '50%', background: 'rgba(255,255,255,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 9, fontWeight: 700, flex: 'none', overflow: 'hidden' }}>
+            <div style={{ width: 34, height: 34, borderRadius: '50%', background: 'rgba(255,255,255,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, fontWeight: 700, flex: 'none', overflow: 'hidden' }}>
               {r.avatarId ? <img src={avatarSmallSrc(r.avatarId)} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : r.initial}
             </div>
             <div style={{ flex: 1, minWidth: 0, fontSize: 11.5, fontWeight: 700, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', gap: 5 }}>
@@ -232,7 +232,7 @@ export default function RevealModal({ results, you, nextReady, readySecondsLeft,
             <div style={{ width: '100%', maxWidth: 360, height: 1, background: 'rgba(255,255,255,0.12)', margin: '4px 0 10px' }} />
             <div ref={(el) => { rowRefs.current[masterRow!.id] = el; }} style={{ width: '100%', maxWidth: 360, display: 'flex', alignItems: 'center', gap: 9, height: 52, borderRadius: 12, overflow: 'hidden', background: 'rgba(20,20,26,0.9)', marginBottom: 8, padding: '0 8px', boxSizing: 'border-box' }}>
               <div style={{ width: 16, fontSize: 10, flex: 'none', textAlign: 'center' }}>🎨</div>
-              <div style={{ width: 22, height: 22, borderRadius: '50%', background: 'rgba(255,255,255,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 9, fontWeight: 700, flex: 'none', overflow: 'hidden' }}>
+              <div style={{ width: 34, height: 34, borderRadius: '50%', background: 'rgba(255,255,255,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, fontWeight: 700, flex: 'none', overflow: 'hidden' }}>
                 {masterRow.avatarId ? <img src={avatarSmallSrc(masterRow.avatarId)} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : masterRow.initial}
               </div>
               <div style={{ flex: 1, minWidth: 0, fontSize: 11.5, fontWeight: 700 }}>Mestre {masterRow.name}</div>

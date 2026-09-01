@@ -2,6 +2,8 @@ import { useState } from 'react';
 import Logo from '../components/Logo.tsx';
 import { LOBBY_THEMES, MIN_PLAYERS, MAX_PLAYERS, MIN_ROUNDS, MAX_ROUNDS, PLAYER_PALETTE } from '@shared/gameData';
 import { AI_QUESTIONS } from '@shared/aiQuestions';
+import { avatarSmallSrc } from '@shared/avatarIcons';
+import { accountAvatar, useSession } from '../auth.ts';
 import type { PhraseMode, Privacy, RoomConfig } from '@shared/types';
 
 // Only themes with a real curated question bank make sense in "Frase da
@@ -17,6 +19,8 @@ interface Props {
 }
 
 export default function LobbyScreen({ playerName, connecting, error, onBack, onCreate }: Props) {
+  const { session } = useSession();
+  const avatarId = accountAvatar(session);
   const [numPlayers, setNumPlayers] = useState(5);
   const [numRounds, setNumRounds] = useState(5);
   const [phraseMode, setPhraseMode] = useState<PhraseMode>('players');
@@ -46,7 +50,9 @@ export default function LobbyScreen({ playerName, connecting, error, onBack, onC
         </div>
         <Logo />
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <div style={{ width: 28, height: 28, borderRadius: '50%', background: PLAYER_PALETTE[0], color: '#050507', fontSize: 12, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', flex: 'none' }}>{(playerName.trim()[0] || 'J').toUpperCase()}</div>
+          <div style={{ width: 28, height: 28, borderRadius: '50%', background: PLAYER_PALETTE[0], color: '#050507', fontSize: 12, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', flex: 'none', overflow: 'hidden' }}>
+            {avatarId ? <img src={avatarSmallSrc(avatarId)} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : (playerName.trim()[0] || 'J').toUpperCase()}
+          </div>
           <div className="corio-you-name" style={{ fontSize: 12.5, fontWeight: 700 }}>{playerName || 'Você'}</div>
         </div>
       </div>
