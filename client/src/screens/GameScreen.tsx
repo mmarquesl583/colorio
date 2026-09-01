@@ -119,30 +119,42 @@ export default function GameScreen({ conn }: { conn: RoomConnection }) {
             // below already covers the theme+phrase reading moment as a
             // popup; this card (with the live timer) only appears once the
             // 10s answer clock actually starts (phase 'placing').
-            phase === 'placing' && <RaceQuestionCard themeIcon={round.themeIcon} themeName={round.themeName} phrase={round.phrase} raceMsLeft={s.raceMsLeft} />
+            phase === 'placing' && (
+              <RaceQuestionCard
+                roundIdx={round.idx}
+                themeIcon={round.themeIcon}
+                themeName={round.themeName}
+                phrase={round.phrase}
+                raceMsLeft={s.raceMsLeft}
+                onReport={() => conn.send({ type: 'report_question' })}
+              />
+            )
           ) : (
-            <div className="corio-card" style={{ flex: 'none', margin: '0 16px 8px', padding: '10px 12px', borderRadius: 14, background: '#12121a', border: '1px solid rgba(255,255,255,0.08)', display: 'flex', gap: 10 }}>
-              <div style={{ flex: 1.1, minWidth: 0, display: 'flex', gap: 8 }}>
-                <div style={{ width: 28, height: 28, borderRadius: 8, background: 'rgba(139,92,246,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, flex: 'none' }}>{round.themeIcon}</div>
-                <div style={{ minWidth: 0 }}>
-                  <div className="corio-eyebrow" style={{ fontSize: 8, fontWeight: 700, letterSpacing: 0.6, color: '#A78BFA' }}>TEMA</div>
-                  <div className="corio-card-title" style={{ fontSize: 13, fontWeight: 700, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{round.themeName}</div>
+            <div className="corio-card" style={{ position: 'relative', flex: 'none', margin: '0 16px 8px', padding: '10px 12px', borderRadius: 14, background: '#12121a', border: '1px solid rgba(255,255,255,0.08)', display: 'flex', flexDirection: 'column', gap: 8 }}>
+              <div style={{ display: 'flex', gap: 10, paddingRight: 28 }}>
+                <div style={{ flex: 1, minWidth: 0, display: 'flex', gap: 8 }}>
+                  <div style={{ width: 28, height: 28, borderRadius: 8, background: 'rgba(139,92,246,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, flex: 'none' }}>{round.themeIcon}</div>
+                  <div style={{ minWidth: 0 }}>
+                    <div className="corio-eyebrow" style={{ fontSize: 8, fontWeight: 700, letterSpacing: 0.6, color: '#A78BFA' }}>TEMA</div>
+                    <div className="corio-card-title" style={{ fontSize: 13, fontWeight: 700, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{round.themeName}</div>
+                  </div>
+                </div>
+                <div style={{ width: 1, background: 'rgba(255,255,255,0.08)', flex: 'none' }} />
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div className="corio-eyebrow" style={{ fontSize: 8, fontWeight: 700, letterSpacing: 0.6, color: '#FFC93C' }}>VEZ DE {you.isMaster ? '👑' : ''}</div>
+                  <div className="corio-card-title" style={{ fontSize: 13, fontWeight: 700, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{masterLabel}</div>
                 </div>
               </div>
-              <div style={{ width: 1, background: 'rgba(255,255,255,0.08)', flex: 'none' }} />
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div className="corio-eyebrow" style={{ fontSize: 8, fontWeight: 700, letterSpacing: 0.6, color: '#FFC93C' }}>VEZ DE {you.isMaster ? '👑' : ''}</div>
-                <div className="corio-card-title" style={{ fontSize: 13, fontWeight: 700, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{masterLabel}</div>
-              </div>
-              <div style={{ width: 1, background: 'rgba(255,255,255,0.08)', flex: 'none' }} />
-              <div style={{ flex: 1.4, minWidth: 0 }}>
+              {/* Full-width row so long AI questions wrap and stay readable
+                 instead of being clipped to a narrow ellipsis-truncated
+                 third of the card. */}
+              <div style={{ borderTop: '1px solid rgba(255,255,255,0.08)', paddingTop: 8 }}>
                 <div className="corio-eyebrow" style={{ fontSize: 8, fontWeight: 700, letterSpacing: 0.6, color: '#5CE1F0' }}>FRASE {round.aiDifficulty && difficultyDot(round.aiDifficulty)}</div>
-                <div className="corio-card-sub" style={{ fontSize: 11.5, fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{themeHint}</div>
+                <div className="corio-card-sub" style={{ fontSize: 12, fontWeight: 600, lineHeight: 1.4, marginTop: 2 }}>{themeHint}</div>
               </div>
+              {round.isAiPhrase && <ReportButton key={round.idx} onReport={() => conn.send({ type: 'report_question' })} />}
             </div>
           )}
-
-          {round.isAiPhrase && <ReportButton key={round.idx} onReport={() => conn.send({ type: 'report_question' })} />}
 
           {phase === 'master-writing' && you.isMaster && (
             <MasterWritingCard
@@ -200,12 +212,13 @@ function Pill({ label, value, valueColor }: { label: string; value: string; valu
   );
 }
 
-function RaceQuestionCard({ themeIcon, themeName, phrase, raceMsLeft }: { themeIcon: string; themeName: string; phrase: string; raceMsLeft: number | null }) {
+function RaceQuestionCard({ roundIdx, themeIcon, themeName, phrase, raceMsLeft, onReport }: { roundIdx: number; themeIcon: string; themeName: string; phrase: string; raceMsLeft: number | null; onReport: () => void }) {
   return (
-    <div className="corio-card corio-race-card" style={{ flex: 'none', margin: '0 16px 8px', padding: '16px 14px', borderRadius: 16, background: '#12121a', border: '1px solid rgba(255,255,255,0.08)', animation: 'corio-rise .35s ease' }}>
+    <div className="corio-card corio-race-card" style={{ position: 'relative', flex: 'none', margin: '0 16px 8px', padding: '12px 14px', borderRadius: 16, background: '#12121a', border: '1px solid rgba(255,255,255,0.08)', animation: 'corio-rise .35s ease' }}>
       <div className="corio-race-card-theme"><span>{themeIcon}</span><span>{themeName}</span></div>
       <div className="corio-race-card-phrase">{phrase || 'Preparando a próxima pergunta...'}</div>
       <RaceTimer raceMsLeft={raceMsLeft} />
+      <ReportButton key={roundIdx} onReport={onReport} />
     </div>
   );
 }
@@ -284,6 +297,9 @@ function MasterSentCard({ secretCss, waitingLabel }: { secretCss: string; waitin
   );
 }
 
+// Small icon-only button (was previously a full-width text pill that ate
+// its own row) — sits absolutely inside whichever theme/phrase card is
+// rendering it, which must set position:'relative'.
 function ReportButton({ onReport }: { onReport: () => void }) {
   const [reported, setReported] = useState(false);
   return (
@@ -291,14 +307,16 @@ function ReportButton({ onReport }: { onReport: () => void }) {
       onClick={() => { if (!reported) { onReport(); setReported(true); } }}
       disabled={reported}
       className="corio-tap"
+      title={reported ? 'Reportado — obrigado!' : 'A cor não combina com a pergunta? Reportar'}
+      aria-label={reported ? 'Pergunta reportada' : 'Reportar pergunta'}
       style={{
-        all: 'unset', cursor: reported ? 'default' : 'pointer', flex: 'none', display: 'flex', alignItems: 'center',
-        justifyContent: 'center', gap: 5, margin: '0 16px 8px', padding: '6px 10px', borderRadius: 10,
-        background: reported ? 'rgba(74,222,128,0.1)' : 'rgba(255,255,255,0.04)',
-        border: `1px solid ${reported ? 'rgba(74,222,128,0.3)' : 'rgba(255,255,255,0.1)'}`,
-        fontSize: 9.5, fontWeight: 700, color: reported ? '#4ADE80' : 'rgba(244,242,248,0.5)',
+        all: 'unset', cursor: reported ? 'default' : 'pointer', position: 'absolute', top: 8, right: 8, zIndex: 1,
+        width: 24, height: 24, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', flex: 'none',
+        background: reported ? 'rgba(74,222,128,0.15)' : 'rgba(255,255,255,0.06)',
+        border: `1px solid ${reported ? 'rgba(74,222,128,0.35)' : 'rgba(255,255,255,0.12)'}`,
+        fontSize: 11,
       }}
-    >{reported ? '✓ Reportado — obrigado!' : '🚩 A cor não combina com a pergunta? Reportar'}</button>
+    >{reported ? '✓' : '🚩'}</button>
   );
 }
 

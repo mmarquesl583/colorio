@@ -718,18 +718,20 @@ input, textarea { font-family: inherit; touch-action: manipulation; }
   .corio-panel-hidden { display: flex; }
 }
 
-/* Corrida contra o Tempo — round card + timer/multiplier readout. */
-.corio-race-card { display: flex; flex-direction: column; gap: 12px; align-items: center; text-align: center; }
-.corio-race-card-theme { display: flex; align-items: center; gap: 6px; font-size: 11px; font-weight: 700; color: #A78BFA; letter-spacing: 0.4px; }
-.corio-race-card-phrase { font-size: 15px; font-weight: 700; line-height: 1.4; color: #fff; }
+/* Corrida contra o Tempo — round card + timer/multiplier readout. Kept
+   compact (small gaps/padding) so a long AI question still leaves the
+   ColorPicker below with real room instead of squeezing it. */
+.corio-race-card { display: flex; flex-direction: column; gap: 8px; align-items: center; text-align: center; }
+.corio-race-card-theme { display: flex; align-items: center; gap: 6px; font-size: 10.5px; font-weight: 700; color: #A78BFA; letter-spacing: 0.4px; }
+.corio-race-card-phrase { font-size: 13px; font-weight: 700; line-height: 1.35; color: #fff; }
 
-.corio-race-timer-wrap { display: flex; flex-direction: column; align-items: center; gap: 10px; }
-.corio-race-timer { display: flex; align-items: center; gap: 16px; background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); border-radius: 14px; padding: 10px 20px; }
+.corio-race-timer-wrap { display: flex; flex-direction: column; align-items: center; gap: 8px; }
+.corio-race-timer { display: flex; align-items: center; gap: 12px; background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); border-radius: 14px; padding: 7px 16px; }
 .corio-race-timer-col { display: flex; flex-direction: column; align-items: center; gap: 2px; }
-.corio-race-timer-label { font-size: 8px; font-weight: 700; letter-spacing: 0.6px; color: rgba(244,242,248,0.5); }
-.corio-race-timer-value { font-family: 'Space Grotesk', sans-serif; font-weight: 800; font-size: 22px; font-variant-numeric: tabular-nums; }
-.corio-race-timer-divider { width: 1px; height: 28px; background: rgba(255,255,255,0.12); }
-.corio-race-countdown-big { font-family: 'Space Grotesk', sans-serif; font-weight: 800; font-size: 56px; color: #FF5C8A; line-height: 1; }
+.corio-race-timer-label { font-size: 7.5px; font-weight: 700; letter-spacing: 0.6px; color: rgba(244,242,248,0.5); }
+.corio-race-timer-value { font-family: 'Space Grotesk', sans-serif; font-weight: 800; font-size: 18px; font-variant-numeric: tabular-nums; }
+.corio-race-timer-divider { width: 1px; height: 22px; background: rgba(255,255,255,0.12); }
+.corio-race-countdown-big { font-family: 'Space Grotesk', sans-serif; font-weight: 800; font-size: 40px; color: #FF5C8A; line-height: 1; }
 
 .corio-race-urgent-pulse { animation: corio-race-pulse 1s ease-in-out infinite; }
 @keyframes corio-race-pulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.08); } }
