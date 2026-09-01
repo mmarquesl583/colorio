@@ -5,9 +5,23 @@ import {
 } from '@shared/avatarIcons';
 import { TITLE_CATALOG, TITLE_CATEGORIES, titleNameFor, type TitleCategory } from '@shared/titleCatalog';
 import { setAccountAvatar } from '../auth.ts';
-import { equipTitle } from '../stats.ts';
+import {
+  equipTitle, achievementForTitle, achievementProgress, formatPlaytime,
+  type PlayerStats, type ModeStats, type AchievementDef, type AchievementReward,
+} from '../stats.ts';
 
 type Mode = 'avatar' | 'title';
+
+// Everything the picker needs to compute "how close am I" for a locked
+// title — optional because the Home screen's quick picker doesn't load
+// full profile data (kept cheap on purpose); when omitted, locked titles
+// still show their description, just no progress line.
+export interface IdentityProgressData {
+  stats: PlayerStats | null;
+  modeStats: ModeStats[];
+  achievements: AchievementDef[];
+  achievementRewards: AchievementReward[];
+}
 
 interface Props {
   initialMode: Mode;
@@ -17,14 +31,25 @@ interface Props {
   currentTitleId: string | null;
   unlockedAvatarIds: Set<string>;
   unlockedTitleIds: Set<string>;
+  progress?: IdentityProgressData;
   onAvatarEquipped: (iconId: string | null) => void;
   onTitleEquipped: (titleId: string | null) => void;
   onClose: () => void;
 }
 
+// "Fastest ___" criteria count DOWN toward their target — shown as plain
+// seconds text instead of a fill bar (a bar would read backwards).
+function formatProgressValue(value: number, criteriaType: string): string {
+  if (criteriaType === 'fastest_correct_response_ms' || criteriaType === 'fastest_perfect_response_ms') {
+    return `${(value / 1000).toFixed(1).replace('.', ',')}s`;
+  }
+  if (criteriaType === 'total_playtime_seconds') return formatPlaytime(value);
+  return value.toLocaleString('pt-BR');
+}
+
 export default function IdentityPickerModal({
   initialMode, playerName, fallbackLetter, currentAvatarId, currentTitleId,
-  unlockedAvatarIds, unlockedTitleIds, onAvatarEquipped, onTitleEquipped, onClose,
+  unlockedAvatarIds, unlockedTitleIds, progress, onAvatarEquipped, onTitleEquipped, onClose,
 }: Props) {
   const [mode, setMode] = useState<Mode>(initialMode);
   const [avatarCat, setAvatarCat] = useState<AvatarCategory | 'todos'>('todos');
@@ -47,6 +72,17 @@ export default function IdentityPickerModal({
   const avatarChanged = previewAvatarId !== currentAvatarId;
   const titleChanged = previewTitleId !== currentTitleId;
 
+  // Locked titles are previewable (tap to see how to unlock it + progress)
+  // but never equippable — commitTitle() below re-checks this itself,
+  // this is just what drives the disabled/label state on the button.
+  const previewTitleLocked = previewTitle ? !(previewTitle.free || unlockedTitleIds.has(previewTitle.id)) : false;
+  const previewTitleAchievement = previewTitle
+    ? achievementForTitle(previewTitle.id, progress?.achievements ?? [], progress?.achievementRewards ?? [])
+    : null;
+  const previewTitleProgress = previewTitleAchievement
+    ? achievementProgress(previewTitleAchievement, progress?.stats ?? null, progress?.modeStats ?? [])
+    : null;
+
   const commitAvatar = async () => {
     if (saving || !avatarChanged) return;
     setSaving(true);
@@ -54,7 +90,7 @@ export default function IdentityPickerModal({
     onAvatarEquipped(previewAvatarId);
   };
   const commitTitle = async () => {
-    if (saving || !titleChanged) return;
+    if (saving || !titleChanged || previewTitleLocked) return;
     setSaving(true);
     await equipTitle(previewTitleId).finally(() => setSaving(false));
     onTitleEquipped(previewTitleId);
@@ -143,11 +179,30 @@ export default function IdentityPickerModal({
                 </div>
               </div>
               <div className="corio-picker-divider" />
-              <div className="corio-picker-eyebrow">TÍTULO SELECIONADO</div>
+              <div className="corio-picker-eyebrow">{previewTitleLocked ? 'COMO CONSEGUIR' : 'TÍTULO SELECIONADO'}</div>
               <div className="corio-picker-title-card">{previewTitle?.name ?? 'Novato das Cores'}</div>
               <div className="corio-picker-preview-desc">{previewTitle?.description ?? 'Todo mestre um dia começou por aqui.'}</div>
-              <button onClick={commitTitle} disabled={saving || !titleChanged} className="corio-tap corio-picker-confirm-btn">
-                {titleChanged ? (saving ? 'Salvando…' : 'Selecionar título') : 'Equipado ✓'}
+              {previewTitleLocked && previewTitleProgress && (
+                <div className="corio-picker-progress">
+                  {previewTitleProgress.lowerIsBetter ? (
+                    <div className="corio-picker-progress-text">
+                      Seu recorde: <strong>{formatProgressValue(previewTitleProgress.current, previewTitleAchievement!.criteria_type)}</strong>
+                      {' · '}Meta: <strong>{formatProgressValue(previewTitleProgress.target, previewTitleAchievement!.criteria_type)}</strong> ou menos
+                    </div>
+                  ) : (
+                    <>
+                      <div className="corio-picker-progress-bar">
+                        <div className="corio-picker-progress-fill" style={{ width: `${Math.min(100, (previewTitleProgress.current / previewTitleProgress.target) * 100)}%` }} />
+                      </div>
+                      <div className="corio-picker-progress-text">
+                        {formatProgressValue(previewTitleProgress.current, previewTitleAchievement!.criteria_type)} / {formatProgressValue(previewTitleProgress.target, previewTitleAchievement!.criteria_type)}
+                      </div>
+                    </>
+                  )}
+                </div>
+              )}
+              <button onClick={commitTitle} disabled={saving || !titleChanged || previewTitleLocked} className="corio-tap corio-picker-confirm-btn">
+                {previewTitleLocked ? '🔒 Bloqueado' : titleChanged ? (saving ? 'Salvando…' : 'Selecionar título') : 'Equipado ✓'}
               </button>
             </div>
 
@@ -164,10 +219,9 @@ export default function IdentityPickerModal({
                   return (
                     <button
                       key={t.id}
-                      onClick={() => unlocked && setPreviewTitleId(t.id)}
-                      disabled={!unlocked}
+                      onClick={() => setPreviewTitleId(t.id)}
                       className={`corio-tap corio-picker-list-item ${previewTitleId === t.id ? 'is-selected' : ''} ${unlocked ? '' : 'is-locked'}`}
-                      aria-label={unlocked ? `Usar título ${t.name}` : `${t.name} (bloqueado)`}
+                      aria-label={unlocked ? `Usar título ${t.name}` : `Ver como desbloquear ${t.name}`}
                     >
                       <span>{t.name}</span>
                       {unlocked ? <span className="corio-picker-radio">{previewTitleId === t.id ? '●' : '○'}</span> : <span className="corio-picker-lock">🔒</span>}

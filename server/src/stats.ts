@@ -44,6 +44,13 @@ export interface MatchParticipantSummary {
   playedAt: string; // ISO timestamp
   roundOutcomes: RoundOutcome[];
   themeTallies: ThemeTally[];
+  /** All-modes raw per-round history, same length/order — baseScore (0-1000)
+   * and response time in ms (null = never confirmed/timed out) for every
+   * round actually guessed. Powers the newer global titles generically
+   * (Daltônico, Relâmpago, Cirúrgico, etc.) without one bespoke TS
+   * accumulator per title. */
+  roundScores: number[];
+  roundResponseMs: (number | null)[];
   race?: RaceMatchSummary;
 }
 
@@ -91,6 +98,8 @@ async function applyOne(p: MatchParticipantSummary): Promise<void> {
     p_played_at: p.playedAt,
     p_round_outcomes: p.roundOutcomes,
     p_theme_tallies: p.themeTallies,
+    p_round_scores: p.roundScores,
+    p_round_response_ms: p.roundResponseMs,
     // All null when `race` is undefined (every non-race mode) — the SQL
     // function's own default null/0 params make this a pure no-op for them.
     p_race_score_normal_total: race?.scoreNormalTotal ?? null,

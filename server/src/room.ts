@@ -131,6 +131,13 @@ export class Room {
   private matchThemeIds = new Set<string>();
   private matchDifficultyTally = new Map<AiDifficulty, number>();
   private matchRaceStats = new Map<string, RaceTallyEntry>();
+  // Generic, all-modes per-round history (unlike matchRaceStats, which is
+  // race-only) — raw baseScore and response time for every round the
+  // player actually guessed in. Powers the newer global titles (Daltônico,
+  // Relâmpago, Cirúrgico, etc.) without duplicating per-title counters in
+  // TS; the SQL side derives whatever it needs from these two arrays.
+  private matchRoundScores = new Map<string, number[]>();
+  private matchRoundResponseMs = new Map<string, (number | null)[]>();
 
   constructor(code: string, config: RoomConfig, onEmpty: () => void, onReport: (report: QuestionReport) => void) {
     this.code = code;
@@ -264,6 +271,8 @@ export class Room {
     this.matchThemeIds = new Set();
     this.matchDifficultyTally = new Map();
     this.matchRaceStats = new Map();
+    this.matchRoundScores = new Map();
+    this.matchRoundResponseMs = new Map();
   }
 
   // "Which question source" is orthogonal to "which win condition" — race
@@ -525,6 +534,18 @@ export class Room {
       const outcome = roundOutcomeFromScore(baseScore);
       if (!this.matchOutcomes.has(id)) this.matchOutcomes.set(id, []);
       this.matchOutcomes.get(id)!.push(outcome);
+
+      // Generic all-modes history (see matchRoundScores/matchRoundResponseMs
+      // field comments). responseMs null means "never confirmed" in both
+      // modes — classic's own auto-confirm-on-timeout never sets
+      // confirmedAtSeconds, so this stays consistent with race's sentinel.
+      const responseMs = isRace
+        ? p.raceResponseMs
+        : (p.confirmedAtSeconds !== null ? Math.round((PLACING_SECONDS - p.confirmedAtSeconds) * 1000) : null);
+      if (!this.matchRoundScores.has(id)) this.matchRoundScores.set(id, []);
+      this.matchRoundScores.get(id)!.push(baseScore);
+      if (!this.matchRoundResponseMs.has(id)) this.matchRoundResponseMs.set(id, []);
+      this.matchRoundResponseMs.get(id)!.push(responseMs);
       if (themeId) {
         if (!this.matchThemeTally.has(id)) this.matchThemeTally.set(id, new Map());
         const themeMap = this.matchThemeTally.get(id)!;
@@ -730,6 +751,8 @@ export class Room {
         playedAt,
         roundOutcomes: this.matchOutcomes.get(id) ?? [],
         themeTallies,
+        roundScores: this.matchRoundScores.get(id) ?? [],
+        roundResponseMs: this.matchRoundResponseMs.get(id) ?? [],
         race: raceAcc ? {
           scoreNormalTotal: raceAcc.scoreNormalTotal,
           responseMsSum: raceAcc.responseMsSum,

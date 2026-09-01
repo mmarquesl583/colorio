@@ -40,6 +40,20 @@ export interface PlayerStats {
   current_day_streak: number;
   best_day_streak: number;
   last_play_date: string | null;
+  // Global, all-modes — power the titleCatalog.ts v2 achievement set.
+  zero_score_guesses: number;
+  best_precision98_in_match: number;
+  current_exact990_streak: number;
+  best_exact990_streak: number;
+  fastest_correct_response_ms: number | null;
+  fastest_perfect_response_ms: number | null;
+  sub2s_correct_count: number;
+  personal_best_breaks: number;
+  hit_666_count: number;
+  hit_666_won_count: number;
+  hit_666_with_perfect_count: number;
+  hit_777_count: number;
+  hit_777_with_perfect_count: number;
 }
 
 export interface ModeStats {
@@ -79,6 +93,12 @@ export interface AchievementDef {
   required_mode_id: string | null;
 }
 
+export interface AchievementReward {
+  achievement_id: string;
+  reward_type: string;
+  reward_id: string;
+}
+
 export interface MatchHistoryRow {
   id: string;
   match_id: string;
@@ -106,6 +126,7 @@ export interface ProfileData {
   modeStats: ModeStats[];
   themeStats: ThemeStats[];
   achievements: AchievementDef[];
+  achievementRewards: AchievementReward[];
   unlockedAchievementIds: Set<string>;
   unlockedAvatarIds: Set<string>;
   unlockedTitleIds: Set<string>;
@@ -118,6 +139,7 @@ const emptyProfileData: ProfileData = {
   modeStats: [],
   themeStats: [],
   achievements: [],
+  achievementRewards: [],
   unlockedAchievementIds: new Set(),
   unlockedAvatarIds: new Set(),
   unlockedTitleIds: new Set(),
@@ -126,12 +148,17 @@ const emptyProfileData: ProfileData = {
 
 export async function fetchProfileData(userId: string): Promise<ProfileData> {
   try {
-    const [profileRes, statsRes, modeRes, themeRes, achRes, playerAchRes, avatarRes, titleRes, daysRes] = await Promise.all([
+    const [profileRes, statsRes, modeRes, themeRes, achRes, rewardsRes, playerAchRes, avatarRes, titleRes, daysRes] = await Promise.all([
       supabase.from('profiles').select('*').eq('user_id', userId).maybeSingle(),
       supabase.from('player_stats').select('*').eq('user_id', userId).maybeSingle(),
       supabase.from('player_mode_stats').select('*').eq('user_id', userId),
       supabase.from('player_theme_stats').select('*').eq('user_id', userId),
       supabase.from('achievements').select('*').order('sort_order', { ascending: true }),
+      // Small, static catalog table (same RLS "read to authenticated" as
+      // achievements itself) — lets the client know which achievement
+      // backs a given title id, so it can look up that achievement's
+      // criteria and show real "how close am I" progress in the picker.
+      supabase.from('achievement_rewards').select('*'),
       supabase.from('player_achievements').select('achievement_id').eq('user_id', userId),
       supabase.from('player_avatars').select('avatar_id').eq('user_id', userId),
       supabase.from('player_titles').select('title_id').eq('user_id', userId),
@@ -148,6 +175,7 @@ export async function fetchProfileData(userId: string): Promise<ProfileData> {
       modeStats: (modeRes.data as ModeStats[] | null) ?? [],
       themeStats: (themeRes.data as ThemeStats[] | null) ?? [],
       achievements: (achRes.data as AchievementDef[] | null) ?? [],
+      achievementRewards: (rewardsRes.data as AchievementReward[] | null) ?? [],
       unlockedAchievementIds: new Set(((playerAchRes.data ?? []) as { achievement_id: string }[]).map((r) => r.achievement_id)),
       unlockedAvatarIds: new Set(((avatarRes.data ?? []) as { avatar_id: string }[]).map((r) => r.avatar_id)),
       unlockedTitleIds: new Set(((titleRes.data ?? []) as { title_id: string }[]).map((r) => r.title_id)),
@@ -214,4 +242,78 @@ export async function fetchEquippedTitle(userId: string): Promise<string | null>
 export async function equipTitle(titleId: string | null): Promise<void> {
   const { error } = await supabase.rpc('equip_title', { p_title_id: titleId });
   if (error) console.error('equip_title failed:', error.message);
+}
+
+// --- Achievement progress ("how close am I") ---------------------------
+// Maps an achievement's criteria_type to which stats field holds the
+// player's current value, so the title picker can show real progress
+// without a second source of truth for "what unlocks what" — the
+// achievement itself (fetched from Postgres) already says that; this is
+// just the one place that knows which TS field each criteria_type reads
+// from. Extend these two maps when a future achievement adds a new
+// criteria_type; nothing else needs to change.
+const GLOBAL_CRITERIA_FIELDS: Partial<Record<string, keyof PlayerStats>> = {
+  games_played: 'games_played',
+  games_won: 'games_won',
+  total_perfects: 'total_perfects',
+  total_playtime_seconds: 'total_playtime_seconds',
+  best_answer_streak: 'best_answer_streak',
+  best_perfect_streak: 'best_perfect_streak',
+  best_score: 'best_score',
+  zero_score_guesses: 'zero_score_guesses',
+  best_precision98_in_match: 'best_precision98_in_match',
+  best_exact990_streak: 'best_exact990_streak',
+  sub2s_correct_count: 'sub2s_correct_count',
+  personal_best_breaks: 'personal_best_breaks',
+  hit_666_count: 'hit_666_count',
+  hit_666_won_count: 'hit_666_won_count',
+  hit_666_with_perfect_count: 'hit_666_with_perfect_count',
+  hit_777_count: 'hit_777_count',
+  hit_777_with_perfect_count: 'hit_777_with_perfect_count',
+  fastest_correct_response_ms: 'fastest_correct_response_ms',
+  fastest_perfect_response_ms: 'fastest_perfect_response_ms',
+};
+const MODE_CRITERIA_FIELDS: Partial<Record<string, keyof ModeStats>> = {
+  mode_perfects: 'perfects',
+  multiplier_2x_count: 'multiplier_2x_count',
+  no_timeout_matches: 'no_timeout_matches',
+  fastest_correct_response_ms: 'best_correct_response_ms',
+};
+// "Fastest ___ (ms)" achievements count DOWN toward their target, unlike
+// every other criteria_type (count UP) — flagged so the UI can render
+// "seu recorde: 1.3s · meta: 1.0s" instead of a misleading fill bar.
+const LOWER_IS_BETTER = new Set(['fastest_correct_response_ms', 'fastest_perfect_response_ms']);
+
+export interface AchievementProgress {
+  current: number;
+  target: number;
+  lowerIsBetter: boolean;
+}
+
+/** null return = no progress to show (criteria_type not yet mappable, or
+ * a lower-is-better stat the player has never recorded at all — 0ms would
+ * misleadingly read as "already there"). */
+export function achievementProgress(ach: AchievementDef, stats: PlayerStats | null, modeStats: ModeStats[]): AchievementProgress | null {
+  const lowerIsBetter = LOWER_IS_BETTER.has(ach.criteria_type);
+  if (ach.required_mode_id) {
+    const field = MODE_CRITERIA_FIELDS[ach.criteria_type];
+    if (!field) return null;
+    const m = modeStats.find((x) => x.mode_id === ach.required_mode_id);
+    const raw = m ? (m[field] as number | null) : null;
+    if (lowerIsBetter && (raw === null || raw === undefined)) return null;
+    return { current: (raw as number) ?? 0, target: ach.criteria_value, lowerIsBetter };
+  }
+  const field = GLOBAL_CRITERIA_FIELDS[ach.criteria_type];
+  if (!field) return null;
+  const raw = stats ? (stats[field] as number | null) : null;
+  if (lowerIsBetter && (raw === null || raw === undefined)) return null;
+  return { current: (raw as number) ?? 0, target: ach.criteria_value, lowerIsBetter };
+}
+
+/** Find which achievement (if any) grants a given title id — the picker
+ * uses this to look up criteria for the "how to unlock" progress display. */
+export function achievementForTitle(titleId: string, achievements: AchievementDef[], rewards: AchievementReward[]): AchievementDef | null {
+  const reward = rewards.find((r) => r.reward_type === 'title' && r.reward_id === titleId);
+  if (!reward) return null;
+  return achievements.find((a) => a.id === reward.achievement_id) ?? null;
 }

@@ -195,6 +195,7 @@ export default function ProfileScreen({ onBack }: { onBack: () => void }) {
           currentTitleId={titleId}
           unlockedAvatarIds={data?.unlockedAvatarIds ?? new Set()}
           unlockedTitleIds={data?.unlockedTitleIds ?? new Set()}
+          progress={data ? { stats: data.stats, modeStats: data.modeStats, achievements: data.achievements, achievementRewards: data.achievementRewards } : undefined}
           onAvatarEquipped={() => { /* useSession() auto-refreshes */ }}
           onTitleEquipped={(id) => setTitleOverride(id)}
           onClose={() => setPickerMode(null)}
