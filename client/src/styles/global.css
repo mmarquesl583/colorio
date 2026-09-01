@@ -734,6 +734,11 @@ input, textarea { font-family: inherit; touch-action: manipulation; }
 @media (min-width: 900px) {
   .corio-game-header { max-width: 1600px; margin: 0 auto; width: 100%; box-sizing: border-box; }
   .corio-game-body { flex-direction: row; gap: 16px; padding-right: 20px; max-width: 1600px; margin: 0 auto; width: 100%; box-sizing: border-box; }
+  /* Without a cap this stretches to fill whatever's left next to the fixed
+     360px sidebar — on a wide monitor that's 1000px+, which turns the color
+     square into an oddly flat, stretched rectangle instead of the roughly
+     square/wide-but-proportionate shape it's designed around. */
+  .corio-game-main { max-width: 720px; margin: 0 auto; width: 100%; }
   .corio-game-sidebar { width: 360px; flex: none; height: 100%; gap: 12px; }
   .corio-tabbar { display: none; }
   .corio-placar-panel, .corio-chat-panel { border-top: 1px solid rgba(255,255,255,0.08); border-radius: 14px; margin: 0; }
@@ -747,9 +752,10 @@ input, textarea { font-family: inherit; touch-action: manipulation; }
    card only needs to hold reading content — which itself shrinks out of
    the way once .is-urgent (last 3s), leaving the header timer as the
    clear focus for the "just pick something, fast" final stretch. */
-.corio-race-card { display: flex; flex-direction: column; gap: 6px; align-items: center; text-align: center; }
-.corio-race-card-theme { display: flex; align-items: center; gap: 6px; font-size: 10.5px; font-weight: 700; color: #A78BFA; letter-spacing: 0.4px; transition: opacity .3s ease, font-size .3s ease; }
-.corio-race-card-phrase { font-size: 13px; font-weight: 700; line-height: 1.35; color: #fff; transition: opacity .3s ease, font-size .3s ease, max-height .3s ease; max-height: 60px; overflow: hidden; }
+.corio-race-card { display: flex; flex-direction: column; gap: 6px; }
+.corio-race-card-top { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.corio-race-card-theme { display: flex; align-items: center; gap: 5px; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 10.5px; font-weight: 700; color: #A78BFA; letter-spacing: 0.2px; transition: opacity .3s ease, font-size .3s ease; }
+.corio-race-card-phrase { font-size: 13px; font-weight: 700; line-height: 1.35; color: #fff; text-align: left; transition: opacity .3s ease, font-size .3s ease, max-height .3s ease; max-height: 60px; overflow: hidden; }
 .corio-race-card.is-urgent .corio-race-card-theme { opacity: 0.5; font-size: 9px; }
 .corio-race-card.is-urgent .corio-race-card-phrase { opacity: 0.45; font-size: 9.5px; max-height: 34px; -webkit-line-clamp: 2; display: -webkit-box; -webkit-box-orient: vertical; text-overflow: ellipsis; }
 
@@ -760,7 +766,8 @@ input, textarea { font-family: inherit; touch-action: manipulation; }
 .corio-race-timer { display: flex; align-items: center; gap: 14px; background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); border-radius: 14px; padding: 6px 18px; transition: padding .25s ease; }
 .corio-race-timer.is-urgent { padding: 8px 20px; border-color: rgba(255,92,138,0.4); }
 .corio-race-timer-col { display: flex; flex-direction: column; align-items: center; gap: 2px; }
-.corio-race-timer-label { font-size: 7.5px; font-weight: 700; letter-spacing: 0.6px; color: rgba(244,242,248,0.5); }
+.corio-race-timer-label { display: flex; align-items: center; justify-content: center; gap: 3px; font-size: 7.5px; font-weight: 700; letter-spacing: 0.6px; color: rgba(244,242,248,0.5); }
+.corio-race-timer-label span { font-size: 8.5px; }
 .corio-race-timer-value { font-family: 'Space Grotesk', sans-serif; font-weight: 800; font-size: 22px; font-variant-numeric: tabular-nums; transition: font-size .25s ease; }
 .corio-race-timer.is-urgent .corio-race-timer-value { font-size: 27px; }
 .corio-race-timer-divider { width: 1px; height: 26px; background: rgba(255,255,255,0.12); }

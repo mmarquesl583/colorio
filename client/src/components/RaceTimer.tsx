@@ -44,12 +44,12 @@ export default function RaceTimer({ raceMsLeft, onUrgentChange }: Props) {
     <div className="corio-race-timer-wrap">
       <div className={`corio-race-timer${urgent ? ' is-urgent corio-race-urgent-pulse' : ''}`}>
         <div className="corio-race-timer-col">
-          <div className="corio-race-timer-label">TEMPO</div>
+          <div className="corio-race-timer-label"><span aria-hidden="true">🕐</span> TEMPO</div>
           <div className="corio-race-timer-value" style={{ color: urgent ? '#FF5C8A' : '#29E7FF' }}>{timeLabel}s</div>
         </div>
         <div className="corio-race-timer-divider" />
         <div className="corio-race-timer-col">
-          <div className="corio-race-timer-label">BÔNUS</div>
+          <div className="corio-race-timer-label"><span aria-hidden="true">⚡</span> BÔNUS</div>
           <div className="corio-race-timer-value" style={{ color: '#FFC93C' }}>{multLabel}x</div>
         </div>
       </div>

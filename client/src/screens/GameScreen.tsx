@@ -117,7 +117,7 @@ export default function GameScreen({ conn }: { conn: RoomConnection }) {
         <div className="corio-game-main">
           {isRace ? (
             <div style={{ flex: 'none', display: 'flex', alignItems: 'stretch', gap: 8, padding: '0 16px 6px' }}>
-              <Pill label="RODADA" value={`${round.number} / ${s.config.numRounds}`} flex="none" minWidth={82} compact />
+              <RaceRoundCard number={round.number} total={s.config.numRounds} />
               {/* Room code drops from the header entirely in race mode — it
                  only shows via the Compartilhar button's own confirmation
                  label now (see copyLink) — all the freed width goes to a
@@ -250,6 +250,24 @@ export default function GameScreen({ conn }: { conn: RoomConnection }) {
   );
 }
 
+// Race mode's RODADA card — same slot the generic Pill used to fill, but
+// with a per-round progress strip (one segment per configured round, filled
+// up to the current one) so "where am I in the match" reads at a glance
+// without doing the "number / total" math yourself.
+function RaceRoundCard({ number, total }: { number: number; total: number }) {
+  return (
+    <div className="corio-card" style={{ flex: 'none', minWidth: 82, background: '#12121a', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 14, padding: '5px 10px' }}>
+      <div className="corio-eyebrow" style={{ fontSize: 7.5, fontWeight: 700, letterSpacing: 1, color: 'rgba(244,242,248,0.4)' }}>RODADA</div>
+      <div className="corio-value-lg" style={{ fontFamily: "'Space Grotesk',sans-serif", fontSize: 13.5, fontWeight: 700 }}>{number} / {total}</div>
+      <div style={{ display: 'flex', gap: 3, marginTop: 4 }}>
+        {Array.from({ length: total }, (_, i) => (
+          <div key={i} style={{ flex: 1, height: 3, borderRadius: 2, background: i < number ? '#8B5CF6' : 'rgba(255,255,255,0.12)' }} />
+        ))}
+      </div>
+    </div>
+  );
+}
+
 function Pill({ label, value, valueColor, flex, minWidth, compact }: { label: string; value: string; valueColor?: string; flex?: React.CSSProperties['flex']; minWidth?: number; compact?: boolean }) {
   return (
     <div className="corio-card" style={{ flex: flex ?? 1, minWidth: minWidth ?? 0, background: '#12121a', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 14, padding: compact ? '5px 10px' : '7px 10px' }}>
@@ -261,13 +279,22 @@ function Pill({ label, value, valueColor, flex, minWidth, compact }: { label: st
 
 // The live timer/bonus now lives in the header row (GameScreen), not here
 // — this card is just theme + phrase, which shrinks out of the way once
-// `urgent` (last 3s) so the timer above reads as the main event.
+// `urgent` (last 3s) so the timer above reads as the main event. Breadcrumb-
+// style TEMA › SUBTEMA line (matches how RoundIntroModal already writes it)
+// with the report button inline at its end, instead of floating absolutely
+// over the corner — reads more like an info card, less like an overlay.
 function RaceQuestionCard({ roundIdx, themeIcon, themeName, aiSource, phrase, urgent, onReport }: { roundIdx: number; themeIcon: string; themeName: string; aiSource: string | null; phrase: string; urgent: boolean; onReport: () => void }) {
   return (
-    <div className={`corio-card corio-race-card${urgent ? ' is-urgent' : ''}`} style={{ position: 'relative', flex: 'none', margin: '0 16px 8px', padding: '10px 14px', borderRadius: 16, background: '#12121a', border: '1px solid rgba(255,255,255,0.08)', animation: 'corio-rise .35s ease' }}>
-      <div className="corio-race-card-theme"><span>{themeIcon}</span><span>{themeName}{aiSource ? ` · ${aiSource}` : ''}</span></div>
+    <div className={`corio-card corio-race-card${urgent ? ' is-urgent' : ''}`} style={{ flex: 'none', margin: '0 16px 8px', padding: '10px 14px', borderRadius: 16, background: '#12121a', border: '1px solid rgba(255,255,255,0.08)', animation: 'corio-rise .35s ease' }}>
+      <div className="corio-race-card-top">
+        <div className="corio-race-card-theme">
+          <span>{themeIcon}</span>
+          <span>{themeName}</span>
+          {aiSource && (<><span style={{ opacity: 0.45 }}>›</span><span style={{ color: '#FFC93C' }}>{aiSource}</span></>)}
+        </div>
+        <ReportButton key={roundIdx} onReport={onReport} inline />
+      </div>
       <div className="corio-race-card-phrase">{phrase || 'Preparando a próxima pergunta...'}</div>
-      <ReportButton key={roundIdx} onReport={onReport} />
     </div>
   );
 }
@@ -346,10 +373,12 @@ function MasterSentCard({ secretCss, waitingLabel }: { secretCss: string; waitin
   );
 }
 
-// Small icon-only button (was previously a full-width text pill that ate
-// its own row) — sits absolutely inside whichever theme/phrase card is
-// rendering it, which must set position:'relative'.
-function ReportButton({ onReport }: { onReport: () => void }) {
+// Small icon-only button, still icon-only (no label — a full-width text
+// pill used to eat its own row here). Two positioning modes: the classic
+// theme/phrase card floats it absolutely over its own corner (needs
+// position:'relative' on the parent); the race card's breadcrumb row places
+// it inline as a normal flex child instead, sitting at the end of that row.
+function ReportButton({ onReport, inline }: { onReport: () => void; inline?: boolean }) {
   const [reported, setReported] = useState(false);
   return (
     <button
@@ -359,8 +388,9 @@ function ReportButton({ onReport }: { onReport: () => void }) {
       title={reported ? 'Reportado — obrigado!' : 'A cor não combina com a pergunta? Reportar'}
       aria-label={reported ? 'Pergunta reportada' : 'Reportar pergunta'}
       style={{
-        all: 'unset', cursor: reported ? 'default' : 'pointer', position: 'absolute', top: 8, right: 8, zIndex: 1,
-        width: 24, height: 24, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', flex: 'none',
+        all: 'unset', cursor: reported ? 'default' : 'pointer', zIndex: 1,
+        ...(inline ? { position: 'relative', flex: 'none' } : { position: 'absolute', top: 8, right: 8 }),
+        width: 24, height: 24, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center',
         background: reported ? 'rgba(74,222,128,0.15)' : 'rgba(255,255,255,0.06)',
         border: `1px solid ${reported ? 'rgba(74,222,128,0.35)' : 'rgba(255,255,255,0.12)'}`,
         fontSize: 11,

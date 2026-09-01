@@ -103,10 +103,13 @@ export default function ColorPicker({ value, onChange, confirmed, onConfirm, col
 
   return (
     <div className="corio-card" style={{ flex: 1, minHeight: 0, margin: '0 16px', background: '#12121a', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 16, padding: '10px 12px', display: 'flex', flexDirection: 'column', gap: 6, animation: 'corio-rise .35s ease' }}>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-        <div className="corio-eyebrow" style={{ fontSize: 9.5, fontWeight: 700, letterSpacing: 0.6, color: 'rgba(244,242,248,0.55)' }}>ESCOLHA SUA COR</div>
+      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 8 }}>
+        <div style={{ minWidth: 0 }}>
+          <div className="corio-eyebrow" style={{ fontSize: 9.5, fontWeight: 700, letterSpacing: 0.6, color: 'rgba(244,242,248,0.55)' }}>ESCOLHA SUA COR</div>
+          <div style={{ fontSize: 8.5, color: 'rgba(244,242,248,0.4)', marginTop: 2, lineHeight: 1.3 }}>Clique no quadro, arraste ou use os seletores abaixo.</div>
+        </div>
         {hasEyeDropper && (
-          <button onClick={pickWithEyeDropper} className="corio-tap" title="Escolher cor da tela" style={{ all: 'unset', cursor: 'pointer', width: 26, height: 26, borderRadius: 8, border: '1px solid rgba(139,92,246,0.4)', background: 'rgba(139,92,246,0.12)', color: '#C4B5FD', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, flex: 'none' }}>💧</button>
+          <button onClick={pickWithEyeDropper} className="corio-tap" title="Escolher a cor exata de qualquer ponto da tela" style={{ all: 'unset', cursor: 'pointer', flex: 'none', whiteSpace: 'nowrap', padding: '5px 10px', borderRadius: 999, border: '1px solid rgba(139,92,246,0.4)', background: 'rgba(139,92,246,0.12)', color: '#C4B5FD', fontSize: 9, fontWeight: 700 }}>Modo preciso</button>
         )}
       </div>
 
