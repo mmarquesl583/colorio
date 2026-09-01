@@ -119,7 +119,7 @@ export default function LobbyScreen({ playerName, connecting, error, onBack, onC
             {modeChoice === 'race' && <div style={checkDotStyle('#FFC93C', '#1a1024')}>✓</div>}
             <div style={{ fontSize: 16 }}>⏱️</div>
             <div className="corio-card-title" style={{ fontSize: 10, fontWeight: 700, marginTop: 3 }}>Corrida contra o Tempo</div>
-            <div className="corio-card-sub" style={{ fontSize: 7.5, color: 'rgba(244,242,248,0.45)', marginTop: 2, lineHeight: 1.25 }}>10s por rodada — quanto mais rápido, mais pontos</div>
+            <div className="corio-card-sub" style={{ fontSize: 7.5, color: 'rgba(244,242,248,0.45)', marginTop: 2, lineHeight: 1.25 }}>12s por rodada — quanto mais rápido, mais pontos</div>
           </div>
         </div>
       </div>

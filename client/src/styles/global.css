@@ -718,19 +718,28 @@ input, textarea { font-family: inherit; touch-action: manipulation; }
   .corio-panel-hidden { display: flex; }
 }
 
-/* Corrida contra o Tempo — round card + timer/multiplier readout. Kept
-   compact (small gaps/padding) so a long AI question still leaves the
-   ColorPicker below with real room instead of squeezing it. */
-.corio-race-card { display: flex; flex-direction: column; gap: 8px; align-items: center; text-align: center; }
-.corio-race-card-theme { display: flex; align-items: center; gap: 6px; font-size: 10.5px; font-weight: 700; color: #A78BFA; letter-spacing: 0.4px; }
-.corio-race-card-phrase { font-size: 13px; font-weight: 700; line-height: 1.35; color: #fff; }
+/* Corrida contra o Tempo — theme+phrase card. The live timer lives in the
+   header row now (see .corio-race-timer-wrap below), not in here, so this
+   card only needs to hold reading content — which itself shrinks out of
+   the way once .is-urgent (last 3s), leaving the header timer as the
+   clear focus for the "just pick something, fast" final stretch. */
+.corio-race-card { display: flex; flex-direction: column; gap: 6px; align-items: center; text-align: center; }
+.corio-race-card-theme { display: flex; align-items: center; gap: 6px; font-size: 10.5px; font-weight: 700; color: #A78BFA; letter-spacing: 0.4px; transition: opacity .3s ease, font-size .3s ease; }
+.corio-race-card-phrase { font-size: 13px; font-weight: 700; line-height: 1.35; color: #fff; transition: opacity .3s ease, font-size .3s ease, max-height .3s ease; max-height: 60px; overflow: hidden; }
+.corio-race-card.is-urgent .corio-race-card-theme { opacity: 0.5; font-size: 9px; }
+.corio-race-card.is-urgent .corio-race-card-phrase { opacity: 0.45; font-size: 9.5px; max-height: 34px; -webkit-line-clamp: 2; display: -webkit-box; -webkit-box-orient: vertical; text-overflow: ellipsis; }
 
-.corio-race-timer-wrap { display: flex; flex-direction: column; align-items: center; gap: 8px; }
-.corio-race-timer { display: flex; align-items: center; gap: 12px; background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); border-radius: 14px; padding: 7px 16px; }
+/* Header timer/bonus readout — now the star of the top row (see
+   GameScreen's race-mode header), so it's sized up from what fit inside
+   the old cramped card, and sized up again during the last 3s. */
+.corio-race-timer-wrap { display: flex; flex-direction: column; align-items: center; gap: 6px; height: 100%; justify-content: center; }
+.corio-race-timer { display: flex; align-items: center; gap: 14px; background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); border-radius: 14px; padding: 8px 18px; transition: padding .25s ease; }
+.corio-race-timer.is-urgent { padding: 10px 20px; border-color: rgba(255,92,138,0.4); }
 .corio-race-timer-col { display: flex; flex-direction: column; align-items: center; gap: 2px; }
 .corio-race-timer-label { font-size: 7.5px; font-weight: 700; letter-spacing: 0.6px; color: rgba(244,242,248,0.5); }
-.corio-race-timer-value { font-family: 'Space Grotesk', sans-serif; font-weight: 800; font-size: 18px; font-variant-numeric: tabular-nums; }
-.corio-race-timer-divider { width: 1px; height: 22px; background: rgba(255,255,255,0.12); }
+.corio-race-timer-value { font-family: 'Space Grotesk', sans-serif; font-weight: 800; font-size: 22px; font-variant-numeric: tabular-nums; transition: font-size .25s ease; }
+.corio-race-timer.is-urgent .corio-race-timer-value { font-size: 27px; }
+.corio-race-timer-divider { width: 1px; height: 26px; background: rgba(255,255,255,0.12); }
 .corio-race-countdown-big { font-family: 'Space Grotesk', sans-serif; font-weight: 800; font-size: 40px; color: #FF5C8A; line-height: 1; }
 
 .corio-race-urgent-pulse { animation: corio-race-pulse 1s ease-in-out infinite; }

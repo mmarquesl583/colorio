@@ -27,6 +27,12 @@ export default function GameScreen({ conn }: { conn: RoomConnection }) {
   const [localColor, setLocalColor] = useState<HslColor>(you.pickedColor ?? DEFAULT_COLOR);
   const [masterDraft, setMasterDraft] = useState('');
   const [masterSpin, setMasterSpin] = useState<{ spinning: boolean; color: HslColor }>({ spinning: false, color: you.masterSecret ?? DEFAULT_COLOR });
+  // Race mode drops the SALA pill from the header (room code shows only on
+  // "Compartilhar" tap, via copyLabel below) and gives that freed row width
+  // to the timer instead — raceUrgent lets the question card react to the
+  // same last-3s window RaceTimer already tracks, shrinking its own text
+  // so the timer/bonus numbers read as the main event in that window.
+  const [raceUrgent, setRaceUrgent] = useState(false);
 
   const lastRoundRef = useRef(-1);
   useEffect(() => {
@@ -58,8 +64,12 @@ export default function GameScreen({ conn }: { conn: RoomConnection }) {
 
   const copyLink = () => {
     navigator.clipboard?.writeText(s.code).catch(() => {});
-    setCopyLabel('✓ Copiado!');
-    setTimeout(() => setCopyLabel('🔗 Compartilhar'), 1500);
+    // Race mode has no persistent SALA pill in the header — this is the
+    // only place the code shows at all, so the confirmation spells it out
+    // instead of just saying "copiado". Harmless (if redundant) for
+    // classic mode, which still shows the code in its own pill too.
+    setCopyLabel(`✓ ${s.code} copiado!`);
+    setTimeout(() => setCopyLabel('🔗 Compartilhar'), 1800);
   };
 
   const onColorChange = (hsl: HslColor) => { setLocalColor(hsl); conn.send({ type: 'pick_color', hsl }); };
@@ -105,27 +115,44 @@ export default function GameScreen({ conn }: { conn: RoomConnection }) {
 
       <div className="corio-game-body">
         <div className="corio-game-main">
-          <div style={{ flex: 'none', display: 'flex', gap: 8, padding: '0 16px 8px' }}>
-            <Pill label="SALA" value={s.code} />
-            <Pill label="RODADA" value={`${round.number} / ${s.config.numRounds}`} />
-            {/* Race rounds show their own prominent timer in RaceQuestionCard
-               below instead of this small pill — secondsLeft stays null for
-               them anyway, so this pill would otherwise be stuck at 00:00. */}
-            {!isRace && <Pill label="TEMPO" value={`⏱ ${mm}:${ss}`} valueColor={timerColor} />}
-          </div>
+          {isRace ? (
+            <div style={{ flex: 'none', display: 'flex', alignItems: 'stretch', gap: 8, padding: '0 16px 8px' }}>
+              <Pill label="RODADA" value={`${round.number} / ${s.config.numRounds}`} flex="none" minWidth={82} />
+              {/* Room code drops from the header entirely in race mode — it
+                 only shows via the Compartilhar button's own confirmation
+                 label now (see copyLink) — all the freed width goes to a
+                 much bigger, more prominent timer/bonus readout instead.
+                 Only rendered once the answer clock actually starts —
+                 during 'race-intro' raceMsLeft is still null, and showing
+                 a static "0,0s" timer while the read-the-phrase popup is
+                 up would look like the round already ended. */}
+              {phase === 'placing' && (
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <RaceTimer raceMsLeft={s.raceMsLeft} onUrgentChange={setRaceUrgent} />
+                </div>
+              )}
+            </div>
+          ) : (
+            <div style={{ flex: 'none', display: 'flex', gap: 8, padding: '0 16px 8px' }}>
+              <Pill label="SALA" value={s.code} />
+              <Pill label="RODADA" value={`${round.number} / ${s.config.numRounds}`} />
+              <Pill label="TEMPO" value={`⏱ ${mm}:${ss}`} valueColor={timerColor} />
+            </div>
+          )}
 
           {isRace ? (
             // Nothing rendered here during 'race-intro' — RoundIntroModal
             // below already covers the theme+phrase reading moment as a
-            // popup; this card (with the live timer) only appears once the
-            // 10s answer clock actually starts (phase 'placing').
+            // popup; this card only appears once the answer clock actually
+            // starts (phase 'placing'). The live timer itself now lives in
+            // the header row above, not inside this card.
             phase === 'placing' && (
               <RaceQuestionCard
                 roundIdx={round.idx}
                 themeIcon={round.themeIcon}
                 themeName={round.themeName}
                 phrase={round.phrase}
-                raceMsLeft={s.raceMsLeft}
+                urgent={raceUrgent}
                 onReport={() => conn.send({ type: 'report_question' })}
               />
             )
@@ -203,21 +230,23 @@ export default function GameScreen({ conn }: { conn: RoomConnection }) {
   );
 }
 
-function Pill({ label, value, valueColor }: { label: string; value: string; valueColor?: string }) {
+function Pill({ label, value, valueColor, flex, minWidth }: { label: string; value: string; valueColor?: string; flex?: React.CSSProperties['flex']; minWidth?: number }) {
   return (
-    <div className="corio-card" style={{ flex: 1, minWidth: 0, background: '#12121a', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 14, padding: '7px 10px' }}>
+    <div className="corio-card" style={{ flex: flex ?? 1, minWidth: minWidth ?? 0, background: '#12121a', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 14, padding: '7px 10px' }}>
       <div className="corio-eyebrow" style={{ fontSize: 7.5, fontWeight: 700, letterSpacing: 1, color: 'rgba(244,242,248,0.4)' }}>{label}</div>
       <div className="corio-value-lg" style={{ fontFamily: "'Space Grotesk',sans-serif", fontSize: 13.5, fontWeight: 700, color: valueColor }}>{value}</div>
     </div>
   );
 }
 
-function RaceQuestionCard({ roundIdx, themeIcon, themeName, phrase, raceMsLeft, onReport }: { roundIdx: number; themeIcon: string; themeName: string; phrase: string; raceMsLeft: number | null; onReport: () => void }) {
+// The live timer/bonus now lives in the header row (GameScreen), not here
+// — this card is just theme + phrase, which shrinks out of the way once
+// `urgent` (last 3s) so the timer above reads as the main event.
+function RaceQuestionCard({ roundIdx, themeIcon, themeName, phrase, urgent, onReport }: { roundIdx: number; themeIcon: string; themeName: string; phrase: string; urgent: boolean; onReport: () => void }) {
   return (
-    <div className="corio-card corio-race-card" style={{ position: 'relative', flex: 'none', margin: '0 16px 8px', padding: '12px 14px', borderRadius: 16, background: '#12121a', border: '1px solid rgba(255,255,255,0.08)', animation: 'corio-rise .35s ease' }}>
+    <div className={`corio-card corio-race-card${urgent ? ' is-urgent' : ''}`} style={{ position: 'relative', flex: 'none', margin: '0 16px 8px', padding: '10px 14px', borderRadius: 16, background: '#12121a', border: '1px solid rgba(255,255,255,0.08)', animation: 'corio-rise .35s ease' }}>
       <div className="corio-race-card-theme"><span>{themeIcon}</span><span>{themeName}</span></div>
       <div className="corio-race-card-phrase">{phrase || 'Preparando a próxima pergunta...'}</div>
-      <RaceTimer raceMsLeft={raceMsLeft} />
       <ReportButton key={roundIdx} onReport={onReport} />
     </div>
   );
