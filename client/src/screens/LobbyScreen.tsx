@@ -32,6 +32,7 @@ export default function LobbyScreen({ playerName, connecting, error, onBack, onC
   const [modeChoice, setModeChoice] = useState<ModeChoice>('players');
   const [privacy, setPrivacy] = useState<Privacy>('public');
   const [selectedThemes, setSelectedThemes] = useState<string[]>(LOBBY_THEMES.map((t) => t.id));
+  const [showAllThemes, setShowAllThemes] = useState(false);
 
   const toggleTheme = (id: string) => {
     setSelectedThemes((s) => (s.includes(id) ? s.filter((x) => x !== id) : [...s, id]));
@@ -126,28 +127,42 @@ export default function LobbyScreen({ playerName, connecting, error, onBack, onC
 
       <div className="corio-card" style={{ flex: 'none', background: '#12121a', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 14, padding: '9px 10px' }}>
         <div className="corio-eyebrow" style={{ fontSize: 8, fontWeight: 700, letterSpacing: 0.6, color: 'rgba(244,242,248,0.6)' }}>TEMAS</div>
-        <div className="corio-theme-grid" style={{ gap: 8, marginTop: 8 }}>
-          {visibleThemes.map((t) => {
-            const on = selectedThemes.includes(t.id);
-            return (
-              <div
-                key={t.id}
-                onClick={() => toggleTheme(t.id)}
-                className="corio-tap corio-card corio-theme-card"
-                style={{
-                  cursor: 'pointer', position: 'relative', borderRadius: 12, padding: '8px 8px', textAlign: 'center',
-                  background: on ? `linear-gradient(160deg,${t.color}33,${t.color}11)` : 'rgba(255,255,255,0.03)',
-                  border: `1.5px solid ${on ? t.color : 'rgba(255,255,255,0.08)'}`,
-                  display: 'flex', flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-start', gap: 8,
-                }}
-              >
-                {on && <div style={{ position: 'absolute', top: 6, right: 6, width: 16, height: 16, borderRadius: '50%', background: t.color, color: '#fff', fontSize: 8, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>✓</div>}
-                <div className="corio-icon-box" style={{ width: 30, height: 30, borderRadius: 9, background: `${t.color}2e`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, flex: 'none' }}>{t.icon}</div>
-                <div className="corio-card-title" style={{ fontSize: 10.5, fontWeight: 700 }}>{t.name}</div>
-              </div>
-            );
-          })}
+        {/* Collapsed to ~2 rows by height, not by slicing the array — a
+           height cap adapts automatically to however many columns the
+           current breakpoint has (2 on mobile, 4 from 720px up), instead of
+           hardcoding "first N items" for one specific column count. */}
+        <div style={{ position: 'relative', maxHeight: showAllThemes ? 2000 : 100, overflow: 'hidden', transition: 'max-height .3s ease', marginTop: 8 }}>
+          <div className="corio-theme-grid" style={{ gap: 8 }}>
+            {visibleThemes.map((t) => {
+              const on = selectedThemes.includes(t.id);
+              return (
+                <div
+                  key={t.id}
+                  onClick={() => toggleTheme(t.id)}
+                  className="corio-tap corio-card corio-theme-card"
+                  style={{
+                    cursor: 'pointer', position: 'relative', borderRadius: 12, padding: '6px 7px', textAlign: 'center',
+                    background: on ? `linear-gradient(160deg,${t.color}33,${t.color}11)` : 'rgba(255,255,255,0.03)',
+                    border: `1.5px solid ${on ? t.color : 'rgba(255,255,255,0.08)'}`,
+                    display: 'flex', flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-start', gap: 7,
+                  }}
+                >
+                  {on && <div style={{ position: 'absolute', top: 5, right: 5, width: 14, height: 14, borderRadius: '50%', background: t.color, color: '#fff', fontSize: 7, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>✓</div>}
+                  <div className="corio-icon-box" style={{ width: 24, height: 24, borderRadius: 8, background: `${t.color}2e`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, flex: 'none' }}>{t.icon}</div>
+                  <div className="corio-card-title" style={{ fontSize: 9.5, fontWeight: 700, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{t.name}</div>
+                </div>
+              );
+            })}
+          </div>
+          {!showAllThemes && (
+            <div style={{ position: 'absolute', left: 0, right: 0, bottom: 0, height: 32, background: 'linear-gradient(rgba(18,18,26,0), #12121a)', pointerEvents: 'none' }} />
+          )}
         </div>
+        {visibleThemes.length > 4 && (
+          <button onClick={() => setShowAllThemes((v) => !v)} className="corio-tap" style={{ all: 'unset', cursor: 'pointer', display: 'block', width: '100%', textAlign: 'center', marginTop: 6, fontSize: 9.5, fontWeight: 700, color: '#29E7FF' }}>
+            {showAllThemes ? 'Mostrar menos ▲' : 'Mostrar mais ▼'}
+          </button>
+        )}
       </div>
 
       <div style={{ flex: 'none', display: 'flex', gap: 8 }}>
