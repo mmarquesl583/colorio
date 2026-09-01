@@ -197,7 +197,14 @@ export default function RevealModal({ results, you, gameMode, nextReady, readySe
     onReadyNext();
   };
 
-  const showHeaderCols = stage === 'guesses' || stage === 'sorted';
+  // Race mode's sorted stage gets its own bigger, staged board (below) —
+  // precision score shown alone first, then the multiplier pops in and the
+  // total counts up from there. Reuses the same `progress` ramp already
+  // driving the classic gainLabel count-up, just with a different formula
+  // (base→total instead of 0→total) and an earlier reveal point (as soon
+  // as progress starts, not only once it finishes).
+  const isRaceSorted = gameMode === 'race' && stage === 'sorted';
+  const showHeaderCols = (stage === 'guesses' || stage === 'sorted') && !isRaceSorted;
 
   return (
     <div style={{ position: 'absolute', inset: 0, background: revealBg, transition: 'background 1.2s ease', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16, zIndex: 40, boxSizing: 'border-box' }}>
@@ -213,7 +220,7 @@ export default function RevealModal({ results, you, gameMode, nextReady, readySe
           </div>
         )}
 
-        {rows.map((r) => (
+        {!isRaceSorted && rows.map((r) => (
           <div key={r.id} ref={(el) => { rowRefs.current[r.id] = el; }} style={{ width: '100%', maxWidth: 360, display: 'flex', alignItems: 'center', gap: 9, height: 52, borderRadius: 12, overflow: 'hidden', position: 'relative', background: (stage === 'sorted') ? 'rgba(8,8,12,0.72)' : 'rgba(20,20,26,0.9)', backdropFilter: (stage === 'guesses' || stage === 'sorted') ? 'blur(2px)' : undefined, marginBottom: 8, paddingRight: 8 }}>
             <div style={{ width: 14, height: '100%', flex: 'none', background: r.stripeColor, opacity: r.stripeVisible ? 1 : 0, transition: 'background .7s ease, opacity .6s ease' }} />
             <div style={{ flex: 'none', width: 16, fontSize: 10, fontWeight: 700, color: 'rgba(244,242,248,0.45)', textAlign: 'center' }}>{r.pos || ''}</div>
@@ -236,7 +243,56 @@ export default function RevealModal({ results, you, gameMode, nextReady, readySe
           </div>
         ))}
 
-        {gameMode === 'race' && yourGuess && stage !== 'guesses' && (stage !== 'sorted' || progress >= 1) && (
+        {isRaceSorted && (() => {
+          const ranked = guessesByRoundScore;
+          const ranks = computeRoundRanks(ranked.map((g) => g.score));
+          // Phase 1 (progress===0, ~900ms): only PONTUAÇÃO shown, same for
+          // everyone regardless of speed — an intentionally "fair" beat
+          // before speed enters the picture at all. Phase 2 (progress>0):
+          // MULTI pops in and TOTAL counts up live from PONTUAÇÃO to the
+          // true final score, driven by the same progress ramp.
+          const revealed = progress > 0;
+          return (
+            <div className="corio-noscroll" style={{ width: '100%', maxWidth: 380, display: 'flex', flexDirection: 'column', gap: 10 }}>
+              {ranked.map((g, i) => {
+                const base = g.baseScore ?? 0;
+                const mult = g.timeMultiplier ?? 0;
+                const total = revealed ? Math.round(base + (g.score - base) * progress) : base;
+                return (
+                  <div key={g.playerId} ref={(el) => { rowRefs.current[g.playerId] = el; }} className="corio-race-reveal-card">
+                    <div className="corio-race-reveal-card-top">
+                      <div className="corio-race-reveal-rank">{ranks[i]}</div>
+                      <div className="corio-race-reveal-avatar">
+                        {g.avatarId ? <img src={avatarSmallSrc(g.avatarId)} alt="" /> : g.initial}
+                      </div>
+                      <div className="corio-race-reveal-name">{g.playerId === you.id ? 'Você' : g.name}</div>
+                      {g.isRoundMvp && <span title="Palpite mais preciso da rodada">🎯</span>}
+                      <span className="corio-race-reveal-badge">{g.badge}</span>
+                    </div>
+                    <div className="corio-race-reveal-stats">
+                      <div className="corio-race-reveal-stat">
+                        <div className="corio-race-reveal-stat-label">PONTUAÇÃO</div>
+                        <div className="corio-race-reveal-stat-value">{base.toLocaleString('pt-BR')}</div>
+                      </div>
+                      <div className="corio-race-reveal-stat">
+                        <div className="corio-race-reveal-stat-label">MULTI</div>
+                        <div className={`corio-race-reveal-stat-value corio-race-reveal-multi ${revealed ? 'is-shown' : ''}`}>
+                          {revealed ? `×${mult.toFixed(1).replace('.', ',')}` : '—'}
+                        </div>
+                      </div>
+                      <div className="corio-race-reveal-stat corio-race-reveal-stat-total">
+                        <div className="corio-race-reveal-stat-label">TOTAL</div>
+                        <div className="corio-race-reveal-stat-value">{total.toLocaleString('pt-BR')}</div>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          );
+        })()}
+
+        {gameMode === 'race' && yourGuess && stage !== 'guesses' && stage !== 'sorted' && (
           <div style={{ width: '100%', maxWidth: 360, marginBottom: 10, background: 'rgba(139,92,246,0.12)', border: '1px solid rgba(139,92,246,0.35)', borderRadius: 14, padding: '12px 14px', display: 'flex', flexDirection: 'column', gap: 8, animation: 'corio-rise .3s ease' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
               <div style={{ width: 30, height: 30, borderRadius: 9, background: `hsl(${hslToCss(yourGuess.hsl)})`, flex: 'none', border: '1px solid rgba(255,255,255,0.25)' }} />

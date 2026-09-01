@@ -79,6 +79,35 @@ input, textarea { font-family: inherit; touch-action: manipulation; }
   }
 }
 
+/* Portrait-only on phones — the CSS Orientation API lock in AppShell is
+   best-effort (unsupported on iOS Safari, needs fullscreen elsewhere), so
+   this overlay is what actually enforces it everywhere: hidden by default,
+   shown only when the viewport is both landscape AND phone-short (a
+   rotated tablet/desktop in landscape is fine and never matches). */
+.corio-rotate-lock {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  background: #050507;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  text-align: center;
+  padding: 24px;
+}
+.corio-rotate-lock-icon { font-size: 48px; animation: corio-rotate-lock-swing 1.8s ease-in-out infinite; }
+.corio-rotate-lock-title { font-family: 'Space Grotesk', sans-serif; font-weight: 800; font-size: 20px; color: #fff; }
+.corio-rotate-lock-subtitle { font-size: 13px; color: rgba(244,242,248,0.6); max-width: 280px; }
+@keyframes corio-rotate-lock-swing { 0%, 100% { transform: rotate(-18deg); } 50% { transform: rotate(18deg); } }
+@media (prefers-reduced-motion: reduce) {
+  .corio-rotate-lock-icon { animation: none; }
+}
+@media (orientation: landscape) and (max-height: 500px) {
+  .corio-rotate-lock { display: flex; }
+}
+
 /* Lobby / waiting: a centered column that grows (and gains a fuller grid)
    as there's more room — content-driven, not just stretched. */
 .corio-wide {
@@ -706,4 +735,26 @@ input, textarea { font-family: inherit; touch-action: manipulation; }
 @keyframes corio-race-pulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.08); } }
 @media (prefers-reduced-motion: reduce) {
   .corio-race-urgent-pulse { animation: none; }
+}
+
+/* Corrida contra o Tempo — big per-player reveal card (sorted stage):
+   PONTUAÇÃO shown alone first, then MULTI pops in and TOTAL counts up. */
+.corio-race-reveal-card { width: 100%; box-sizing: border-box; background: rgba(20,20,26,0.94); border: 1px solid rgba(255,255,255,0.1); border-radius: 18px; padding: 14px 16px; animation: corio-rise .3s ease; }
+.corio-race-reveal-card-top { display: flex; align-items: center; gap: 9px; margin-bottom: 12px; }
+.corio-race-reveal-rank { width: 20px; flex: none; text-align: center; font-size: 13px; font-weight: 800; color: rgba(244,242,248,0.5); }
+.corio-race-reveal-avatar { width: 38px; height: 38px; border-radius: 50%; flex: none; overflow: hidden; background: rgba(255,255,255,0.1); display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 700; }
+.corio-race-reveal-avatar img { width: 100%; height: 100%; object-fit: cover; }
+.corio-race-reveal-name { flex: 1; min-width: 0; font-size: 14px; font-weight: 800; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.corio-race-reveal-badge { flex: none; font-size: 8.5px; font-weight: 700; letter-spacing: 0.3px; background: #FFC93C; color: #151007; padding: 3px 7px; border-radius: 6px; }
+.corio-race-reveal-stats { display: grid; grid-template-columns: 1fr 1fr 1.2fr; gap: 8px; }
+.corio-race-reveal-stat { text-align: center; background: rgba(255,255,255,0.045); border-radius: 12px; padding: 9px 6px; }
+.corio-race-reveal-stat-total { background: rgba(255,201,60,0.14); border: 1px solid rgba(255,201,60,0.3); }
+.corio-race-reveal-stat-label { font-size: 8px; font-weight: 700; letter-spacing: 0.4px; color: rgba(244,242,248,0.5); }
+.corio-race-reveal-stat-value { font-family: 'Space Grotesk', sans-serif; font-weight: 800; font-size: 19px; margin-top: 3px; font-variant-numeric: tabular-nums; }
+.corio-race-reveal-stat-total .corio-race-reveal-stat-value { color: #FFC93C; }
+.corio-race-reveal-multi { color: rgba(244,242,248,0.25); transition: color .3s ease; }
+.corio-race-reveal-multi.is-shown { color: #29E7FF; animation: corio-race-multi-pop .4s ease; }
+@keyframes corio-race-multi-pop { 0% { transform: scale(0.5); } 65% { transform: scale(1.2); } 100% { transform: scale(1); } }
+@media (prefers-reduced-motion: reduce) {
+  .corio-race-reveal-multi.is-shown { animation: none; }
 }
