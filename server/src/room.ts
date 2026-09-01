@@ -3,7 +3,7 @@ import {
   hslFracToRgb, rgbToHex, hexToRgb, rgbToHslFrac,
 } from '../../shared/color.ts';
 import { calculateColorScore, calculateMasterScore, badgeFromScore, roundOutcomeFromScore } from '../../shared/scoring.ts';
-import { RACE_MS, raceTimeMultiplier } from '../../shared/raceMode.ts';
+import { RACE_MS, RACE_INTRO_MS, raceTimeMultiplier } from '../../shared/raceMode.ts';
 import {
   LOBBY_THEMES, AI_PHRASE_BANK, PLAYER_PALETTE, PLACING_SECONDS, NEXT_ROUND_READY_TIMEOUT_MS,
   SPEED_BONUS_MAX, ROUND_MVP_BONUS, AI_WIN_SCORE, AI_WIN_PERFECTS, LOBBY_RECONNECT_GRACE_MS,
@@ -111,6 +111,7 @@ export class Room {
    * against their own clock, a clock-skew hazard). Clients instead get a
    * freshly-computed raceMsLeft on every broadcast, see stateFor(). */
   private raceDeadlineAt: number | null = null;
+  private raceIntroTimer: ReturnType<typeof setTimeout> | null = null;
   private tickHandle: ReturnType<typeof setInterval> | null = null;
   private raceTickHandle: ReturnType<typeof setInterval> | null = null;
   private nextReadyFallback: ReturnType<typeof setTimeout> | null = null;
@@ -352,10 +353,13 @@ export class Room {
     this.chat.push(sysMsg('#29E7FF', isRace ? '⏱️ Corrida contra o Tempo — responda rápido!' : isAi ? '🤖 A IA escreveu a pista' : `✏️ Vez de ${masterName}`));
 
     if (isRace) {
-      this.phase = 'placing';
+      // Read-the-phrase phase first, no clock pressure — the 10s answer
+      // window only starts once beginRacePlacing() fires, so the 3s here
+      // never eats into it. pickColor()/confirmColor() both require
+      // phase==='placing', so nobody can act during this window either.
+      this.phase = 'race-intro';
       this.secondsLeft = null;
-      this.raceDeadlineAt = Date.now() + RACE_MS;
-      this.startRaceTicking();
+      this.raceIntroTimer = setTimeout(() => this.beginRacePlacing(), RACE_INTRO_MS);
     } else if (isAi) {
       this.phase = 'placing';
       this.secondsLeft = PLACING_SECONDS;
@@ -364,6 +368,19 @@ export class Room {
       this.phase = 'master-writing';
       this.secondsLeft = null;
     }
+    this.broadcast();
+  }
+
+  private beginRacePlacing() {
+    this.raceIntroTimer = null;
+    // Stale-timer guard: the round could have moved on (restart, room
+    // teardown) between scheduling this and it firing — stopTimers() also
+    // cancels the underlying setTimeout on every such path, but this check
+    // is a cheap second line of defense against acting on old state.
+    if (this.phase !== 'race-intro') return;
+    this.phase = 'placing';
+    this.raceDeadlineAt = Date.now() + RACE_MS;
+    this.startRaceTicking();
     this.broadcast();
   }
 
@@ -783,6 +800,7 @@ export class Room {
   private stopTicking() {
     if (this.tickHandle) { clearInterval(this.tickHandle); this.tickHandle = null; }
     if (this.raceTickHandle) { clearInterval(this.raceTickHandle); this.raceTickHandle = null; }
+    if (this.raceIntroTimer) { clearTimeout(this.raceIntroTimer); this.raceIntroTimer = null; }
   }
   private stopTimers() {
     this.stopTicking();

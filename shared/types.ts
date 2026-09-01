@@ -14,7 +14,10 @@ export interface RoomConfig {
   selectedThemes: string[];
 }
 
-export type RoundPhase = 'master-writing' | 'placing' | 'reveal';
+// 'race-intro' only happens for gameMode:'race' rounds — the theme+phrase
+// popup phase before the 10s answer clock starts (see room.ts's
+// beginRacePlacing()). No equivalent exists for classic rounds.
+export type RoundPhase = 'master-writing' | 'placing' | 'reveal' | 'race-intro';
 export type ScreenState = 'waiting' | 'playing' | 'finished';
 
 export interface HslColor {

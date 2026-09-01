@@ -115,7 +115,11 @@ export default function GameScreen({ conn }: { conn: RoomConnection }) {
           </div>
 
           {isRace ? (
-            <RaceQuestionCard themeIcon={round.themeIcon} themeName={round.themeName} phrase={round.phrase} raceMsLeft={s.raceMsLeft} />
+            // Nothing rendered here during 'race-intro' — RoundIntroModal
+            // below already covers the theme+phrase reading moment as a
+            // popup; this card (with the live timer) only appears once the
+            // 10s answer clock actually starts (phase 'placing').
+            phase === 'placing' && <RaceQuestionCard themeIcon={round.themeIcon} themeName={round.themeName} phrase={round.phrase} raceMsLeft={s.raceMsLeft} />
           ) : (
             <div className="corio-card" style={{ flex: 'none', margin: '0 16px 8px', padding: '10px 12px', borderRadius: 14, background: '#12121a', border: '1px solid rgba(255,255,255,0.08)', display: 'flex', gap: 10 }}>
               <div style={{ flex: 1.1, minWidth: 0, display: 'flex', gap: 8 }}>
@@ -179,7 +183,7 @@ export default function GameScreen({ conn }: { conn: RoomConnection }) {
         )}
       </div>
 
-      {showRoundIntro && <RoundIntroModal round={round} />}
+      {(showRoundIntro || phase === 'race-intro') && <RoundIntroModal round={round} raceMode={isRace} />}
       {phase === 'reveal' && s.results && (
         <RevealModal results={s.results} you={you} gameMode={s.config.gameMode} nextReady={s.nextReady} readySecondsLeft={s.readySecondsLeft} onReadyNext={() => conn.send({ type: 'ready_next' })} />
       )}

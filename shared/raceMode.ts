@@ -4,6 +4,12 @@
 export const RACE_SECONDS = 10;
 export const RACE_MS = RACE_SECONDS * 1000;
 
+// How long the theme+phrase popup stays up before the 10s answer clock
+// starts — a genuine separate phase (RoundPhase:'race-intro'), not just a
+// client-side overlay drawn on top of an already-ticking timer, so reading
+// time never eats into the 10s players actually get to answer.
+export const RACE_INTRO_MS = 3000;
+
 // Discrete table, NOT a linear formula — the spec is explicit that the
 // multiplier must never exceed 2.0x, which a continuous formula could do by
 // accident. Ordered inclusive-upper-bound buckets; order matters.
