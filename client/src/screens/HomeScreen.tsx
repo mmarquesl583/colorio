@@ -109,38 +109,37 @@ export default function HomeScreen({ connecting, error, onClearError, onStartCre
 
         <div className="corio-home-v2-form">
           {loggedInName ? (
-            <div className="corio-home-v2-identity">
-              <span className="corio-home-v2-identity-info">
-                <button onClick={() => setPickerMode('avatar')} className="corio-tap corio-home-v2-identity-avatar" aria-label="Trocar ícone">
-                  {loggedInAvatar ? <img src={avatarSmallSrc(loggedInAvatar)} alt="" /> : loggedInName[0].toUpperCase()}
-                </button>
-                <span className="corio-home-v2-identity-text">
-                  <button onClick={onOpenProfile} className="corio-tap corio-home-v2-identity-name" aria-label="Ver perfil">{loggedInName}</button>
-                  <button onClick={() => setPickerMode('title')} className="corio-tap corio-home-v2-identity-title" aria-label="Trocar título">{titleName}</button>
+            <div className="corio-home-v2-identity" style={{ flexDirection: 'column', alignItems: 'stretch' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, width: '100%' }}>
+                <span className="corio-home-v2-identity-info">
+                  <button onClick={() => setPickerMode('avatar')} className="corio-tap corio-home-v2-identity-avatar" aria-label="Trocar ícone">
+                    {loggedInAvatar ? <img src={avatarSmallSrc(loggedInAvatar)} alt="" /> : loggedInName[0].toUpperCase()}
+                  </button>
+                  <span className="corio-home-v2-identity-text">
+                    <button onClick={onOpenProfile} className="corio-tap corio-home-v2-identity-name" aria-label="Ver perfil">{loggedInName}</button>
+                    <button onClick={() => setPickerMode('title')} className="corio-tap corio-home-v2-identity-title" aria-label="Trocar título">{titleName}</button>
+                  </span>
                 </span>
-              </span>
-              <button onClick={() => supabase.auth.signOut()} className="corio-tap corio-home-v2-identity-link">Sair</button>
-            </div>
-          ) : null}
-
-          {loggedInName && progression && (
-            <div style={{
-              width: '100%', boxSizing: 'border-box', display: 'flex', alignItems: 'center', gap: 12,
-              background: '#1A0A33', border: '3px solid #4A2B7A', borderRadius: 16, padding: '11px 16px',
-            }}>
-              <div style={{ flex: 'none', fontSize: 13, fontWeight: 800, color: '#FFC93C', fontFamily: "'Space Grotesk',sans-serif" }}>Nv. {progression.level}</div>
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ height: 7, borderRadius: 4, background: 'rgba(255,255,255,0.12)', overflow: 'hidden' }}>
-                  <div style={{ width: `${levelFillPct}%`, height: '100%', background: 'linear-gradient(90deg,#8B5CF6,#FFC93C)', borderRadius: 4 }} />
-                </div>
+                <button onClick={() => supabase.auth.signOut()} className="corio-tap corio-home-v2-identity-link">Sair</button>
               </div>
-              {progression.currentDayStreak > 0 && (
-                <div style={{ flex: 'none', fontSize: 13, fontWeight: 800, color: '#FF9C5C', display: 'flex', alignItems: 'center', gap: 3 }}>
-                  🔥 {progression.currentDayStreak}
+
+              {progression && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10, width: '100%', marginTop: 10, paddingTop: 10, borderTop: '1px solid rgba(255,255,255,0.1)' }}>
+                  <div style={{ flex: 'none', fontSize: 12, fontWeight: 800, color: '#FFC93C', fontFamily: "'Space Grotesk',sans-serif" }}>Nv. {progression.level}</div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ height: 6, borderRadius: 3, background: 'rgba(255,255,255,0.12)', overflow: 'hidden' }}>
+                      <div style={{ width: `${levelFillPct}%`, height: '100%', background: 'linear-gradient(90deg,#8B5CF6,#FFC93C)', borderRadius: 3 }} />
+                    </div>
+                  </div>
+                  {progression.currentDayStreak > 0 && (
+                    <div style={{ flex: 'none', fontSize: 12, fontWeight: 800, color: '#FF9C5C', display: 'flex', alignItems: 'center', gap: 3 }}>
+                      🔥 {progression.currentDayStreak}
+                    </div>
+                  )}
                 </div>
               )}
             </div>
-          )}
+          ) : null}
 
           {!loggedInName && (
             <button onClick={() => { onClearError(); onLogin(); }} className="corio-home-v2-btn corio-home-v2-btn-secondary corio-home-v2-btn-split">
