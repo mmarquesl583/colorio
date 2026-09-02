@@ -123,21 +123,19 @@ export default function HomeScreen({ connecting, error, onClearError, onStartCre
                 <button onClick={() => supabase.auth.signOut()} className="corio-tap corio-home-v2-identity-link">Sair</button>
               </div>
 
-              {progression && (
-                <div style={{ display: 'flex', alignItems: 'center', gap: 10, width: '100%', marginTop: 6, paddingTop: 6, borderTop: '1px solid rgba(255,255,255,0.1)' }}>
-                  <div style={{ flex: 'none', fontSize: 12, fontWeight: 800, color: '#FFC93C', fontFamily: "'Space Grotesk',sans-serif" }}>Nv. {progression.level}</div>
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ height: 6, borderRadius: 3, background: 'rgba(255,255,255,0.12)', overflow: 'hidden' }}>
-                      <div style={{ width: `${levelFillPct}%`, height: '100%', background: 'linear-gradient(90deg,#8B5CF6,#FFC93C)', borderRadius: 3 }} />
-                    </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, width: '100%', marginTop: 6, paddingTop: 6, borderTop: '1px solid rgba(255,255,255,0.1)', opacity: progression ? 1 : 0.4 }}>
+                <div style={{ flex: 'none', fontSize: 12, fontWeight: 800, color: '#FFC93C', fontFamily: "'Space Grotesk',sans-serif" }}>Nv. {progression?.level ?? '—'}</div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ height: 6, borderRadius: 3, background: 'rgba(255,255,255,0.12)', overflow: 'hidden' }}>
+                    <div style={{ width: `${progression ? levelFillPct : 0}%`, height: '100%', background: 'linear-gradient(90deg,#8B5CF6,#FFC93C)', borderRadius: 3 }} />
                   </div>
-                  {progression.currentDayStreak > 0 && (
-                    <div style={{ flex: 'none', fontSize: 12, fontWeight: 800, color: '#FF9C5C', display: 'flex', alignItems: 'center', gap: 3 }}>
-                      🔥 {progression.currentDayStreak}
-                    </div>
-                  )}
                 </div>
-              )}
+                {progression && progression.currentDayStreak > 0 && (
+                  <div style={{ flex: 'none', fontSize: 12, fontWeight: 800, color: '#FF9C5C', display: 'flex', alignItems: 'center', gap: 3 }}>
+                    🔥 {progression.currentDayStreak}
+                  </div>
+                )}
+              </div>
             </div>
           ) : null}
 
