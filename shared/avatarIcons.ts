@@ -13,7 +13,7 @@
 // in as free so nobody loses access to what they already had. Only future
 // non-free avatars actually get gated behind player_avatars/achievements.
 export type AvatarCategory = 'animais' | 'divertidos' | 'especiais';
-export type Rarity = 'comum' | 'raro' | 'epico' | 'lendario';
+export type Rarity = 'comum' | 'raro' | 'epico' | 'lendario' | 'unico';
 
 export interface AvatarIcon {
   id: string;
@@ -25,7 +25,7 @@ export interface AvatarIcon {
 }
 
 export const AVATAR_ICONS: AvatarIcon[] = [
-  { id: 'avatar-cat', name: 'Morfeu', category: 'animais', rarity: 'epico', description: 'Sério por fora, mestre das cores por dentro.', free: true },
+  { id: 'avatar-cat', name: 'Morfeu', category: 'animais', rarity: 'unico', description: 'Sério por fora, mestre das cores por dentro.' },
   { id: 'avatar-dog', name: 'Peter', category: 'animais', rarity: 'raro', description: 'Sempre animado pra descobrir a próxima cor.', free: true },
   { id: 'avatar-jogador', name: 'Neymar', category: 'divertidos', rarity: 'lendario', description: 'Craque dentro e fora do campo de cores.', free: true },
   { id: 'avatar-piloto', name: 'Dyna', category: 'divertidos', rarity: 'epico', description: 'Acelera direto pra vitória mais colorida.', free: true },
@@ -44,6 +44,7 @@ export const RARITY_LABELS: Record<Rarity, string> = {
   raro: 'Raro',
   epico: 'Épico',
   lendario: 'Lendário',
+  unico: 'Único',
 };
 
 export function avatarSmallSrc(icon: string): string {

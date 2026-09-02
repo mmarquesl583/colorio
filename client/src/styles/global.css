@@ -472,6 +472,9 @@ input, textarea { font-family: inherit; touch-action: manipulation; }
 .corio-picker-rarity-raro { background: rgba(41,231,255,0.2); color: #7DE8F5; }
 .corio-picker-rarity-epico { background: rgba(139,92,246,0.28); color: #C4B5FD; }
 .corio-picker-rarity-lendario { background: rgba(255,201,60,0.22); color: #FFC93C; }
+/* Above lendario — a solid gradient chip (not just a tinted background)
+   so it reads as a step up even next to the legendary gold. */
+.corio-picker-rarity-unico { background: linear-gradient(90deg,#FF6B6B,#FFC93C); color: #1A0A33; }
 .corio-picker-preview-name { font-family: 'Space Grotesk',sans-serif; font-weight: 800; font-size: 16px; color: #fff; margin-top: 6px; }
 .corio-picker-preview-desc { font-size: 10.5px; font-weight: 600; color: rgba(244,242,248,0.55); margin-top: 4px; line-height: 1.4; max-width: 260px; }
 .corio-picker-progress { width: 100%; max-width: 220px; margin-top: 10px; }
