@@ -47,7 +47,7 @@ export const TITLE_CATALOG: TitleOption[] = [
   { id: '666', name: '666', category: 'numeros-especiais', description: 'Alcance exatamente 666 pontos em uma partida.' },
   { id: 'pega-infernal', name: 'Pega Infernal', category: 'numeros-especiais', description: 'Alcance exatamente 666 pontos 3 vezes.' },
   { id: 'diabolico', name: 'Diabólico', category: 'numeros-especiais', description: 'Alcance exatamente 666 pontos e termine a partida em primeiro lugar.' },
-  { id: 'bafomeeeeeeee', name: 'Bafomeeeeeeee', category: 'numeros-especiais', description: 'Alcance exatamente 666 pontos após conseguir um palpite perfeito.' },
+  { id: 'bafomeeeeeeee', name: 'Bafomeeeeeeee', category: 'numeros-especiais', description: 'Alcance exatamente 666 pontos 6 vezes.' },
   { id: '777', name: '777', category: 'numeros-especiais', description: 'Alcance exatamente 777 pontos em uma partida.' },
   { id: 'santinho', name: 'Santinho', category: 'numeros-especiais', description: 'Alcance exatamente 777 pontos 3 vezes.' },
   { id: 'abencoado', name: 'Abençoado', category: 'numeros-especiais', description: 'Alcance exatamente 777 pontos e consiga um perfeito na mesma partida.' },
