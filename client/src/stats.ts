@@ -18,6 +18,7 @@ export interface Profile {
   session_count: number;
   friend_code: string | null;
   last_checked_unlocks_at: string;
+  is_admin: boolean;
 }
 
 export interface Friend {
@@ -288,6 +289,29 @@ export async function fetchEquippedTitle(userId: string): Promise<string | null>
 export async function equipTitle(titleId: string | null): Promise<void> {
   const { error } = await supabase.rpc('equip_title', { p_title_id: titleId });
   if (error) console.error('equip_title failed:', error.message);
+}
+
+export interface MatchParticipant {
+  user_id: string;
+  name: string;
+  avatar_id: string | null;
+  mode_id: string;
+  theme_ids: string[];
+  score: number;
+  perfects: number;
+  result: 'won' | 'lost' | 'drawn';
+  duration_seconds: number;
+  played_at: string;
+}
+
+// Own match_history rows are RLS-readable directly, but seeing every OTHER
+// participant of the same match_id needs get_match_participants() — a
+// SECURITY DEFINER RPC that only returns rows once it's confirmed the
+// caller actually has their own row in that match (see 0006_player_features.sql).
+export async function fetchMatchParticipants(matchId: string): Promise<MatchParticipant[]> {
+  const { data, error } = await supabase.rpc('get_match_participants', { p_match_id: matchId });
+  if (error) { console.error('get_match_participants failed:', error.message); return []; }
+  return (data as MatchParticipant[] | null) ?? [];
 }
 
 // --- Achievement progress ("how close am I") ---------------------------

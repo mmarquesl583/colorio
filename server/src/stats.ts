@@ -143,3 +143,81 @@ export function startStaleSessionSweep(): void {
   sweep();
   setInterval(sweep, 30 * 60 * 1000);
 }
+
+// --- Admin: per-round guess history ------------------------------------
+// One row per guesser per round — the raw material the admin panel's color-
+// distance analytics (per-question precision breakdown, guess map) run on.
+// computeReveal() already computes baseScore/deltaE/badge for the reveal
+// screen; this just persists what's already calculated, no new color math.
+export interface RoundGuessRow {
+  matchId: string;
+  roomCode: string;
+  userId: string;
+  modeId: string;
+  themeId: string;
+  questionId: number | null;
+  phrase: string;
+  secretHex: string;
+  guessHex: string;
+  deltaE: number;
+  score: number;
+  badge: string;
+  responseMs: number | null;
+}
+
+export function recordRoundGuesses(rows: RoundGuessRow[]): void {
+  if (!statsConfigured || rows.length === 0) return;
+  const payload = rows.map((r) => ({
+    match_id: r.matchId, room_code: r.roomCode, user_id: r.userId, mode_id: r.modeId,
+    theme_id: r.themeId, question_id: r.questionId, phrase: r.phrase,
+    secret_hex: r.secretHex, guess_hex: r.guessHex, delta_e: r.deltaE,
+    score: r.score, badge: r.badge, response_ms: r.responseMs,
+  }));
+  supabaseAdmin!.from('round_guesses').insert(payload).then(({ error }) => {
+    if (error) console.error('recordRoundGuesses failed:', error.message);
+  });
+}
+
+// --- Admin: question active/inactive cache ------------------------------
+// Polled (not realtime) — admin toggles are rare, and every room's
+// startRound() would otherwise hit Postgres on every single round pick.
+// `false` (never fetched yet, or Supabase unconfigured) is a safe default:
+// nothing is filtered out until we positively know it's inactive.
+const inactiveQuestions = new Set<string>();
+
+function questionKey(themeId: string, questionId: number): string {
+  return `${themeId}:${questionId}`;
+}
+
+export function isQuestionActive(themeId: string, questionId: number): boolean {
+  return !inactiveQuestions.has(questionKey(themeId, questionId));
+}
+
+export function startQuestionOverridesPoll(): void {
+  if (!statsConfigured) return;
+  const refresh = () => {
+    supabaseAdmin!.from('question_overrides').select('theme_id, question_id, active').eq('active', false).then(({ data, error }) => {
+      if (error) { console.error('question_overrides refresh failed:', error.message); return; }
+      inactiveQuestions.clear();
+      for (const row of (data ?? []) as { theme_id: string; question_id: number }[]) {
+        inactiveQuestions.add(questionKey(row.theme_id, row.question_id));
+      }
+    });
+  };
+  refresh();
+  setInterval(refresh, 60 * 1000);
+}
+
+// --- Admin: question reports (durable copy) -----------------------------
+// server/src/index.ts keeps writing its existing in-memory + reports.jsonl
+// copy untouched (zero regression risk) — this is purely an additional,
+// durable copy the admin panel can actually query.
+export function recordQuestionReport(row: { userId: string | null; roomCode: string; themeId: string; questionId: number | null; phrase: string }): void {
+  if (!statsConfigured) return;
+  supabaseAdmin!.from('question_reports').insert({
+    user_id: row.userId, room_code: row.roomCode, theme_id: row.themeId,
+    question_id: row.questionId, phrase: row.phrase,
+  }).then(({ error }) => {
+    if (error) console.error('recordQuestionReport failed:', error.message);
+  });
+}

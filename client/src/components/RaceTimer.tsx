@@ -33,7 +33,11 @@ export default function RaceTimer({ raceMsLeft, onUrgentChange }: Props) {
   const liveMs = Math.max(0, anchorRef.current.ms - elapsedSincePush);
   const liveSeconds = liveMs / 1000;
   const elapsedSeconds = Math.min(RACE_SECONDS, RACE_SECONDS - liveSeconds);
-  const multiplier = liveMs <= 0 ? 0 : raceTimeMultiplier(elapsedSeconds);
+  // raceTimeMultiplier() already floors at 1.0x for the full 12s window —
+  // 0x is a distinct "never confirmed" state decided server-side, not
+  // something this live countdown preview should ever show just because
+  // the visible clock reached zero.
+  const multiplier = raceTimeMultiplier(elapsedSeconds);
   const urgent = liveMs > 0 && liveMs <= 3000;
   const timeLabel = liveSeconds.toFixed(1).replace('.', ',');
   const multLabel = multiplier.toFixed(1).replace('.', ',');

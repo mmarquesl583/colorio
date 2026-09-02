@@ -4,7 +4,8 @@ import { WebSocketServer, WebSocket } from 'ws';
 import { newPlayerId, newRoomCode } from './id.ts';
 import { Room, type QuestionReport } from './room.ts';
 import { verifyUserToken } from './supabaseAdmin.ts';
-import { startStaleSessionSweep } from './stats.ts';
+import { startStaleSessionSweep, startQuestionOverridesPoll, recordQuestionReport } from './stats.ts';
+import { handleAdminRequest } from './admin.ts';
 import { LOBBY_THEMES, MIN_PLAYERS, MAX_PLAYERS, MIN_ROUNDS, MAX_ROUNDS } from '../../shared/gameData.ts';
 import type { ClientMessage, RoomConfig, ServerMessage, PublicRoomSummary } from '../../shared/types.ts';
 
@@ -22,6 +23,12 @@ function recordReport(report: QuestionReport) {
   if (reports.length > 2000) reports.shift();
   appendFile('reports.jsonl', JSON.stringify(report) + '\n', 'utf8').catch((err) => {
     console.error('Failed to persist report to disk:', err);
+  });
+  // Durable copy for the admin panel — the file above stays untouched, this
+  // is purely additive (see the comment on recordQuestionReport itself).
+  recordQuestionReport({
+    userId: report.reporterUserId, roomCode: report.roomCode, themeId: report.themeId,
+    questionId: report.questionId, phrase: report.phrase,
   });
 }
 
@@ -79,6 +86,14 @@ const httpServer = createServer((req, res) => {
     if (!process.env.REPORTS_KEY || key !== process.env.REPORTS_KEY) { res.writeHead(404); res.end(); return; }
     res.writeHead(200, { 'content-type': 'application/json' });
     res.end(JSON.stringify(reports));
+    return;
+  }
+
+  if (url.pathname.startsWith('/admin/')) {
+    handleAdminRequest(req, res, url, rooms).catch((err) => {
+      console.error('Admin request failed:', err);
+      if (!res.headersSent) { res.writeHead(500, { 'access-control-allow-origin': '*' }); res.end(); }
+    });
     return;
   }
 
@@ -170,6 +185,7 @@ wss.on('connection', (ws: WebSocket) => {
 });
 
 startStaleSessionSweep();
+startQuestionOverridesPoll();
 
 httpServer.listen(PORT, () => {
   console.log(`color.io server listening on :${PORT}`);

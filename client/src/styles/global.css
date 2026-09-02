@@ -823,3 +823,98 @@ input, textarea { font-family: inherit; touch-action: manipulation; }
 @media (prefers-reduced-motion: reduce) {
   .corio-race-reveal-multi.is-shown { animation: none; }
 }
+
+/* =========================================================================
+   Admin panel — same dark purple/indigo base as the rest of the app, same
+   accent set (magenta/cyan/amarelo), but flatter and denser: this is a
+   professional tool, not a game screen, so no glow/breathe/rise animations,
+   tighter type scale, real tables instead of big touch-friendly cards.
+   ========================================================================= */
+.corio-admin { background: #0D0718; color: #F4F2F8; font-family: Inter, system-ui, sans-serif; }
+.corio-admin-sidebar {
+  width: 220px; flex: none; display: flex; flex-direction: column;
+  background: #12081F; border-right: 1px solid rgba(255,255,255,0.08);
+  padding: 16px 12px; box-sizing: border-box;
+}
+.corio-admin-brand { font-size: 15px; padding: 4px 8px 18px; letter-spacing: 0.3px; }
+.corio-admin-nav-group { font-size: 9px; font-weight: 800; letter-spacing: 0.8px; color: rgba(244,242,248,0.35); padding: 6px 10px 4px; }
+.corio-admin-nav-item {
+  all: unset; box-sizing: border-box; cursor: pointer; display: flex; align-items: center; gap: 9px;
+  width: 100%; padding: 8px 10px; border-radius: 9px; font-size: 12px; font-weight: 700;
+  color: rgba(244,242,248,0.7); margin-bottom: 2px;
+}
+.corio-admin-nav-item:hover { background: rgba(255,255,255,0.05); color: #fff; }
+.corio-admin-nav-item.is-active { background: rgba(139,92,246,0.18); color: #fff; box-shadow: inset 2px 0 0 #8B5CF6; }
+.corio-admin-main { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.corio-admin-topbar {
+  flex: none; display: flex; align-items: center; gap: 12px; padding: 14px 22px;
+  border-bottom: 1px solid rgba(255,255,255,0.08); background: rgba(13,7,24,0.7);
+}
+.corio-admin-title { font-family: 'Space Grotesk', sans-serif; font-weight: 800; font-size: 16px; flex: 1; min-width: 0; }
+.corio-admin-burger { all: unset; cursor: pointer; display: none; font-size: 16px; padding: 4px 8px; }
+.corio-admin-period {
+  background: #1A0A33; border: 1px solid rgba(139,92,246,0.35); color: #E9E4FF; border-radius: 9px;
+  padding: 7px 10px; font-size: 11px; font-weight: 700; outline: none;
+}
+.corio-admin-content { flex: 1; min-height: 0; overflow-y: auto; padding: 20px 22px 40px; }
+
+.corio-admin-kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; margin-bottom: 20px; }
+.corio-admin-kpi { background: #14091F; border: 1px solid rgba(255,255,255,0.08); border-radius: 14px; padding: 14px 16px; }
+.corio-admin-kpi-label { font-size: 9.5px; font-weight: 700; letter-spacing: 0.5px; color: rgba(244,242,248,0.45); text-transform: uppercase; }
+.corio-admin-kpi-value { font-family: 'Space Grotesk', sans-serif; font-weight: 800; font-size: 24px; margin-top: 5px; }
+.corio-admin-kpi-sub { font-size: 9.5px; color: rgba(244,242,248,0.4); margin-top: 3px; }
+
+.corio-admin-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 14px; margin-bottom: 20px; }
+.corio-admin-card { background: #14091F; border: 1px solid rgba(255,255,255,0.08); border-radius: 16px; padding: 16px; }
+.corio-admin-card-title { font-size: 11px; font-weight: 800; letter-spacing: 0.4px; color: rgba(244,242,248,0.6); margin-bottom: 12px; text-transform: uppercase; }
+
+.corio-admin-table-wrap { overflow-x: auto; border: 1px solid rgba(255,255,255,0.08); border-radius: 14px; }
+.corio-admin-table { width: 100%; border-collapse: collapse; font-size: 11.5px; white-space: nowrap; }
+.corio-admin-table th {
+  text-align: left; padding: 10px 14px; font-size: 9.5px; font-weight: 800; letter-spacing: 0.4px;
+  color: rgba(244,242,248,0.45); background: #14091F; border-bottom: 1px solid rgba(255,255,255,0.08); text-transform: uppercase;
+}
+.corio-admin-table td { padding: 10px 14px; border-bottom: 1px solid rgba(255,255,255,0.05); }
+.corio-admin-table tbody tr:hover { background: rgba(139,92,246,0.06); }
+.corio-admin-table tbody tr.is-clickable { cursor: pointer; }
+.corio-admin-table tbody tr:last-child td { border-bottom: none; }
+
+.corio-admin-pill { display: inline-flex; align-items: center; gap: 4px; padding: 3px 9px; border-radius: 999px; font-size: 9.5px; font-weight: 800; }
+.corio-admin-pill-purple { background: rgba(139,92,246,0.18); color: #C4B5FD; }
+.corio-admin-pill-cyan { background: rgba(41,231,255,0.16); color: #7DE8F5; }
+.corio-admin-pill-yellow { background: rgba(255,201,60,0.18); color: #FFC93C; }
+.corio-admin-pill-green { background: rgba(74,222,128,0.16); color: #4ADE80; }
+.corio-admin-pill-red { background: rgba(239,68,68,0.18); color: #FCA5A5; }
+.corio-admin-pill-gray { background: rgba(255,255,255,0.08); color: rgba(244,242,248,0.55); }
+
+.corio-admin-toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-bottom: 14px; }
+.corio-admin-search {
+  background: #1A0A33; border: 1px solid rgba(139,92,246,0.35); color: #fff; border-radius: 10px;
+  padding: 8px 12px; font-size: 11.5px; outline: none; min-width: 180px;
+}
+.corio-admin-select {
+  background: #1A0A33; border: 1px solid rgba(139,92,246,0.35); color: #E9E4FF; border-radius: 10px;
+  padding: 8px 10px; font-size: 11px; font-weight: 700; outline: none;
+}
+.corio-admin-btn {
+  all: unset; box-sizing: border-box; cursor: pointer; padding: 8px 14px; border-radius: 10px;
+  background: linear-gradient(90deg,#8B5CF6,#6D28D9); color: #fff; font-weight: 700; font-size: 11px;
+}
+.corio-admin-btn-ghost {
+  all: unset; box-sizing: border-box; cursor: pointer; padding: 7px 13px; border-radius: 10px;
+  background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1); color: rgba(244,242,248,0.75); font-weight: 700; font-size: 11px;
+}
+.corio-admin-back { all: unset; cursor: pointer; display: flex; align-items: center; gap: 6px; font-size: 11.5px; font-weight: 700; color: #29E7FF; margin-bottom: 14px; }
+.corio-admin-empty { padding: 40px 0; text-align: center; color: rgba(244,242,248,0.4); font-size: 11.5px; font-weight: 700; }
+.corio-admin-loading { padding: 40px 0; text-align: center; color: rgba(244,242,248,0.5); font-size: 11.5px; font-weight: 700; }
+.corio-admin-error { padding: 14px 16px; border-radius: 12px; background: rgba(239,68,68,0.12); border: 1px solid rgba(239,68,68,0.35); color: #FCA5A5; font-size: 11.5px; font-weight: 700; }
+
+@media (max-width: 860px) {
+  .corio-admin-sidebar {
+    position: fixed; inset: 0 auto 0 0; z-index: 50; transform: translateX(-100%);
+    transition: transform .25s ease; box-shadow: 8px 0 24px rgba(0,0,0,0.4);
+  }
+  .corio-admin-sidebar.is-open { transform: translateX(0); }
+  .corio-admin-burger { display: block; }
+}
+

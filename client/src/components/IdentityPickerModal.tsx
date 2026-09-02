@@ -65,7 +65,11 @@ export default function IdentityPickerModal({
     return () => document.removeEventListener('keydown', onKey);
   }, [onClose]);
 
-  const avatarList = AVATAR_ICONS.filter((a) => avatarCat === 'todos' || a.category === avatarCat);
+  // 'unico'-rarity avatars (Morfeu today) are exclusive grants, not just
+  // locked content — someone who doesn't own one shouldn't even see it
+  // exists in the browsable grid, not merely see it greyed out with a 🔒.
+  const avatarList = AVATAR_ICONS.filter((a) =>
+    (avatarCat === 'todos' || a.category === avatarCat) && (a.rarity !== 'unico' || unlockedAvatarIds.has(a.id)));
   const titleList = TITLE_CATALOG.filter((t) => titleCat === 'todos' || t.category === titleCat);
   const previewAvatar = AVATAR_ICONS.find((a) => a.id === previewAvatarId) ?? null;
   const previewTitle = TITLE_CATALOG.find((t) => t.id === previewTitleId) ?? null;

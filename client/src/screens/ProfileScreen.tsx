@@ -5,8 +5,9 @@ import { AVATAR_ICONS, avatarSmallSrc } from '@shared/avatarIcons';
 import { TITLE_CATALOG, titleNameFor } from '@shared/titleCatalog';
 import { LOBBY_THEMES } from '@shared/gameData';
 import { useProfileData } from '../hooks/useProfileData.ts';
-import { accuracyPct, formatPlaytime, addFriend, removeFriend, markUnlocksSeen } from '../stats.ts';
+import { formatPlaytime, addFriend, removeFriend, markUnlocksSeen } from '../stats.ts';
 import IdentityPickerModal from '../components/IdentityPickerModal.tsx';
+import MatchDetailModal from '../components/MatchDetailModal.tsx';
 
 const ADD_FRIEND_MESSAGES: Record<string, string> = {
   not_found: 'Nenhum jogador com esse código.',
@@ -21,7 +22,7 @@ const THEME_BY_ID = new Map(LOBBY_THEMES.map((t) => [t.id, t]));
 const FREE_AVATAR_COUNT = AVATAR_ICONS.filter((a) => a.free).length;
 const FREE_TITLE_COUNT = TITLE_CATALOG.filter((t) => t.free).length;
 
-export default function ProfileScreen({ onBack }: { onBack: () => void }) {
+export default function ProfileScreen({ onBack, onOpenAdmin }: { onBack: () => void; onOpenAdmin: () => void }) {
   const { session } = useSession();
   const userId = session?.user.id ?? null;
   const { data, loading, history, historyHasMore, historyLoading, loadMoreHistory, refresh } = useProfileData(userId);
@@ -40,6 +41,7 @@ export default function ProfileScreen({ onBack }: { onBack: () => void }) {
   const [addingFriend, setAddingFriend] = useState(false);
   const [addFriendMsg, setAddFriendMsg] = useState<string | null>(null);
   const [copiedCode, setCopiedCode] = useState(false);
+  const [openMatchId, setOpenMatchId] = useState<string | null>(null);
   // Cleared the moment either picker tab opens (it lets you switch between
   // Ícone/Título from the same modal either way) — local-only, so the "new
   // stuff to check" dot disappears instantly instead of waiting on the
@@ -51,7 +53,6 @@ export default function ProfileScreen({ onBack }: { onBack: () => void }) {
   const stats = data?.stats ?? null;
   const titleId = titleOverride !== undefined ? titleOverride : (data?.profile?.title_id ?? null);
   const titleName = titleNameFor(titleId);
-  const accuracy = accuracyPct(stats);
   const avatarCount = FREE_AVATAR_COUNT + (data?.unlockedAvatarIds.size ?? 0);
   const titleCount = FREE_TITLE_COUNT + (data?.unlockedTitleIds.size ?? 0);
 
@@ -119,7 +120,13 @@ export default function ProfileScreen({ onBack }: { onBack: () => void }) {
           <span className="corio-back-label">VOLTAR</span>
         </div>
         <Logo size={17} />
-        <div style={{ width: 28 }} />
+        {data?.profile?.is_admin ? (
+          <div onClick={onOpenAdmin} className="corio-tap" style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', width: 28, height: 28, borderRadius: 9, background: 'rgba(255,255,255,0.06)', fontSize: 13 }} aria-label="Abrir painel admin" title="Admin">
+            ⚙
+          </div>
+        ) : (
+          <div style={{ width: 28 }} />
+        )}
       </div>
 
       <div className="corio-card" style={{ flex: 'none', display: 'flex', alignItems: 'center', gap: 12, background: '#12121a', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 16, padding: 14 }}>
@@ -164,25 +171,10 @@ export default function ProfileScreen({ onBack }: { onBack: () => void }) {
         <div className="corio-eyebrow" style={{ fontSize: 8, fontWeight: 700, letterSpacing: 0.6, color: 'rgba(244,242,248,0.5)', marginBottom: 8 }}>ESTATÍSTICAS</div>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10 }}>
           <StatCell label="Partidas" value={stats?.games_played ?? 0} />
-          <StatCell label="Vitórias" value={stats?.games_won ?? 0} />
           <StatCell label="Perfeitos" value={stats?.total_perfects ?? 0} />
-          <StatCell label="Maior pontuação" value={(stats?.best_score ?? 0).toLocaleString('pt-BR')} />
-          <StatCell label="Precisão" value={accuracy === null ? '—' : `${accuracy}%`} />
-          <StatCell label="Sequência atual" value={stats?.current_answer_streak ?? 0} />
-        </div>
-      </div>
-
-      <div className="corio-card" style={{ flex: 'none', background: 'linear-gradient(135deg,rgba(139,92,246,0.18),rgba(41,231,255,0.1))', border: '1px solid rgba(139,92,246,0.3)', borderRadius: 14, padding: '12px 14px' }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <div>
-            <div className="corio-card-sub" style={{ fontSize: 9, color: 'rgba(244,242,248,0.55)' }}>Tempo de jogo</div>
-            <div className="corio-value-lg" style={{ fontFamily: "'Space Grotesk',sans-serif", fontWeight: 800, fontSize: 19 }}>{formatPlaytime(stats?.total_playtime_seconds ?? 0)}</div>
-          </div>
-          <div style={{ fontSize: 26 }}>⏱️</div>
-        </div>
-        <div className="corio-card-sub" style={{ fontSize: 9.5, color: 'rgba(244,242,248,0.5)', marginTop: 6 }}>
-          Você já jogou por {data?.daysPlayed ?? 0} {(data?.daysPlayed ?? 0) === 1 ? 'dia' : 'dias'}
-          {(stats?.current_day_streak ?? 0) > 1 ? ` · sequência de ${stats?.current_day_streak} dias` : ''}
+          <StatCell label="Vitórias" value={stats?.games_won ?? 0} />
+          <StatCell label="Pontuação total" value={(stats?.total_score ?? 0).toLocaleString('pt-BR')} />
+          <StatCell label="Tempo de jogo" value={formatPlaytime(stats?.total_playtime_seconds ?? 0)} />
         </div>
       </div>
 
@@ -222,14 +214,6 @@ export default function ProfileScreen({ onBack }: { onBack: () => void }) {
           </div>
         </div>
       )}
-
-      <div className="corio-card" style={{ flex: 'none', background: '#12121a', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 14, padding: 10 }}>
-        <div className="corio-eyebrow" style={{ fontSize: 8, fontWeight: 700, letterSpacing: 0.6, color: 'rgba(244,242,248,0.5)', marginBottom: 6 }}>CAMPANHA</div>
-        <div style={{ textAlign: 'center', padding: '8px 0' }}>
-          <div style={{ fontSize: 22 }}>🏆</div>
-          <div className="corio-card-sub" style={{ fontSize: 10, color: 'rgba(244,242,248,0.55)', marginTop: 4 }}>Em desenvolvimento! Em breve seu progresso na campanha aparece aqui.</div>
-        </div>
-      </div>
 
       <div style={{ flex: 'none', display: 'flex', gap: 8 }}>
         <button onClick={() => openPicker('avatar')} className="corio-tap corio-card" style={collectionCardStyle}>
@@ -288,31 +272,13 @@ export default function ProfileScreen({ onBack }: { onBack: () => void }) {
       </div>
 
       <div className="corio-card" style={{ flex: 'none', background: '#12121a', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 14, padding: 10 }}>
-        <div className="corio-eyebrow" style={{ fontSize: 8, fontWeight: 700, letterSpacing: 0.6, color: 'rgba(244,242,248,0.5)' }}>
-          CONQUISTAS {data ? `(${data.unlockedAchievementIds.size}/${data.achievements.length})` : ''}
-        </div>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 8, marginTop: 8 }}>
-          {(data?.achievements ?? []).map((a) => {
-            const unlocked = data?.unlockedAchievementIds.has(a.id) ?? false;
-            return (
-              <div key={a.id} style={{ borderRadius: 12, padding: 10, background: unlocked ? 'rgba(255,201,60,0.1)' : 'rgba(255,255,255,0.03)', border: unlocked ? '1px solid rgba(255,201,60,0.35)' : '1px solid rgba(255,255,255,0.08)', opacity: unlocked ? 1 : 0.55 }}>
-                <div style={{ fontSize: 17 }}>{unlocked ? (a.icon ?? '🏆') : '🔒'}</div>
-                <div className="corio-card-title" style={{ fontSize: 10, fontWeight: 700, marginTop: 4 }}>{a.name}</div>
-                <div className="corio-card-sub" style={{ fontSize: 8, color: 'rgba(244,242,248,0.5)', marginTop: 2 }}>{a.description}</div>
-              </div>
-            );
-          })}
-        </div>
-      </div>
-
-      <div className="corio-card" style={{ flex: 'none', background: '#12121a', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 14, padding: 10 }}>
         <div className="corio-eyebrow" style={{ fontSize: 8, fontWeight: 700, letterSpacing: 0.6, color: 'rgba(244,242,248,0.5)' }}>HISTÓRICO DE PARTIDAS</div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginTop: 8 }}>
           {history.length === 0 && !historyLoading && (
             <div className="corio-card-sub" style={{ fontSize: 10.5, color: 'rgba(244,242,248,0.5)', textAlign: 'center', padding: '10px 0' }}>Nenhuma partida registrada ainda.</div>
           )}
           {history.map((h) => (
-            <div key={h.id} style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'rgba(255,255,255,0.03)', borderRadius: 10, padding: '8px 10px' }}>
+            <div key={h.id} onClick={() => setOpenMatchId(h.match_id)} className="corio-tap" style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8, background: 'rgba(255,255,255,0.03)', borderRadius: 10, padding: '8px 10px' }}>
               <div style={{ fontSize: 15, flex: 'none' }}>{h.result === 'won' ? '🏆' : h.result === 'drawn' ? '🤝' : '💧'}</div>
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div className="corio-card-title" style={{ fontSize: 10.5, fontWeight: 700 }}>{MODE_LABELS[h.mode_id] ?? h.mode_id}</div>
@@ -343,6 +309,10 @@ export default function ProfileScreen({ onBack }: { onBack: () => void }) {
           onTitleEquipped={(id) => setTitleOverride(id)}
           onClose={() => setPickerMode(null)}
         />
+      )}
+
+      {openMatchId && (
+        <MatchDetailModal matchId={openMatchId} youUserId={userId} onClose={() => setOpenMatchId(null)} />
       )}
     </div>
   );

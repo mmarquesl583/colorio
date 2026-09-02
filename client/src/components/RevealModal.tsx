@@ -99,6 +99,9 @@ export default function RevealModal({ results, you, gameMode, nextReady, readySe
   let masterRow: Row | null = null;
 
   const animVal = (score: number) => Math.round(score * progress);
+  // Round scores can be negative (the -100..1000 range) — String(-45) is
+  // already "-45", so only the non-negative case needs an explicit "+".
+  const signed = (v: number) => (v >= 0 ? `+${v}` : `${v}`);
 
   if (stage === 'guesses' || stage === 'sorted') {
     const isSorted = stage === 'sorted';
@@ -117,7 +120,7 @@ export default function RevealModal({ results, you, gameMode, nextReady, readySe
         badge: (isSorted && progress >= 1) ? g.badge : null,
         roundMvp: (isSorted && progress >= 1) ? g.isRoundMvp : false,
         currentScore: g.prevScore,
-        gainLabel: (isSorted && progress > 0) ? `+${animVal(g.score)}` : '',
+        gainLabel: (isSorted && progress > 0) ? signed(animVal(g.score)) : '',
         stripeColor: visible ? `hsl(${hslToCss(g.hsl)})` : '#2a2a35',
         stripeVisible: true,
         isMasterRow: false,
@@ -131,7 +134,7 @@ export default function RevealModal({ results, you, gameMode, nextReady, readySe
         name: results.masterId === you.id ? 'Você' : (results.masterName ?? ''),
         isTop: false, badge: null, roundMvp: false,
         currentScore: results.masterPrevScore,
-        gainLabel: progress > 0 ? `+${animVal(results.masterGain)}` : '',
+        gainLabel: progress > 0 ? signed(animVal(results.masterGain)) : '',
         stripeColor: 'transparent', stripeVisible: false, isMasterRow: true,
       };
     }
@@ -227,13 +230,13 @@ export default function RevealModal({ results, you, gameMode, nextReady, readySe
             <div style={{ width: 34, height: 34, borderRadius: '50%', background: 'rgba(255,255,255,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, fontWeight: 700, flex: 'none', overflow: 'hidden' }}>
               {r.avatarId ? <img src={avatarSmallSrc(r.avatarId)} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : r.initial}
             </div>
-            <div style={{ flex: 1, minWidth: 0, fontSize: 11.5, fontWeight: 700, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', gap: 5 }}>
-              {r.name}
+            <div style={{ flex: 1, minWidth: 0, fontSize: 11.5, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 5, overflow: 'hidden' }}>
+              <span style={{ minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.name}</span>
               {r.isTop && <span style={{ flex: 'none' }} title="Maior pontuação da rodada">🏆</span>}
               {r.roundMvp && <span style={{ flex: 'none' }} title="Palpite mais preciso da rodada">🎯</span>}
-              {r.badge && <span style={{ fontSize: 7.5, fontWeight: 700, letterSpacing: 0.3, background: '#FFC93C', color: '#151007', padding: '2px 5px', borderRadius: 5, flex: 'none' }}>{r.badge}</span>}
+              {r.badge && <span style={{ fontSize: 7.5, fontWeight: 700, letterSpacing: 0.3, background: '#FFC93C', color: '#151007', padding: '2px 5px', borderRadius: 5, flex: 'none', whiteSpace: 'nowrap' }}>{r.badge}</span>}
               {r.timeMultiplier != null && (
-                <span style={{ fontSize: 7.5, fontWeight: 700, letterSpacing: 0.3, background: r.timeMultiplier > 0 ? 'rgba(41,231,255,0.18)' : 'rgba(239,68,68,0.18)', color: r.timeMultiplier > 0 ? '#29E7FF' : '#FCA5A5', padding: '2px 5px', borderRadius: 5, flex: 'none' }} title="Bônus de velocidade">
+                <span style={{ fontSize: 7.5, fontWeight: 700, letterSpacing: 0.3, background: r.timeMultiplier > 0 ? 'rgba(41,231,255,0.18)' : 'rgba(239,68,68,0.18)', color: r.timeMultiplier > 0 ? '#29E7FF' : '#FCA5A5', padding: '2px 5px', borderRadius: 5, flex: 'none', whiteSpace: 'nowrap' }} title="Bônus de velocidade">
                   ×{r.timeMultiplier.toFixed(1).replace('.', ',')}
                 </span>
               )}
@@ -303,7 +306,7 @@ export default function RevealModal({ results, you, gameMode, nextReady, readySe
         {gameMode === 'race' && yourGuess && stage !== 'guesses' && stage !== 'sorted' && (
           <div style={{ width: '100%', maxWidth: 360, marginBottom: 10, background: 'rgba(139,92,246,0.12)', border: '1px solid rgba(139,92,246,0.35)', borderRadius: 14, padding: '12px 14px', display: 'flex', flexDirection: 'column', gap: 8, animation: 'corio-rise .3s ease' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-              <div style={{ width: 30, height: 30, borderRadius: 9, background: `hsl(${hslToCss(yourGuess.hsl)})`, flex: 'none', border: '1px solid rgba(255,255,255,0.25)' }} />
+              <div style={{ width: 30, height: 30, borderRadius: 9, background: `hsl(${hslToCss(yourGuess.hsl)})`, flex: 'none' }} />
               <div style={{ minWidth: 0 }}>
                 <div style={{ fontSize: 8, fontWeight: 700, letterSpacing: 0.5, color: 'rgba(244,242,248,0.5)' }}>SUA COR</div>
                 <div style={{ fontSize: 12, fontWeight: 700 }}>{yourGuess.badge}</div>

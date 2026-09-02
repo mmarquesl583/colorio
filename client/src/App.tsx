@@ -9,9 +9,10 @@ import ProfileScreen from './screens/ProfileScreen.tsx';
 import WaitingScreen from './screens/WaitingScreen.tsx';
 import GameScreen from './screens/GameScreen.tsx';
 import MatchEndScreen from './screens/MatchEndScreen.tsx';
+import AdminApp from './screens/admin/AdminApp.tsx';
 import type { RoomConfig } from '@shared/types';
 
-type Route = 'home' | 'create-lobby' | 'find-room' | 'login' | 'profile';
+type Route = 'home' | 'create-lobby' | 'find-room' | 'login' | 'profile' | 'admin';
 
 export default function App() {
   const conn = useRoomConnection();
@@ -59,7 +60,10 @@ export default function App() {
       );
     }
     if (route === 'profile') {
-      return <ProfileScreen onBack={() => setRoute('home')} />;
+      return <ProfileScreen onBack={() => setRoute('home')} onOpenAdmin={() => setRoute('admin')} />;
+    }
+    if (route === 'admin') {
+      return <AdminApp onBack={() => setRoute('profile')} />;
     }
     return (
       <HomeScreen

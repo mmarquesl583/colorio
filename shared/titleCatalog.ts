@@ -56,6 +56,9 @@ export const TITLE_CATALOG: TitleOption[] = [
   // Experiência
   { id: 'veterano-das-cores', name: 'Veterano das Cores', category: 'experiencia', description: 'Jogue 100 partidas.' },
   { id: 'morador-do-colorio', name: 'Morador do Colorio', category: 'experiencia', description: 'Passe 10 horas dentro do jogo.' },
+  { id: 'desocupado', name: 'Desocupado', category: 'experiencia', description: 'Jogue por 1 hora no total.' },
+  { id: 'vagabundo', name: 'Vagabundo', category: 'experiencia', description: 'Jogue por 6 horas no total.' },
+  { id: 'acorda-pra-vida', name: 'Acorda pra Vida', category: 'experiencia', description: 'Jogue por 12 horas no total.' },
 
   // Social
   { id: 'um-bom-amigo', name: 'Um Bom Amigo', category: 'social', description: 'Adicione 1 amigo.' },

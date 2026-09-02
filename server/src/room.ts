@@ -9,7 +9,7 @@ import {
   SPEED_BONUS_MAX, ROUND_MVP_BONUS, AI_WIN_SCORE, AI_WIN_PERFECTS, LOBBY_RECONNECT_GRACE_MS,
 } from '../../shared/gameData.ts';
 import { AI_QUESTIONS } from '../../shared/aiQuestions.ts';
-import type { AiDifficulty } from '../../shared/aiQuestions.ts';
+import type { AiDifficulty, AiQuestion } from '../../shared/aiQuestions.ts';
 import type {
   RoomConfig, RoundPhase, ScreenState, HslColor, ChatEntry,
   RoundView, RoundResults, RoomStateView, PlayerPublic, MatchWinner,
@@ -17,16 +17,37 @@ import type {
 import { newChatId, newMatchId } from './id.ts';
 import {
   openGameSession, closeGameSession, recordMatchResult, recordAbandonedMatch,
-  type RoundOutcome, type ThemeTally, type MatchParticipantSummary,
+  recordRoundGuesses, isQuestionActive,
+  type RoundOutcome, type ThemeTally, type MatchParticipantSummary, type RoundGuessRow,
 } from './stats.ts';
 
 const DEFAULT_COLOR: HslColor = { h: 260, s: 60, l: 55 };
 
+// Server-wide (all rooms, not just this one) recently-served question ids
+// per theme — a plain random pick from a ~100-question bank has a real
+// chance of two different rooms (or even the same room a few rounds apart,
+// on top of the match-scoped exclusion below) drawing the same question
+// back to back. Biasing the pick away from whatever was just served
+// anywhere on this process spreads the rotation out without needing to
+// persist per-player history in Postgres. Capped per theme so it never
+// grows unbounded across a long-running server process.
+const RECENTLY_SERVED_CAP = 25;
+const recentlyServedGlobal = new Map<string, number[]>();
+
+function markServedGlobally(themeId: string, questionId: number) {
+  const list = recentlyServedGlobal.get(themeId) ?? [];
+  list.unshift(questionId);
+  if (list.length > RECENTLY_SERVED_CAP) list.length = RECENTLY_SERVED_CAP;
+  recentlyServedGlobal.set(themeId, list);
+}
+
 export interface QuestionReport {
   roomCode: string;
   reporterName: string;
+  reporterUserId: string | null;
   themeId: string;
   themeName: string;
+  questionId: number | null;
   phrase: string;
   aiDifficulty: AiDifficulty | null;
   aiSource: string | null;
@@ -111,6 +132,12 @@ export class Room {
    * against their own clock, a clock-skew hazard). Clients instead get a
    * freshly-computed raceMsLeft on every broadcast, see stateFor(). */
   private raceDeadlineAt: number | null = null;
+  /** Links this round back to the specific shared/aiQuestions.ts entry, for
+   * admin analytics (round_guesses.question_id) — never sent on the wire,
+   * the client never needs to know a numeric question id. null in
+   * 'players' mode (no fixed catalog) or when the AI bank fallback phrase
+   * was used (no q at all — see startRound()). */
+  private aiQuestionId: number | null = null;
   private raceIntroTimer: ReturnType<typeof setTimeout> | null = null;
   private tickHandle: ReturnType<typeof setInterval> | null = null;
   private raceTickHandle: ReturnType<typeof setInterval> | null = null;
@@ -126,6 +153,10 @@ export class Room {
   // mid-match, never read outside this class.
   private matchId = '';
   private matchStartedAt = Date.now();
+  // AI question ids already served this match, per theme — the random pick
+  // in startRound() excludes these first, so the same room never repeats a
+  // question until its theme's whole bank has actually been exhausted.
+  private matchUsedQuestionIds = new Map<string, Set<number>>();
   private matchOutcomes = new Map<string, RoundOutcome[]>();
   private matchThemeTally = new Map<string, Map<string, ThemeTallyEntry>>();
   private matchThemeIds = new Set<string>();
@@ -295,6 +326,7 @@ export class Room {
     this.matchRaceStats = new Map();
     this.matchRoundScores = new Map();
     this.matchRoundResponseMs = new Map();
+    this.matchUsedQuestionIds = new Map();
   }
 
   // "Which question source" is orthogonal to "which win condition" — race
@@ -320,6 +352,27 @@ export class Room {
     const theme = list[Math.floor(Math.random() * list.length)] ?? LOBBY_THEMES[0];
     this.lastThemeId = theme.id;
     return theme;
+  }
+
+  // Picks a question for `themeId` avoiding, in priority order: (1) anything
+  // already asked THIS match for that theme, (2) anything served recently
+  // by ANY room on this process. Either exclusion is dropped once it would
+  // empty the pool (a long match on a small bank must still be able to
+  // pick something, and a repeat after truly everything else has already
+  // been asked is a reasonable fallback, not a bug).
+  private pickQuestion(themeId: string, bank: AiQuestion[]): AiQuestion | null {
+    if (bank.length === 0) return null;
+    const usedThisMatch = this.matchUsedQuestionIds.get(themeId);
+    const notUsedThisMatch = usedThisMatch ? bank.filter((q) => !usedThisMatch.has(q.id)) : bank;
+    const pool = notUsedThisMatch.length ? notUsedThisMatch : bank;
+    const recent = new Set(recentlyServedGlobal.get(themeId) ?? []);
+    const notRecent = pool.filter((q) => !recent.has(q.id));
+    const finalPool = notRecent.length ? notRecent : pool;
+    const q = finalPool[Math.floor(Math.random() * finalPool.length)];
+    if (!this.matchUsedQuestionIds.has(themeId)) this.matchUsedQuestionIds.set(themeId, new Set());
+    this.matchUsedQuestionIds.get(themeId)!.add(q.id);
+    markServedGlobally(themeId, q.id);
+    return q;
   }
 
   private connectedOrder(): string[] {
@@ -352,14 +405,19 @@ export class Room {
     let phrase = '';
     let aiDifficulty: AiDifficulty | null = null;
     let aiSource: string | null = null;
+    this.aiQuestionId = null;
     let secretHsl: HslColor = { h: Math.round(Math.random() * 360), s: Math.round(40 + Math.random() * 45), l: Math.round(22 + Math.random() * 45) };
     if (isAi) {
-      const bank = AI_QUESTIONS[theme.id];
-      const q = bank?.length ? bank[Math.floor(Math.random() * bank.length)] : null;
+      // Admin can deactivate individual questions (question_overrides,
+      // polled into isQuestionActive()) without touching the static
+      // catalog — filtered here, same random-pick logic otherwise.
+      const bank = (AI_QUESTIONS[theme.id] ?? []).filter((cand) => isQuestionActive(theme.id, cand.id));
+      const q = this.pickQuestion(theme.id, bank);
       if (q) {
         phrase = q.pergunta;
         aiDifficulty = q.dificuldade;
         aiSource = q.fonte ?? null;
+        this.aiQuestionId = q.id;
         const rgb = hexToRgb(q.hex);
         secretHsl = rgbToHslFrac(rgb.r, rgb.g, rgb.b);
       } else {
@@ -529,6 +587,8 @@ export class Room {
 
     const themeId = this.round?.themeId ?? null;
     const isRace = this.config.gameMode === 'race';
+    const modeId = isRace ? 'race' : this.config.phraseMode;
+    const guessRows: RoundGuessRow[] = [];
     const guesses = base.map(({ id, p, hsl, de, baseScore }) => {
       const isRoundMvp = id === mvpId;
       let score: number;
@@ -564,6 +624,20 @@ export class Room {
       const responseMs = isRace
         ? p.raceResponseMs
         : (p.confirmedAtSeconds !== null ? Math.round((PLACING_SECONDS - p.confirmedAtSeconds) * 1000) : null);
+
+      // Admin analytics raw material — one row per guesser per round, only
+      // for accounts we can attribute (no userId = not signed in, same
+      // guard used for match-level stats). Persisted after the loop.
+      if (p.userId && this.round) {
+        const guessRgb = hslFracToRgb(hsl.h, hsl.s / 100, hsl.l / 100);
+        const guessHex = rgbToHex(guessRgb.r, guessRgb.g, guessRgb.b);
+        guessRows.push({
+          matchId: this.matchId, roomCode: this.code, userId: p.userId, modeId,
+          themeId: this.round.themeId, questionId: this.aiQuestionId, phrase: this.round.phrase,
+          secretHex, guessHex, deltaE: de, score: baseScore, badge, responseMs,
+        });
+      }
+
       if (!this.matchRoundScores.has(id)) this.matchRoundScores.set(id, []);
       this.matchRoundScores.get(id)!.push(baseScore);
       if (!this.matchRoundResponseMs.has(id)) this.matchRoundResponseMs.set(id, []);
@@ -607,6 +681,7 @@ export class Room {
         ...(isRace ? { baseScore, timeMultiplier, raceResponseSeconds } : {}),
       };
     });
+    recordRoundGuesses(guessRows);
 
     // Frase da IA win condition: first to 10000 pontos or 5 acertos perfeitos.
     // Checked against guessers only (the master's average-of-guessers gain
@@ -641,15 +716,18 @@ export class Room {
       masterNewScore = master.score;
     }
 
-    // Frase dos jogadores AND Corrida contra o Tempo have no score/perfect
-    // win threshold — both end after the configured number of rounds
-    // instead, decided by whoever has the highest cumulative score at that
-    // point (tied top scores are recorded as a draw, not resolved
-    // arbitrarily). Placed after the master's own score update above so
-    // their final-round gain counts (race rounds have no master, so that's
-    // a no-op for them).
-    if ((this.config.phraseMode === 'players' || this.config.gameMode === 'race')
-        && !this.matchWinner && this.roundIdx + 1 >= this.config.numRounds) {
+    // Round-count fallback for every mode, not just "Frase dos jogadores"
+    // and Corrida (which have no score/perfect threshold at all). "Frase da
+    // IA" normally ends early via the 10000-pontos/5-perfeitos check above,
+    // but casual play very often never reaches that — without this
+    // fallback the match would just run past the configured round count
+    // forever, only ever ending when the room empties and gets recorded as
+    // *abandoned* instead of finished (which never bumps games_played).
+    // Decided by whoever has the highest cumulative score at that point
+    // (tied top scores are recorded as a draw, not resolved arbitrarily).
+    // Placed after the master's own score update above so their final-round
+    // gain counts (race rounds have no master, so that's a no-op for them).
+    if (!this.matchWinner && this.roundIdx + 1 >= this.config.numRounds) {
       this.finishByTopScore();
     }
 
@@ -820,8 +898,10 @@ export class Room {
     this.onReport({
       roomCode: this.code,
       reporterName: p.name,
+      reporterUserId: p.userId,
       themeId: this.round.themeId,
       themeName: this.round.themeName,
+      questionId: this.aiQuestionId,
       phrase: this.round.phrase,
       aiDifficulty: this.round.aiDifficulty,
       aiSource: this.round.aiSource,
