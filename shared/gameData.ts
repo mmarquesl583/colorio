@@ -19,6 +19,8 @@ export const LOBBY_THEMES: LobbyTheme[] = [
   { id: 'brawlstars', icon: '🌟', name: 'Brawl Stars', color: '#FBBF24' },
   { id: 'globinho', icon: '📼', name: 'Desenhos da TV Globinho', color: '#14B8A6' },
   { id: 'animais', icon: '🐾', name: 'Animais', color: '#65A30D' },
+  { id: 'ciencia', icon: '🔬', name: 'Ciência', color: '#475569' },
+  { id: 'memoria', icon: '🧠', name: 'Aquecendo a Memória', color: '#DB2777' },
 ];
 
 // Used when a round's phrase mode is "AI" (auto-generated clue, no human master writes it).
