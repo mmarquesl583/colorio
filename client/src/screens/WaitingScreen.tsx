@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import Logo from '../components/Logo.tsx';
-import { LOBBY_THEMES } from '@shared/gameData';
+import { LOBBY_THEMES, MIN_PLAYERS, MAX_PLAYERS, MIN_ROUNDS, MAX_ROUNDS } from '@shared/gameData';
 import { AI_QUESTIONS } from '@shared/aiQuestions';
 import { avatarSmallSrc } from '@shared/avatarIcons';
 import { titleNameFor } from '@shared/titleCatalog';
@@ -38,6 +38,14 @@ export default function WaitingScreen({ conn }: { conn: RoomConnection }) {
     const has = s.config.selectedThemes.includes(id);
     const next = has ? s.config.selectedThemes.filter((x) => x !== id) : [...s.config.selectedThemes, id];
     conn.send({ type: 'update_config', config: { selectedThemes: next } });
+  };
+  const setNumPlayers = (delta: number) => {
+    const next = Math.max(MIN_PLAYERS, Math.min(MAX_PLAYERS, s.config.numPlayers + delta));
+    if (next !== s.config.numPlayers) conn.send({ type: 'update_config', config: { numPlayers: next } });
+  };
+  const setNumRounds = (delta: number) => {
+    const next = Math.max(MIN_ROUNDS, Math.min(MAX_ROUNDS, s.config.numRounds + delta));
+    if (next !== s.config.numRounds) conn.send({ type: 'update_config', config: { numRounds: next } });
   };
   const currentModeChoice: ModeChoice = s.config.gameMode === 'race' ? 'race' : s.config.phraseMode === 'ai' ? 'ai' : 'players';
   const visibleThemes = (s.config.phraseMode === 'ai' || s.config.gameMode === 'race') ? LOBBY_THEMES.filter((t) => AI_ELIGIBLE_IDS.has(t.id)) : LOBBY_THEMES;
@@ -94,8 +102,8 @@ export default function WaitingScreen({ conn }: { conn: RoomConnection }) {
         {editingConfig && (
           <div style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', gap: 8 }}>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6 }}>
-              <ConfigChip label="👥 Jogadores" value={String(s.config.numPlayers)} />
-              <ConfigChip label="⏱ Rodadas" value={String(s.config.numRounds)} />
+              <StepperChip label="👥 Jogadores" value={s.config.numPlayers} onDec={() => setNumPlayers(-1)} onInc={() => setNumPlayers(1)} />
+              <StepperChip label="⏱ Rodadas" value={s.config.numRounds} onDec={() => setNumRounds(-1)} onInc={() => setNumRounds(1)} />
             </div>
             <div style={{ display: 'flex', gap: 8 }}>
               <div onClick={() => chooseMode('players')} className="corio-tap corio-card" style={modeCardStyle(currentModeChoice === 'players', 'rgba(139,92,246,0.15)', '#8B5CF6')}>
@@ -195,6 +203,19 @@ export default function WaitingScreen({ conn }: { conn: RoomConnection }) {
           })()}
         </div>
       )}
+    </div>
+  );
+}
+
+function StepperChip({ label, value, onDec, onInc }: { label: string; value: number; onDec: () => void; onInc: () => void }) {
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'rgba(255,255,255,0.03)', borderRadius: 8, padding: '5px 6px 5px 8px' }}>
+      <div className="corio-card-sub" style={{ fontSize: 8.5, fontWeight: 700, color: 'rgba(244,242,248,0.55)' }}>{label}</div>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+        <button onClick={onDec} className="corio-tap" style={{ all: 'unset', cursor: 'pointer', width: 18, height: 18, borderRadius: '50%', background: 'rgba(255,255,255,0.08)', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11 }}>−</button>
+        <div className="corio-card-title" style={{ fontSize: 11, fontWeight: 800, fontFamily: "'Space Grotesk',sans-serif", width: 14, textAlign: 'center' }}>{value}</div>
+        <button onClick={onInc} className="corio-tap" style={{ all: 'unset', cursor: 'pointer', width: 18, height: 18, borderRadius: '50%', background: '#8B5CF6', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11 }}>+</button>
+      </div>
     </div>
   );
 }

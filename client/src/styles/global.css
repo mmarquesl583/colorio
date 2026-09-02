@@ -802,7 +802,7 @@ input, textarea { font-family: inherit; touch-action: manipulation; }
 
 /* Corrida contra o Tempo — big per-player reveal card (sorted stage):
    PONTUAÇÃO shown alone first, then MULTI pops in and TOTAL counts up. */
-.corio-race-reveal-card { width: 100%; box-sizing: border-box; display: flex; align-items: stretch; background: rgba(20,20,26,0.94); border: 1px solid rgba(255,255,255,0.1); border-radius: 18px; overflow: hidden; animation: corio-rise .3s ease; }
+.corio-race-reveal-card { width: 100%; box-sizing: border-box; display: flex; align-items: stretch; background: rgba(20,20,26,0.94); border-radius: 18px; overflow: hidden; animation: corio-rise .3s ease; }
 .corio-race-reveal-swatch { width: 18px; flex: none; transition: background .5s ease; }
 .corio-race-reveal-card-body { flex: 1; min-width: 0; padding: 14px 16px; }
 .corio-race-reveal-card-top { display: flex; align-items: center; gap: 9px; margin-bottom: 12px; }
