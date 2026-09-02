@@ -197,6 +197,28 @@ export class Room {
     return true;
   }
 
+  // Explicit leave (player clicked SAIR) — skips the reconnect grace period
+  // entirely, since there's nothing to grace: they told us they're leaving,
+  // unlike disconnect() below which can't tell a deliberate close from a
+  // dropped connection and has to assume the latter. Only the 'waiting'
+  // screen has a grace period to skip; disconnect() already removes nobody
+  // once a match is in progress (their slot/score has to survive a
+  // reconnect), so this just falls through to the same behavior there.
+  leave(id: string) {
+    if (this.screen !== 'waiting') { this.disconnect(id); return; }
+    const pending = this.lobbyLeaveTimers.get(id);
+    if (pending) { clearTimeout(pending); this.lobbyLeaveTimers.delete(id); }
+    const p = this.players.get(id);
+    if (!p) return;
+    if (p.sessionId) { closeGameSession(p.sessionId); p.sessionId = null; }
+    this.players.delete(id);
+    this.order = this.order.filter((pid) => pid !== id);
+    if (this.hostId === id) this.hostId = this.order[0] ?? null;
+    this.chat.push(sysMsg('#94A3B8', `${p.name} saiu da sala`));
+    if (this.players.size === 0) { this.stopTimers(); this.onEmpty(); return; }
+    this.broadcast();
+  }
+
   disconnect(id: string) {
     const p = this.players.get(id);
     if (!p) return;

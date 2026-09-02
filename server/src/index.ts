@@ -138,6 +138,17 @@ wss.on('connection', (ws: WebSocket) => {
       return;
     }
 
+    if (msg.type === 'leave_room') {
+      // Nulling these out (instead of leaving them for the disconnect()
+      // guard to no-op on) also stops any message that slips in between
+      // this and the socket actually closing from acting on a playerId the
+      // room has already fully removed.
+      if (room && playerId) room.leave(playerId);
+      room = null;
+      playerId = null;
+      return;
+    }
+
     if (!room || !playerId) return;
 
     switch (msg.type) {

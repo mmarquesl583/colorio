@@ -187,7 +187,16 @@ export function useRoomConnection(): RoomConnection {
     inRoomRef.current = false;
     if (reconnectTimerRef.current) { clearTimeout(reconnectTimerRef.current); reconnectTimerRef.current = null; }
     saveSession(null);
-    wsRef.current?.close();
+    const ws = wsRef.current;
+    // Tell the server this is a deliberate leave, not a dropped connection
+    // — a bare close() looks identical to a network drop from the server's
+    // side, which used to hold the seat open for a reconnect grace period
+    // and let a since-abandoned slot linger next to a fresh one from
+    // rejoining via "Procurar salas".
+    if (ws && ws.readyState === WebSocket.OPEN) {
+      ws.send(JSON.stringify({ type: 'leave_room' } satisfies ClientMessage));
+    }
+    ws?.close();
     wsRef.current = null;
     setState(null);
     setPlayerId(null);

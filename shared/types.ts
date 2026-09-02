@@ -157,6 +157,7 @@ export type ClientMessage =
   | { type: 'create_room'; name: string; config: RoomConfig; token: string | null; avatarId: string | null; titleId: string | null }
   | { type: 'join_room'; code: string; name: string; token: string | null; avatarId: string | null; titleId: string | null }
   | { type: 'rejoin'; code: string; playerId: string }
+  | { type: 'leave_room' }
   | { type: 'update_config'; config: Partial<RoomConfig> }
   | { type: 'start_match' }
   | { type: 'pick_color'; hsl: HslColor }
