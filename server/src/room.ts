@@ -8,17 +8,21 @@ import {
   LOBBY_THEMES, AI_PHRASE_BANK, PLAYER_PALETTE, PLACING_SECONDS, NEXT_ROUND_READY_TIMEOUT_MS,
   SPEED_BONUS_MAX, ROUND_MVP_BONUS, AI_WIN_SCORE, AI_WIN_PERFECTS, LOBBY_RECONNECT_GRACE_MS,
 } from '../../shared/gameData.ts';
+import {
+  XP_PER_ROUND_PLAYED, XP_PER_CORRECT, XP_PER_PERFECT_BONUS, XP_MATCH_PLAYED_BONUS,
+  XP_MATCH_WIN_BONUS, XP_MATCH_DRAW_BONUS, comboXpMultiplier, levelForXp,
+} from '../../shared/progression.ts';
 import { AI_QUESTIONS } from '../../shared/aiQuestions.ts';
 import type { AiDifficulty, AiQuestion } from '../../shared/aiQuestions.ts';
 import type {
   RoomConfig, RoundPhase, ScreenState, HslColor, ChatEntry,
-  RoundView, RoundResults, RoomStateView, PlayerPublic, MatchWinner,
+  RoundView, RoundResults, RoomStateView, PlayerPublic, MatchWinner, MatchPlayerSummary,
 } from '../../shared/types.ts';
 import { newChatId, newMatchId } from './id.ts';
 import {
   openGameSession, closeGameSession, recordMatchResult, recordAbandonedMatch,
-  recordRoundGuesses, isQuestionActive,
-  type RoundOutcome, type ThemeTally, type MatchParticipantSummary, type RoundGuessRow,
+  recordRoundGuesses, isQuestionActive, fetchPlayerBests,
+  type RoundOutcome, type ThemeTally, type MatchParticipantSummary, type RoundGuessRow, type PriorBests,
 } from './stats.ts';
 
 const DEFAULT_COLOR: HslColor = { h: 260, s: 60, l: 55 };
@@ -70,6 +74,20 @@ interface InternalPlayer {
   titleId: string | null;
   score: number;
   perfectCount: number;
+  /** Consecutive good guesses within the current match — survives across
+   * rounds (unlike pickedColor/confirmed/etc, never touched by the
+   * per-round reset block in startRound()), zeroed on a 'wrong' outcome or
+   * a match restart. Guessers only; the classic-mode clue-writing master
+   * never accumulates this. */
+  combo: number;
+  /** This player's own player_stats snapshot from BEFORE the match in
+   * progress, fetched asynchronously via loadPriorBests() at join time (and
+   * again on restartMatch()) — lets recordMatchStats() tell "NOVO
+   * RECORDE!" apart from "quase lá" without waiting on a DB round trip at
+   * match end. Null until the fetch resolves, or forever for a guest
+   * (no userId), or for anyone who joined so late the fetch hadn't
+   * resolved before the match ended. */
+  priorBests: PriorBests | null;
   connected: boolean;
   confirmed: boolean;
   readyNext: boolean;
@@ -169,6 +187,18 @@ export class Room {
   // TS; the SQL side derives whatever it needs from these two arrays.
   private matchRoundScores = new Map<string, number[]>();
   private matchRoundResponseMs = new Map<string, (number | null)[]>();
+  // Progression (XP/combo) — same per-match-accumulator convention as the
+  // fields above, populated in the same per-guesser loop inside
+  // computeReveal(). matchNearPerfects counts CIRÚRGICO-badge rounds
+  // ("quase perfeitos" on the match-end screen).
+  private matchXp = new Map<string, number>();
+  private matchComboBest = new Map<string, number>();
+  private matchNearPerfects = new Map<string, number>();
+  // Built once in recordMatchStats(), read by stateFor() as
+  // RoomStateView.matchSummary — the match-end screen's record/level-up/
+  // stat-breakdown data source, computed synchronously here instead of
+  // waiting on recordMatchResult()'s fire-and-forget Postgres round trip.
+  private matchSummaries: MatchPlayerSummary[] = [];
 
   constructor(code: string, config: RoomConfig, onEmpty: () => void, onReport: (report: QuestionReport) => void) {
     this.code = code;
@@ -188,7 +218,7 @@ export class Room {
       color: this.colorFor(idx),
       initial: (name.trim()[0] || 'J').toUpperCase(),
       avatarId, titleId,
-      score: 0, perfectCount: 0, connected: true, confirmed: false, readyNext: false,
+      score: 0, perfectCount: 0, combo: 0, priorBests: null, connected: true, confirmed: false, readyNext: false,
       pickedColor: null, colorHistory: [], confirmedAtSeconds: null, raceResponseMs: null,
       userId, sessionId: null,
     };
@@ -196,8 +226,18 @@ export class Room {
     this.order.push(id);
     if (!this.hostId) this.hostId = id;
     this.chat.push(sysMsg('#94A3B8', `${player.name} entrou na sala`));
-    if (userId) this.openSessionFor(id, userId);
+    if (userId) { this.openSessionFor(id, userId); this.loadPriorBests(id, userId); }
     return player;
+  }
+
+  // Non-blocking priming read (see PriorBests' own doc comment in
+  // stats.ts) — guarded the same way openSessionFor() already is, against
+  // the player having disconnected by the time the read resolves.
+  private loadPriorBests(id: string, userId: string) {
+    fetchPlayerBests(userId).then((bests) => {
+      const still = this.players.get(id);
+      if (still) still.priorBests = bests;
+    });
   }
 
   // Opens a game_sessions row asynchronously and stashes its id on the
@@ -327,6 +367,10 @@ export class Room {
     this.matchRoundScores = new Map();
     this.matchRoundResponseMs = new Map();
     this.matchUsedQuestionIds = new Map();
+    this.matchXp = new Map();
+    this.matchComboBest = new Map();
+    this.matchNearPerfects = new Map();
+    this.matchSummaries = [];
   }
 
   // "Which question source" is orthogonal to "which win condition" — race
@@ -617,6 +661,20 @@ export class Room {
       if (!this.matchOutcomes.has(id)) this.matchOutcomes.set(id, []);
       this.matchOutcomes.get(id)!.push(outcome);
 
+      // Progression: combo survives across rounds within the match (see
+      // InternalPlayer.combo's own doc comment), zeroed on a wrong guess.
+      // XP is accuracy-driven (outcome/badge, same as `score`'s base
+      // component) and combo only multiplies XP — never `score` itself, so
+      // combo luck can never affect who wins, best_score records, or the
+      // exact-value achievements (666/777) that depend on `score` being
+      // precise.
+      if (outcome === 'wrong') p.combo = 0; else p.combo += 1;
+      this.matchComboBest.set(id, Math.max(this.matchComboBest.get(id) ?? 0, p.combo));
+      if (badge === 'CIRÚRGICO') this.matchNearPerfects.set(id, (this.matchNearPerfects.get(id) ?? 0) + 1);
+      const roundXpBase = XP_PER_ROUND_PLAYED + (outcome !== 'wrong' ? XP_PER_CORRECT : 0) + (badge === 'PERFEITO' ? XP_PER_PERFECT_BONUS : 0);
+      const xpGained = Math.round(roundXpBase * comboXpMultiplier(p.combo));
+      this.matchXp.set(id, (this.matchXp.get(id) ?? 0) + xpGained);
+
       // Generic all-modes history (see matchRoundScores/matchRoundResponseMs
       // field comments). responseMs null means "never confirmed" in both
       // modes — classic's own auto-confirm-on-timeout never sets
@@ -678,6 +736,7 @@ export class Room {
         playerId: id, name: p.name, color: p.color, initial: p.initial, avatarId: p.avatarId,
         hsl, deltaE: de, score, badge, isRoundMvp,
         prevScore, newScore: p.score,
+        xpGained, combo: p.combo,
         ...(isRace ? { baseScore, timeMultiplier, raceResponseSeconds } : {}),
       };
     });
@@ -822,13 +881,53 @@ export class Room {
 
     const summaries: MatchParticipantSummary[] = [];
     const abandonedUserIds: string[] = [];
+    const matchSummaries: MatchPlayerSummary[] = [];
 
     for (const id of this.order) {
       const p = this.players.get(id);
-      if (!p || !p.userId) continue;
-      if (!p.connected) { abandonedUserIds.push(p.userId); continue; }
+      if (!p) continue;
+      if (!p.connected) { if (p.userId) abandonedUserIds.push(p.userId); continue; }
 
       const result: 'won' | 'lost' | 'drawn' = winnerIds.has(id) ? (winner.isDraw ? 'drawn' : 'won') : 'lost';
+      const roundScores = this.matchRoundScores.get(id) ?? [];
+      const roundResponseMsList = this.matchRoundResponseMs.get(id) ?? [];
+      const comboBest = this.matchComboBest.get(id) ?? 0;
+      const nearPerfects = this.matchNearPerfects.get(id) ?? 0;
+      const avgPrecision = roundScores.length ? Math.round(roundScores.reduce((s, v) => s + v, 0) / roundScores.length) : 0;
+      const validResponseMs = roundResponseMsList.filter((v): v is number => v !== null);
+      const avgResponseMs = validResponseMs.length ? Math.round(validResponseMs.reduce((s, v) => s + v, 0) / validResponseMs.length) : null;
+
+      // Match-level XP bonuses (played/win/draw) — flat, once per match,
+      // on top of the per-round XP already accumulated in matchXp during
+      // computeReveal(). Every connected player earns this (even a guest
+      // with no userId sees it on their own match-end screen), but only
+      // signed-in players get it persisted below.
+      let xpEarned = (this.matchXp.get(id) ?? 0) + XP_MATCH_PLAYED_BONUS;
+      if (result === 'won') xpEarned += XP_MATCH_WIN_BONUS;
+      else if (result === 'drawn') xpEarned += XP_MATCH_DRAW_BONUS;
+
+      let records: MatchPlayerSummary['records'] = null;
+      let levelUp: MatchPlayerSummary['levelUp'] = null;
+      if (p.priorBests) {
+        const prior = p.priorBests;
+        records = {
+          scoreIsNewBest: p.score > prior.bestScore,
+          comboIsNewBest: comboBest > prior.bestCombo,
+          precisionIsNewBest: avgPrecision > prior.bestAvgPrecision,
+          responseTimeIsNewBest: avgResponseMs !== null && (prior.bestAvgResponseMs === null || avgResponseMs < prior.bestAvgResponseMs),
+          pointsToNextScoreRecord: p.score > prior.bestScore ? null : prior.bestScore - p.score,
+        };
+        const newLevel = levelForXp(prior.xp + xpEarned);
+        if (newLevel > prior.level) levelUp = { from: prior.level, to: newLevel };
+      }
+
+      matchSummaries.push({
+        playerId: id, xpEarned, comboBest, avgPrecision, avgResponseMs,
+        perfects: p.perfectCount, nearPerfects, records, levelUp,
+      });
+
+      if (!p.userId) continue;
+
       const themeTallies: ThemeTally[] = [...(this.matchThemeTally.get(id)?.entries() ?? [])]
         .map(([theme_id, t]) => ({ theme_id, correct: t.correct, wrong: t.wrong, perfects: t.perfects, best_score: t.bestScore }));
       const raceAcc = this.matchRaceStats.get(id);
@@ -851,8 +950,8 @@ export class Room {
         playedAt,
         roundOutcomes: this.matchOutcomes.get(id) ?? [],
         themeTallies,
-        roundScores: this.matchRoundScores.get(id) ?? [],
-        roundResponseMs: this.matchRoundResponseMs.get(id) ?? [],
+        roundScores,
+        roundResponseMs: roundResponseMsList,
         race: raceAcc ? {
           scoreNormalTotal: raceAcc.scoreNormalTotal,
           responseMsSum: raceAcc.responseMsSum,
@@ -864,9 +963,12 @@ export class Room {
           multiplier2xCount: raceAcc.multiplier2xCount,
           noTimeout: !raceAcc.anyTimeout,
         } : undefined,
+        xpEarned,
+        comboBest,
       });
     }
 
+    this.matchSummaries = matchSummaries;
     recordMatchResult(summaries);
     recordAbandonedMatch(abandonedUserIds);
   }
@@ -876,8 +978,12 @@ export class Room {
     if (playerId !== this.hostId || this.screen !== 'finished') return;
     this.stopTimers();
     for (const p of this.players.values()) {
-      p.score = 0; p.perfectCount = 0; p.confirmed = false; p.readyNext = false;
+      p.score = 0; p.perfectCount = 0; p.combo = 0; p.confirmed = false; p.readyNext = false;
       p.pickedColor = null; p.colorHistory = []; p.confirmedAtSeconds = null; p.raceResponseMs = null;
+      // Prior bests go stale the moment the match that just ended wrote new
+      // ones — reload so the replay's own record comparison is accurate,
+      // not stuck comparing against pre-previous-match values.
+      if (p.userId) this.loadPriorBests(p.id, p.userId);
     }
     this.roundIdx = -1;
     this.round = null;
@@ -886,6 +992,7 @@ export class Room {
     this.raceDeadlineAt = null;
     this.results = null;
     this.matchWinner = null;
+    this.matchSummaries = [];
     this.screen = 'waiting';
     this.chat.push(sysMsg('#94A3B8', 'O anfitrião reiniciou a partida'));
     this.broadcast();
@@ -939,6 +1046,7 @@ export class Room {
       id: p.id, name: p.name, color: p.color, initial: p.initial,
       avatarId: p.avatarId, titleId: p.titleId, score: p.score,
       connected: p.connected, isHost: p.id === this.hostId, confirmed: p.confirmed, readyNext: p.readyNext,
+      combo: p.combo,
     };
   }
 
@@ -974,6 +1082,7 @@ export class Room {
         total: activeIds.length,
       },
       matchWinner: this.matchWinner,
+      matchSummary: this.matchSummaries.length ? this.matchSummaries : null,
       readySecondsLeft: this.readySecondsLeft,
     };
   }

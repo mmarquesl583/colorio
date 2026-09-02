@@ -38,6 +38,11 @@ export interface PlayerPublic {
   isHost: boolean;
   confirmed: boolean;
   readyNext: boolean;
+  /** Consecutive good guesses within the current match (0 after a wrong
+   * guess or a match restart) — same trust level as `score`, visible live
+   * for every player in the room. Only guessers accumulate this; the
+   * clue-writing master in Frase dos jogadores stays at 0. */
+  combo: number;
 }
 
 export interface ChatEntry {
@@ -62,6 +67,11 @@ export interface RevealPlayerResult {
   isRoundMvp: boolean;
   prevScore: number;
   newScore: number;
+  /** XP earned this round (already combo-multiplied — see
+   * shared/progression.ts's comboXpMultiplier) and the guesser's combo
+   * count AFTER this round's outcome. Unconditional, every mode. */
+  xpGained: number;
+  combo: number;
   /** Only set for gameMode:'race' rounds — baseScore is score before the
    * time multiplier, timeMultiplier is what was applied (0 on timeout),
    * raceResponseSeconds is null on timeout, otherwise the exact response
@@ -118,6 +128,35 @@ export interface MatchWinner {
   winners: { playerId: string; name: string; score: number }[];
 }
 
+/** Personal-record comparison for one player's just-finished match — `null`
+ * fields never happen except `pointsToNextScoreRecord`, which is null
+ * exactly when `scoreIsNewBest` is true (nothing to count down to). */
+export interface MatchRecordFlags {
+  scoreIsNewBest: boolean;
+  comboIsNewBest: boolean;
+  precisionIsNewBest: boolean;
+  responseTimeIsNewBest: boolean;
+  pointsToNextScoreRecord: number | null;
+}
+
+/** One per connected, signed-in participant, built once at match end
+ * (`Room.recordMatchStats()`) — powers the match-end screen's stat
+ * breakdown and record/level-up callouts without waiting on a Postgres
+ * round trip. `records`/`levelUp` are null only when this player's
+ * "prior bests" snapshot hadn't loaded yet (very fast games) or they're
+ * not signed in. */
+export interface MatchPlayerSummary {
+  playerId: string;
+  xpEarned: number;
+  comboBest: number;
+  avgPrecision: number;
+  avgResponseMs: number | null;
+  perfects: number;
+  nearPerfects: number;
+  records: MatchRecordFlags | null;
+  levelUp: { from: number; to: number } | null;
+}
+
 export interface RoomStateView {
   code: string;
   screen: ScreenState;
@@ -132,6 +171,9 @@ export interface RoomStateView {
   results: RoundResults | null;
   nextReady: { ready: number; total: number };
   matchWinner: MatchWinner | null;
+  /** Set once, alongside matchWinner, right when the match ends — null
+   * before then and reset to null on restartMatch(). */
+  matchSummary: MatchPlayerSummary[] | null;
   /** Seconds until the reveal auto-advances even if not everyone readied up. */
   readySecondsLeft: number | null;
   /** Milliseconds left in a gameMode:'race' round's 10s clock — recomputed

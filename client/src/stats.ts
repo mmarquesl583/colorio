@@ -68,6 +68,12 @@ export interface PlayerStats {
   hit_666_with_perfect_count: number;
   hit_777_count: number;
   hit_777_with_perfect_count: number;
+  // Progressão (XP/níveis/combo).
+  xp: number;
+  level: number;
+  best_combo: number;
+  best_avg_precision: number;
+  best_avg_response_ms: number | null;
 }
 
 export interface ModeStats {
@@ -291,6 +297,32 @@ export async function equipTitle(titleId: string | null): Promise<void> {
   if (error) console.error('equip_title failed:', error.message);
 }
 
+export interface ProgressionSummary {
+  xp: number;
+  level: number;
+  currentDayStreak: number;
+}
+
+// Same "own cheap fetch, not the full useProfileData" rationale as
+// fetchEquippedTitle() above — the Home progression strip only needs 3
+// columns, not the whole profile.
+export async function fetchProgressionSummary(userId: string): Promise<ProgressionSummary | null> {
+  const { data, error } = await supabase.from('player_stats').select('xp, level, current_day_streak').eq('user_id', userId).maybeSingle();
+  if (error) { console.error('fetchProgressionSummary failed:', error.message); return null; }
+  if (!data) return null;
+  return { xp: data.xp, level: data.level, currentDayStreak: data.current_day_streak };
+}
+
+// Match-end screen's "comparação com a média" — tolerant of staleness
+// (unlike the record banner, which comes from the room's own synchronous
+// matchSummary), so a plain client-side read is fine here.
+export async function fetchAvgScoreContext(userId: string): Promise<{ avgScore: number | null; gamesPlayed: number } | null> {
+  const { data, error } = await supabase.from('player_stats').select('total_score, games_played').eq('user_id', userId).maybeSingle();
+  if (error) { console.error('fetchAvgScoreContext failed:', error.message); return null; }
+  if (!data) return null;
+  return { avgScore: data.games_played > 0 ? Math.round(data.total_score / data.games_played) : null, gamesPlayed: data.games_played };
+}
+
 export interface MatchParticipant {
   user_id: string;
   name: string;
@@ -342,6 +374,9 @@ const GLOBAL_CRITERIA_FIELDS: Partial<Record<string, keyof PlayerStats>> = {
   hit_777_with_perfect_count: 'hit_777_with_perfect_count',
   fastest_correct_response_ms: 'fastest_correct_response_ms',
   fastest_perfect_response_ms: 'fastest_perfect_response_ms',
+  player_level: 'level',
+  best_combo: 'best_combo',
+  best_day_streak: 'best_day_streak',
 };
 const MODE_CRITERIA_FIELDS: Partial<Record<string, keyof ModeStats>> = {
   mode_perfects: 'perfects',

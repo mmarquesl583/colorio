@@ -1,13 +1,26 @@
+import { useEffect, useRef, useState } from 'react';
 import Logo from '../components/Logo.tsx';
 import { avatarSmallSrc } from '@shared/avatarIcons';
 import { titleNameFor } from '@shared/titleCatalog';
+import { useSession } from '../auth.ts';
+import { fetchAvgScoreContext } from '../stats.ts';
+import { pushToast } from '../toast.ts';
 import type { RoomConnection } from '../ws.ts';
+
+function formatMs(ms: number | null): string {
+  if (ms === null) return '—';
+  return `${(ms / 1000).toFixed(1).replace('.', ',')}s`;
+}
 
 export default function MatchEndScreen({ conn }: { conn: RoomConnection }) {
   const s = conn.state!;
+  const { session } = useSession();
+  const userId = session?.user.id ?? null;
   const winner = s.matchWinner;
   const isHost = s.you.isHost;
   const ranked = [...s.players].sort((a, b) => b.score - a.score);
+  const mySummary = s.matchSummary?.find((m) => m.playerId === s.you.id) ?? null;
+  const [avgContext, setAvgContext] = useState<{ avgScore: number | null; gamesPlayed: number } | null>(null);
 
   const reasonLabel = winner?.reason === 'perfect'
     ? 'conseguiu 5 acertos perfeitos'
@@ -16,6 +29,24 @@ export default function MatchEndScreen({ conn }: { conn: RoomConnection }) {
       : 'chegou a 10.000 pontos';
   const winnerIds = new Set(winner?.winners.map((w) => w.playerId) ?? []);
   const isDraw = Boolean(winner?.isDraw);
+
+  useEffect(() => {
+    if (userId) fetchAvgScoreContext(userId).then(setAvgContext);
+  }, [userId]);
+
+  // Fires once, the instant matchSummary shows up for `you` — level-up
+  // takes priority over a plain new-record toast since it's the bigger
+  // moment. No toast at all when neither applies (most matches).
+  const toastedRef = useRef(false);
+  useEffect(() => {
+    if (toastedRef.current || !mySummary) return;
+    toastedRef.current = true;
+    if (mySummary.levelUp) {
+      pushToast({ kind: 'level-up', icon: '⭐', title: `Nível ${mySummary.levelUp.to}!`, subtitle: `+${mySummary.xpEarned} XP nessa partida` });
+    } else if (mySummary.records?.scoreIsNewBest) {
+      pushToast({ kind: 'record', icon: '🏆', title: 'Novo recorde pessoal!', subtitle: `${s.you.score.toLocaleString('pt-BR')} pontos` });
+    }
+  }, [mySummary, s.you.score]);
 
   return (
     <div className="corio-wide corio-noscroll" style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', padding: '8px 16px 12px', gap: 8, overflowY: 'auto', animation: 'corio-rise .4s ease' }}>
@@ -36,6 +67,36 @@ export default function MatchEndScreen({ conn }: { conn: RoomConnection }) {
             : `${winner.name} ${reasonLabel} — ${winner.score.toLocaleString('pt-BR')} pontos`}
         </div>
       </div>
+
+      {mySummary && (
+        <div className="corio-card" style={{ flex: 'none', background: '#12121a', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 14, padding: '10px 12px' }}>
+          {(mySummary.levelUp || mySummary.records?.scoreIsNewBest) && (
+            <div style={{ textAlign: 'center', fontSize: 11.5, fontWeight: 800, color: '#FFC93C', marginBottom: 8 }}>
+              {mySummary.levelUp ? `⭐ VOCÊ SUBIU PRO NÍVEL ${mySummary.levelUp.to}!` : '🏆 NOVO RECORDE!'}
+            </div>
+          )}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8 }}>
+            <MiniStat label="Precisão média" value={`${mySummary.avgPrecision}`} />
+            <MiniStat label="Perfeitos" value={mySummary.perfects} />
+            <MiniStat label="Quase perfeitos" value={mySummary.nearPerfects} />
+            <MiniStat label="Combo máximo" value={`x${mySummary.comboBest}`} />
+            <MiniStat label="Tempo médio" value={formatMs(mySummary.avgResponseMs)} />
+            <MiniStat label="XP ganho" value={`+${mySummary.xpEarned}`} />
+          </div>
+          {mySummary.records && !mySummary.records.scoreIsNewBest && mySummary.records.pointsToNextScoreRecord !== null && (
+            <div style={{ textAlign: 'center', fontSize: 9.5, color: 'rgba(244,242,248,0.5)', marginTop: 8 }}>
+              Faltaram {mySummary.records.pointsToNextScoreRecord.toLocaleString('pt-BR')} pontos pro seu recorde.
+            </div>
+          )}
+          {avgContext && avgContext.avgScore !== null && avgContext.gamesPlayed > 1 && (
+            <div style={{ textAlign: 'center', fontSize: 9.5, color: 'rgba(244,242,248,0.5)', marginTop: 4 }}>
+              {s.you.score >= avgContext.avgScore
+                ? `+${(s.you.score - avgContext.avgScore).toLocaleString('pt-BR')} pontos acima da sua média`
+                : `${(avgContext.avgScore - s.you.score).toLocaleString('pt-BR')} pontos abaixo da sua média`}
+            </div>
+          )}
+        </div>
+      )}
 
       <div className="corio-card" style={{ flex: 1, minHeight: 0, background: '#12121a', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 14, padding: '9px 10px', display: 'flex', flexDirection: 'column' }}>
         <div className="corio-eyebrow" style={{ flex: 'none', fontSize: 9, fontWeight: 700, letterSpacing: 0.6, color: 'rgba(244,242,248,0.6)', marginBottom: 6 }}>PLACAR FINAL</div>
@@ -78,6 +139,21 @@ export default function MatchEndScreen({ conn }: { conn: RoomConnection }) {
           </div>
         )}
       </div>
+
+      <button
+        onClick={conn.leaveRoom}
+        className="corio-tap"
+        style={{ all: 'unset', cursor: 'pointer', flex: 'none', boxSizing: 'border-box', width: '100%', textAlign: 'center', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', color: 'rgba(244,242,248,0.75)', fontWeight: 700, fontSize: 10.5, padding: 10, borderRadius: 11 }}
+      >↩ Voltar ao início</button>
+    </div>
+  );
+}
+
+function MiniStat({ label, value }: { label: string; value: string | number }) {
+  return (
+    <div style={{ textAlign: 'center' }}>
+      <div style={{ fontFamily: "'Space Grotesk',sans-serif", fontWeight: 800, fontSize: 13 }}>{value}</div>
+      <div style={{ fontSize: 7.5, color: 'rgba(244,242,248,0.5)', marginTop: 2 }}>{label}</div>
     </div>
   );
 }

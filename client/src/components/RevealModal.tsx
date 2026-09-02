@@ -30,6 +30,7 @@ interface Row {
   stripeVisible: boolean;
   isMasterRow: boolean;
   timeMultiplier?: number;
+  xpLabel?: string;
 }
 
 interface Props {
@@ -125,6 +126,7 @@ export default function RevealModal({ results, you, gameMode, nextReady, readySe
         stripeVisible: true,
         isMasterRow: false,
         timeMultiplier: (isSorted && progress >= 1) ? g.timeMultiplier : undefined,
+        xpLabel: (isSorted && progress >= 1) ? `+${g.xpGained} XP` : undefined,
       };
     });
     if (isSorted && results.masterId) {
@@ -240,6 +242,11 @@ export default function RevealModal({ results, you, gameMode, nextReady, readySe
                   ×{r.timeMultiplier.toFixed(1).replace('.', ',')}
                 </span>
               )}
+              {r.xpLabel && (
+                <span style={{ fontSize: 7.5, fontWeight: 700, letterSpacing: 0.3, background: 'rgba(139,92,246,0.2)', color: '#C4B5FD', padding: '2px 5px', borderRadius: 5, flex: 'none', whiteSpace: 'nowrap' }}>
+                  {r.xpLabel}
+                </span>
+              )}
             </div>
             <div style={{ width: 44, textAlign: 'center', fontSize: 11.5, fontWeight: 700 }}>{r.currentScore.toLocaleString('pt-BR')}</div>
             {showHeaderCols && <div style={{ width: 44, textAlign: 'center', fontSize: 11.5, fontWeight: 700, color: '#A78BFA' }}>{r.gainLabel}</div>}
@@ -293,6 +300,12 @@ export default function RevealModal({ results, you, gameMode, nextReady, readySe
                         <div className="corio-race-reveal-stat corio-race-reveal-stat-total">
                           <div className="corio-race-reveal-stat-label">TOTAL</div>
                           <div className="corio-race-reveal-stat-value">{total.toLocaleString('pt-BR')}</div>
+                        </div>
+                        <div className="corio-race-reveal-stat">
+                          <div className="corio-race-reveal-stat-label">XP</div>
+                          <div className={`corio-race-reveal-stat-value corio-race-reveal-multi ${revealed ? 'is-shown' : ''}`} style={{ color: revealed ? '#C4B5FD' : undefined }}>
+                            {revealed ? `+${g.xpGained}` : '—'}
+                          </div>
                         </div>
                       </div>
                     </div>

@@ -52,6 +52,46 @@ export interface MatchParticipantSummary {
   roundScores: number[];
   roundResponseMs: (number | null)[];
   race?: RaceMatchSummary;
+  /** Total XP earned this match (combo multiplier already applied — see
+   * shared/progression.ts) and the highest combo reached, both computed in
+   * room.ts's computeReveal() from the same per-round loop that already
+   * builds roundScores/roundResponseMs. */
+  xpEarned: number;
+  comboBest: number;
+}
+
+// --- Progression: "prior bests" priming read -----------------------------
+// A player's own best_score/best_combo/etc. BEFORE the match they're about
+// to play, so the room can tell "NOVO RECORDE!" apart from "quase lá" the
+// instant a match ends (recordMatchResult() below is fire-and-forget — by
+// the time apply_match_result actually resolves, the finished screen has
+// already broadcast). Fetched once when a player joins a room (and again on
+// restartMatch(), see room.ts) rather than awaited at match end, same
+// non-blocking-priming pattern openSessionFor() already uses for sessions.
+export interface PriorBests {
+  xp: number;
+  level: number;
+  bestScore: number;
+  bestCombo: number;
+  bestAvgPrecision: number;
+  bestAvgResponseMs: number | null;
+}
+
+export async function fetchPlayerBests(userId: string): Promise<PriorBests | null> {
+  if (!statsConfigured) return null;
+  try {
+    const { data, error } = await supabaseAdmin!.from('player_stats')
+      .select('xp, level, best_score, best_combo, best_avg_precision, best_avg_response_ms')
+      .eq('user_id', userId).maybeSingle();
+    if (error || !data) return null;
+    return {
+      xp: data.xp, level: data.level, bestScore: data.best_score, bestCombo: data.best_combo,
+      bestAvgPrecision: data.best_avg_precision, bestAvgResponseMs: data.best_avg_response_ms,
+    };
+  } catch (err) {
+    console.error('fetchPlayerBests failed:', err);
+    return null;
+  }
 }
 
 export async function openGameSession(userId: string, roomCode: string): Promise<string | null> {
@@ -111,6 +151,8 @@ async function applyOne(p: MatchParticipantSummary): Promise<void> {
     p_race_best_multiplier: race?.bestMultiplier ?? null,
     p_race_multiplier_2x_count: race?.multiplier2xCount ?? null,
     p_race_no_timeout: race ? race.noTimeout : null,
+    p_match_xp: p.xpEarned,
+    p_match_best_combo: p.comboBest,
   });
   if (error) { console.error('apply_match_result failed:', error.message); return; }
 

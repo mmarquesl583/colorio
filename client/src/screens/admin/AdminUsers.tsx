@@ -5,6 +5,7 @@ interface UserRow {
   id: string; name: string; avatarId: string | null; createdAt: string; lastLoginAt: string | null;
   gamesPlayed: number; gamesWon: number; accuracyPct: number | null; bestScore: number;
   totalPlaytimeSeconds: number; friendsCount: number; titlesCount: number; lastPlayDate: string | null;
+  level: number; currentDayStreak: number;
 }
 
 const FILTERS = [
@@ -47,7 +48,7 @@ export default function AdminUsers({ onOpenUser }: { onOpenUser: (id: string) =>
         <div className="corio-admin-table-wrap">
           <table className="corio-admin-table">
             <thead>
-              <tr><th>Nome</th><th>Cadastro</th><th>Último acesso</th><th>Partidas</th><th>Vitórias</th><th>Precisão</th><th>Melhor pontuação</th><th>Amigos</th><th>Títulos</th></tr>
+              <tr><th>Nome</th><th>Cadastro</th><th>Último acesso</th><th>Nível</th><th>Streak</th><th>Partidas</th><th>Vitórias</th><th>Precisão</th><th>Melhor pontuação</th><th>Amigos</th><th>Títulos</th></tr>
             </thead>
             <tbody>
               {rows.map((u) => (
@@ -55,6 +56,8 @@ export default function AdminUsers({ onOpenUser }: { onOpenUser: (id: string) =>
                   <td style={{ fontWeight: 700 }}>{u.name}</td>
                   <td>{new Date(u.createdAt).toLocaleDateString('pt-BR')}</td>
                   <td>{u.lastLoginAt ? new Date(u.lastLoginAt).toLocaleDateString('pt-BR') : '—'}</td>
+                  <td>{u.level}</td>
+                  <td>{u.currentDayStreak > 0 ? `🔥 ${u.currentDayStreak}` : '—'}</td>
                   <td>{u.gamesPlayed}</td>
                   <td>{u.gamesWon}</td>
                   <td>{u.accuracyPct !== null ? `${u.accuracyPct}%` : '—'}</td>

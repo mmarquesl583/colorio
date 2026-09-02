@@ -1,4 +1,5 @@
 import { useEffect, type ReactNode } from 'react';
+import ToastHost from './ToastHost.tsx';
 
 export default function AppShell({ children }: { children: ReactNode }) {
   useEffect(() => {
@@ -13,6 +14,7 @@ export default function AppShell({ children }: { children: ReactNode }) {
   return (
     <div className="corio-outer-wrap">
       <div className="corio-screen">{children}</div>
+      <ToastHost />
       <div className="corio-rotate-lock" aria-hidden="true">
         <div className="corio-rotate-lock-icon">🔄</div>
         <div className="corio-rotate-lock-title">Gire seu aparelho</div>

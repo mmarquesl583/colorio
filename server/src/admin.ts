@@ -217,6 +217,8 @@ async function getUsers(url: URL) {
       friendsCount: friendCounts.get(u.id) ?? 0,
       titlesCount: titleCounts.get(u.id) ?? 0,
       lastPlayDate: s?.last_play_date ?? null,
+      level: s?.level ?? 1,
+      currentDayStreak: s?.current_day_streak ?? 0,
     };
   });
 

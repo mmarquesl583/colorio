@@ -5,7 +5,7 @@ import { titleNameFor } from '@shared/titleCatalog';
 interface UserDetail {
   id: string; name: string; email: string | null; avatarId: string | null; titleId: string | null; isAdmin: boolean;
   createdAt: string; lastLoginAt: string | null;
-  stats: { games_played: number; games_won: number; games_lost: number; games_drawn: number; total_perfects: number; best_score: number; correct_answers: number; wrong_answers: number; total_playtime_seconds: number } | null;
+  stats: { games_played: number; games_won: number; games_lost: number; games_drawn: number; total_perfects: number; best_score: number; correct_answers: number; wrong_answers: number; total_playtime_seconds: number; level: number; xp: number; best_combo: number; current_day_streak: number } | null;
   modeStats: { mode_id: string; games_played: number; wins: number; perfects: number; best_score: number }[];
   friendsCount: number; titleIds: string[]; avatarIds: string[];
   achievements: { achievement_id: string; unlocked_at: string }[];
@@ -45,6 +45,10 @@ export default function AdminUserDetail({ userId, onBack, onOpenMatch }: { userI
           </div>
 
           <div className="corio-admin-kpis">
+            <Kpi label="Nível" value={data.stats?.level ?? 1} />
+            <Kpi label="XP" value={(data.stats?.xp ?? 0).toLocaleString('pt-BR')} />
+            <Kpi label="Streak atual" value={data.stats?.current_day_streak ?? 0} />
+            <Kpi label="Melhor combo" value={`x${data.stats?.best_combo ?? 0}`} />
             <Kpi label="Partidas" value={data.stats?.games_played ?? 0} />
             <Kpi label="Vitórias" value={data.stats?.games_won ?? 0} />
             <Kpi label="Derrotas" value={data.stats?.games_lost ?? 0} />

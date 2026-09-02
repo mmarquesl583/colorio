@@ -4,6 +4,7 @@ import { useSession, accountAvatar, accountName, setAccountName } from '../auth.
 import { AVATAR_ICONS, avatarSmallSrc } from '@shared/avatarIcons';
 import { TITLE_CATALOG, titleNameFor } from '@shared/titleCatalog';
 import { LOBBY_THEMES } from '@shared/gameData';
+import { xpForLevel } from '@shared/progression';
 import { useProfileData } from '../hooks/useProfileData.ts';
 import { formatPlaytime, addFriend, removeFriend, markUnlocksSeen } from '../stats.ts';
 import IdentityPickerModal from '../components/IdentityPickerModal.tsx';
@@ -177,6 +178,30 @@ export default function ProfileScreen({ onBack, onOpenAdmin }: { onBack: () => v
           <StatCell label="Tempo de jogo" value={formatPlaytime(stats?.total_playtime_seconds ?? 0)} />
         </div>
       </div>
+
+      {stats && (
+        <div className="corio-card" style={{ flex: 'none', background: '#12121a', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 14, padding: 10 }}>
+          <div className="corio-eyebrow" style={{ fontSize: 8, fontWeight: 700, letterSpacing: 0.6, color: 'rgba(244,242,248,0.5)', marginBottom: 8 }}>MINHA HISTÓRIA</div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
+            <div style={{ flex: 'none', fontSize: 12, fontWeight: 800, color: '#FFC93C', fontFamily: "'Space Grotesk',sans-serif" }}>Nível {stats.level}</div>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ height: 6, borderRadius: 3, background: 'rgba(255,255,255,0.1)', overflow: 'hidden' }}>
+                <div style={{
+                  width: `${Math.max(0, Math.min(100, ((stats.xp - xpForLevel(stats.level)) / (xpForLevel(stats.level + 1) - xpForLevel(stats.level))) * 100))}%`,
+                  height: '100%', background: 'linear-gradient(90deg,#8B5CF6,#FFC93C)', borderRadius: 3,
+                }} />
+              </div>
+            </div>
+            <div style={{ flex: 'none', fontSize: 8.5, color: 'rgba(244,242,248,0.5)' }}>{stats.xp.toLocaleString('pt-BR')} XP</div>
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10 }}>
+            <StatCell label="Sequência atual" value={stats.current_day_streak > 0 ? `🔥 ${stats.current_day_streak}` : 0} />
+            <StatCell label="Melhor combo" value={`x${stats.best_combo}`} />
+            <StatCell label="Precisão média" value={stats.best_avg_precision} />
+            <StatCell label="Melhor tempo médio" value={stats.best_avg_response_ms !== null ? `${(stats.best_avg_response_ms / 1000).toFixed(1).replace('.', ',')}s` : '—'} />
+          </div>
+        </div>
+      )}
 
       {data && data.modeStats.length > 0 && (
         <div className="corio-card" style={{ flex: 'none', background: '#12121a', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 14, padding: 10 }}>

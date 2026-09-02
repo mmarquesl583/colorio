@@ -7,7 +7,7 @@
 // achievement_rewards) — not duplicated here. The client cross-references
 // that at runtime (see client/src/stats.ts's fetchAchievementRewards) to
 // compute "how close am I" progress without a second source of truth.
-export type TitleCategory = 'especiais' | 'precisao' | 'velocidade' | 'sequencias' | 'pontuacao' | 'numeros-especiais' | 'experiencia' | 'social';
+export type TitleCategory = 'especiais' | 'precisao' | 'velocidade' | 'sequencias' | 'pontuacao' | 'numeros-especiais' | 'experiencia' | 'social' | 'progressao';
 
 export interface TitleOption {
   id: string;
@@ -37,6 +37,9 @@ export const TITLE_CATALOG: TitleOption[] = [
   { id: 'embalado', name: 'Embalado', category: 'sequencias', description: 'Acerte 10 palpites consecutivos.' },
   { id: 'imparavel', name: 'Imparável', category: 'sequencias', description: 'Acerte 20 palpites consecutivos.' },
   { id: 'perfeicao-ininterrupta', name: 'Perfeição Ininterrupta', category: 'sequencias', description: 'Consiga 10 palpites perfeitos consecutivos.' },
+  { id: 'combo-quente', name: 'Sequência Quente', category: 'sequencias', description: 'Alcance um combo de 5 na mesma partida.' },
+  { id: 'em-chamas', name: 'Em Chamas', category: 'sequencias', description: 'Alcance um combo de 10 na mesma partida.' },
+  { id: 'combo-lendario', name: 'Combo Lendário', category: 'sequencias', description: 'Alcance um combo de 15 na mesma partida.' },
 
   // Pontuação
   { id: 'rei-dos-pontos', name: 'Rei dos Pontos', category: 'pontuacao', description: 'Termine 10 partidas em primeiro lugar.' },
@@ -59,11 +62,21 @@ export const TITLE_CATALOG: TitleOption[] = [
   { id: 'desocupado', name: 'Desocupado', category: 'experiencia', description: 'Jogue por 1 hora no total.' },
   { id: 'vagabundo', name: 'Vagabundo', category: 'experiencia', description: 'Jogue por 6 horas no total.' },
   { id: 'acorda-pra-vida', name: 'Acorda pra Vida', category: 'experiencia', description: 'Jogue por 12 horas no total.' },
+  { id: 'chama-inicial', name: 'Chama Inicial', category: 'experiencia', description: 'Jogue 3 dias seguidos.' },
+  { id: 'semana-de-fogo', name: 'Uma Semana de Fogo', category: 'experiencia', description: 'Jogue 7 dias seguidos.' },
+  { id: 'constancia-de-ferro', name: 'Constância de Ferro', category: 'experiencia', description: 'Jogue 14 dias seguidos.' },
+  { id: 'lenda-da-rotina', name: 'Lenda da Rotina', category: 'experiencia', description: 'Jogue 30 dias seguidos.' },
 
   // Social
   { id: 'um-bom-amigo', name: 'Um Bom Amigo', category: 'social', description: 'Adicione 1 amigo.' },
   { id: 'amigao-da-vizinhanca', name: 'Amigão da Vizinhança', category: 'social', description: 'Adicione 3 amigos.' },
   { id: 'popularidade-maxima', name: 'Popularidade Máxima', category: 'social', description: 'Adicione 5 amigos.' },
+
+  // Progressão
+  { id: 'aprendiz-das-cores', name: 'Aprendiz das Cores', category: 'progressao', description: 'Alcance o nível 5.' },
+  { id: 'colorista-experiente', name: 'Colorista Experiente', category: 'progressao', description: 'Alcance o nível 10.' },
+  { id: 'mestre-das-nuances', name: 'Mestre das Nuances', category: 'progressao', description: 'Alcance o nível 20.' },
+  { id: 'lenda-do-colorio', name: 'Lenda do Colorio', category: 'progressao', description: 'Alcance o nível 35.' },
 ];
 
 export const TITLE_CATEGORIES: { id: TitleCategory; label: string }[] = [
@@ -74,6 +87,7 @@ export const TITLE_CATEGORIES: { id: TitleCategory; label: string }[] = [
   { id: 'numeros-especiais', label: 'Números Especiais' },
   { id: 'experiencia', label: 'Experiência' },
   { id: 'social', label: 'Social' },
+  { id: 'progressao', label: 'Progressão' },
   { id: 'especiais', label: 'Especiais' },
 ];
 
