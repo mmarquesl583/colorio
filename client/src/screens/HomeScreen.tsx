@@ -124,15 +124,18 @@ export default function HomeScreen({ connecting, error, onClearError, onStartCre
           ) : null}
 
           {loggedInName && progression && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10, background: 'rgba(20,20,26,0.55)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 12, padding: '8px 12px' }}>
-              <div style={{ flex: 'none', fontSize: 10, fontWeight: 800, color: '#FFC93C', fontFamily: "'Space Grotesk',sans-serif" }}>Nv. {progression.level}</div>
+            <div style={{
+              width: '100%', boxSizing: 'border-box', display: 'flex', alignItems: 'center', gap: 12,
+              background: '#1A0A33', border: '3px solid #4A2B7A', borderRadius: 16, padding: '11px 16px',
+            }}>
+              <div style={{ flex: 'none', fontSize: 13, fontWeight: 800, color: '#FFC93C', fontFamily: "'Space Grotesk',sans-serif" }}>Nv. {progression.level}</div>
               <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ height: 5, borderRadius: 3, background: 'rgba(255,255,255,0.1)', overflow: 'hidden' }}>
-                  <div style={{ width: `${levelFillPct}%`, height: '100%', background: 'linear-gradient(90deg,#8B5CF6,#FFC93C)', borderRadius: 3 }} />
+                <div style={{ height: 7, borderRadius: 4, background: 'rgba(255,255,255,0.12)', overflow: 'hidden' }}>
+                  <div style={{ width: `${levelFillPct}%`, height: '100%', background: 'linear-gradient(90deg,#8B5CF6,#FFC93C)', borderRadius: 4 }} />
                 </div>
               </div>
               {progression.currentDayStreak > 0 && (
-                <div style={{ flex: 'none', fontSize: 10, fontWeight: 800, color: '#FF9C5C', display: 'flex', alignItems: 'center', gap: 3 }}>
+                <div style={{ flex: 'none', fontSize: 13, fontWeight: 800, color: '#FF9C5C', display: 'flex', alignItems: 'center', gap: 3 }}>
                   🔥 {progression.currentDayStreak}
                 </div>
               )}
