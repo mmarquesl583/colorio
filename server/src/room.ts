@@ -640,7 +640,13 @@ export class Room {
       let raceResponseSeconds: number | null | undefined;
       if (isRace) {
         const responseMs = p.raceResponseMs;
-        timeMultiplier = responseMs === null ? 0 : raceTimeMultiplier(responseMs / 1000);
+        // Never confirming within the window gets the same 1.0x floor as
+        // confirming at the very last instant — raceTimeMultiplier(12)
+        // already floors at 1.0x, so feeding it the full window length on
+        // timeout means 0x is no longer a reachable outcome. responseSeconds
+        // itself stays null on timeout (still genuinely unknown/never
+        // answered), only the scoring multiplier is affected.
+        timeMultiplier = raceTimeMultiplier((responseMs ?? RACE_MS) / 1000);
         raceResponseSeconds = responseMs === null ? null : responseMs / 1000;
         score = Math.round(baseScore * timeMultiplier);
       } else {

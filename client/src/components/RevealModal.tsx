@@ -1,6 +1,5 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { hslFracToRgb } from '@shared/color';
-import { NEXT_ROUND_READY_TIMEOUT_MS } from '@shared/gameData';
 import { avatarSmallSrc } from '@shared/avatarIcons';
 import type { GameMode, PlayerPublic, RoundResults } from '@shared/types';
 
@@ -9,11 +8,6 @@ type Stage = 'guesses' | 'sorted' | 'filling' | 'final';
 // How long the ranked/badged board stays on screen before auto-advancing.
 // Fixed and identical for every client — nobody can rush or stall it.
 const SORTED_VIEW_MS = 3000;
-
-// Matches the server's own fallback window (see room.ts computeReveal) —
-// only used to size the "loading" fill on the ready button, the server is
-// still the one actually deciding when to advance.
-const READY_TOTAL_SECONDS = Math.round((NEXT_ROUND_READY_TIMEOUT_MS + 6000) / 1000);
 
 interface Row {
   id: string;
@@ -51,6 +45,17 @@ export default function RevealModal({ results, you, gameMode, nextReady, readySe
   const rowRefs = useRef<Record<string, HTMLDivElement | null>>({});
   const prevRectsRef = useRef<Record<string, DOMRect>>({});
   const flipDurationRef = useRef(500);
+  // The "Próxima rodada" fill bar should always start empty the instant the
+  // button itself appears, not at whatever fraction of the server's whole
+  // ready-wait budget already elapsed during the guesses/sorted/filling
+  // animation stages before the button was even visible — otherwise it
+  // looks like it "starts halfway". Captured once per round, the moment
+  // showFinalContinue flips true; readySecondsLeftRef stays fresh every
+  // render so the effect below reads the latest value without depending on
+  // (and re-firing from) readySecondsLeft itself.
+  const readySecondsLeftRef = useRef(readySecondsLeft);
+  readySecondsLeftRef.current = readySecondsLeft;
+  const fillBaselineRef = useRef<number | null>(null);
 
   useEffect(() => {
     setStage('guesses'); setRevealCount(0); setProgress(0); setShowFinalContinue(false); setContinued(false);
@@ -79,6 +84,14 @@ export default function RevealModal({ results, you, gameMode, nextReady, readySe
     // the reveal actually changes.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [results.secretHex]);
+
+  useEffect(() => {
+    if (showFinalContinue) {
+      if (fillBaselineRef.current === null) fillBaselineRef.current = readySecondsLeftRef.current;
+    } else {
+      fillBaselineRef.current = null;
+    }
+  }, [showFinalContinue]);
 
   const yourGuess = results.guesses.find((g) => g.playerId === you.id);
   const guessesByStanding = results.guesses; // server orders these by pre-round standing already
@@ -213,7 +226,7 @@ export default function RevealModal({ results, you, gameMode, nextReady, readySe
 
   return (
     <div style={{ position: 'absolute', inset: 0, background: revealBg, transition: 'background 1.2s ease', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16, zIndex: 40, boxSizing: 'border-box' }}>
-      <div className="corio-noscroll" style={{ width: '100%', maxHeight: '100%', overflowY: 'auto', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+      <div className="corio-noscroll corio-reveal-inner" style={{ width: '100%', maxHeight: '100%', overflowY: 'auto', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
         <div style={{ fontSize: 16, color: '#FFC93C', marginBottom: 4, animation: 'corio-twinkle 1.6s ease-in-out infinite' }}>✦</div>
         <div style={{ fontFamily: "'Space Grotesk',sans-serif", fontWeight: 700, fontSize: 16, letterSpacing: 0.5, textAlign: 'center', color: stage === 'sorted' ? onSecretBg : undefined }}>{title}</div>
         <div style={{ fontSize: 10.5, color: stage === 'sorted' ? onSecretBgMuted : 'rgba(244,242,248,0.65)', textAlign: 'center', marginTop: 2, marginBottom: 12 }}>{subtitle}</div>
@@ -366,7 +379,10 @@ export default function RevealModal({ results, you, gameMode, nextReady, readySe
         )}
 
         {showFinalContinue && !continued && (() => {
-          const fillPct = readySecondsLeft === null ? 0 : Math.min(100, Math.max(0, ((READY_TOTAL_SECONDS - readySecondsLeft) / READY_TOTAL_SECONDS) * 100));
+          const baseline = fillBaselineRef.current;
+          const fillPct = (readySecondsLeft === null || !baseline)
+            ? 0
+            : Math.min(100, Math.max(0, ((baseline - readySecondsLeft) / baseline) * 100));
           return (
             <button onClick={clickNextRound} className="corio-tap" style={{ all: 'unset', position: 'relative', overflow: 'hidden', cursor: 'pointer', display: 'block', background: 'linear-gradient(135deg,#8B5CF6,#7C3AED)', color: '#fff', fontWeight: 700, fontSize: 12.5, padding: '10px 22px', borderRadius: 12, marginTop: 8 }}>
               <div style={{ position: 'absolute', inset: 0, width: `${fillPct}%`, background: 'rgba(255,255,255,0.25)', transition: 'width 1s linear', pointerEvents: 'none' }} />

@@ -132,7 +132,7 @@ export default function MatchEndScreen({ conn }: { conn: RoomConnection }) {
             onClick={() => conn.send({ type: 'restart_match' })}
             className="corio-tap corio-btn-lg"
             style={{ all: 'unset', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6, background: 'linear-gradient(90deg,#8B5CF6,#FFC93C)', color: '#1a1024', fontWeight: 800, fontSize: 11, padding: '10px 14px', borderRadius: 11, whiteSpace: 'nowrap' }}
-          >🔄 Jogar novamente</button>
+          >🔄 Tentar novamente</button>
         ) : (
           <div style={{ display: 'flex', alignItems: 'center', gap: 6, flex: 'none' }}>
             <div style={{ width: 6, height: 6, borderRadius: '50%', background: '#8B5CF6', animation: 'corio-pulse 1.2s infinite' }} />
