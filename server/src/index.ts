@@ -62,6 +62,16 @@ function clamp(v: number, min: number, max: number): number {
   return Math.max(min, Math.min(max, Math.round(Number(v) || min)));
 }
 
+// ClientMessage is a compile-time-only type — nothing about the JSON a
+// socket actually sends is guaranteed to match it. Rejecting the obvious
+// wrong-type cases up front (rather than letting e.g. `code.toUpperCase()`
+// throw deeper in) avoids leaving half-built state behind, like a Room
+// that got inserted into `rooms` before addPlayer() throws on a
+// non-string name and never gets cleaned up.
+function isNonEmptyString(v: unknown): v is string {
+  return typeof v === 'string' && v.length > 0;
+}
+
 function send(ws: WebSocket, msg: ServerMessage) {
   if (ws.readyState === ws.OPEN) ws.send(JSON.stringify(msg));
 }
@@ -109,8 +119,31 @@ wss.on('connection', (ws: WebSocket) => {
   ws.on('message', async (raw) => {
     let msg: ClientMessage;
     try { msg = JSON.parse(raw.toString()); } catch { return; }
+    if (!msg || typeof msg !== 'object' || typeof (msg as { type?: unknown }).type !== 'string') return;
 
+    try {
+      await handleMessage(msg);
+    } catch (err) {
+      // A malformed-but-JSON-parseable message (wrong types, missing
+      // fields — nothing here is runtime-validated against ClientMessage,
+      // that type is compile-time only) must never take the whole process
+      // down with it: this handler is async, so an uncaught throw here
+      // becomes an unhandled promise rejection, which by default kills the
+      // Node process — every room, every connected player, gone. Logging
+      // and dropping the one bad message is the correct failure mode.
+      console.error('Failed to handle client message:', err);
+    }
+  });
+
+  async function handleMessage(msg: ClientMessage) {
     if (msg.type === 'create_room') {
+      if (!isNonEmptyString(msg.name)) return;
+      // Circuit breaker, not a real rate limiter — a room that never starts
+      // a match self-cleans within LOBBY_RECONNECT_GRACE_MS of its creator
+      // disconnecting, so a burst of spam is naturally transient. This just
+      // stops it from growing unbounded if that grace period is ever
+      // outpaced by the spam rate.
+      if (rooms.size >= 3000) { send(ws, { type: 'error', message: 'Servidor ocupado, tente novamente em instantes.' }); return; }
       // Verified once per join, not on every message — a valid token here
       // just resolves to the real account id, attached to this player for
       // the room's lifetime (stats attribution only, never sent back to
@@ -130,6 +163,7 @@ wss.on('connection', (ws: WebSocket) => {
     }
 
     if (msg.type === 'join_room') {
+      if (!isNonEmptyString(msg.code) || !isNonEmptyString(msg.name)) return;
       const target = rooms.get(msg.code.toUpperCase());
       if (!target) { send(ws, { type: 'error', message: 'Sala não encontrada.' }); return; }
       const userId = await verifyUserToken(msg.token);
@@ -144,6 +178,7 @@ wss.on('connection', (ws: WebSocket) => {
     }
 
     if (msg.type === 'rejoin') {
+      if (!isNonEmptyString(msg.code) || !isNonEmptyString(msg.playerId)) return;
       const target = rooms.get(msg.code.toUpperCase());
       if (!target || !target.reconnect(msg.playerId, ws)) { send(ws, { type: 'error', message: 'Não foi possível reconectar.' }); return; }
       playerId = msg.playerId;
@@ -177,7 +212,7 @@ wss.on('connection', (ws: WebSocket) => {
       case 'restart_match': room.restartMatch(playerId); break;
       case 'report_question': room.reportQuestion(playerId); break;
     }
-  });
+  }
 
   ws.on('close', () => {
     if (room && playerId) room.disconnect(playerId);
@@ -186,6 +221,15 @@ wss.on('connection', (ws: WebSocket) => {
 
 startStaleSessionSweep();
 startQuestionOverridesPoll();
+
+// Last line of defense: every message-handling path above already has its
+// own try/catch, but a stray unhandled rejection anywhere else (a .then()
+// missing its own .catch, a future oversight) would otherwise take the
+// entire process — every room, every connected player — down with it by
+// Node's default behavior. Logging and staying up matches how every other
+// failure in this codebase is already treated (best-effort, never fatal).
+process.on('unhandledRejection', (err) => console.error('Unhandled rejection:', err));
+process.on('uncaughtException', (err) => console.error('Uncaught exception:', err));
 
 httpServer.listen(PORT, () => {
   console.log(`color.io server listening on :${PORT}`);
