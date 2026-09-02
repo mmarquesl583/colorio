@@ -72,11 +72,17 @@ export const TITLE_CATALOG: TitleOption[] = [
   { id: 'amigao-da-vizinhanca', name: 'Amigão da Vizinhança', category: 'social', description: 'Adicione 3 amigos.' },
   { id: 'popularidade-maxima', name: 'Popularidade Máxima', category: 'social', description: 'Adicione 5 amigos.' },
 
-  // Progressão
-  { id: 'aprendiz-das-cores', name: 'Aprendiz das Cores', category: 'progressao', description: 'Alcance o nível 5.' },
-  { id: 'colorista-experiente', name: 'Colorista Experiente', category: 'progressao', description: 'Alcance o nível 10.' },
-  { id: 'mestre-das-nuances', name: 'Mestre das Nuances', category: 'progressao', description: 'Alcance o nível 20.' },
-  { id: 'lenda-do-colorio', name: 'Lenda do Colorio', category: 'progressao', description: 'Alcance o nível 35.' },
+  // Progressão (marcos de nível)
+  { id: 'pupilo', name: 'Pupilo', category: 'progressao', description: 'Alcance o nível 5.' },
+  { id: 'gafanhoto', name: 'Gafanhoto', category: 'progressao', description: 'Alcance o nível 10.' },
+  { id: 'soldado', name: 'Soldado', category: 'progressao', description: 'Alcance o nível 15.' },
+  { id: 'guerreiro', name: 'Guerreiro', category: 'progressao', description: 'Alcance o nível 20.' },
+  { id: 'viking', name: 'Viking', category: 'progressao', description: 'Alcance o nível 25.' },
+  { id: 'samurai', name: 'Samurai', category: 'progressao', description: 'Alcance o nível 30.' },
+  { id: 'sensei', name: 'Sensei', category: 'progressao', description: 'Alcance o nível 35.' },
+  { id: 'maquina-de-guerra', name: 'Máquina de Guerra', category: 'progressao', description: 'Alcance o nível 40.' },
+  { id: 'lenda', name: 'Lenda', category: 'progressao', description: 'Alcance o nível 45.' },
+  { id: 'mestre-supremo', name: 'Mestre Supremo', category: 'progressao', description: 'Alcance o nível 50.' },
 ];
 
 export const TITLE_CATEGORIES: { id: TitleCategory; label: string }[] = [

@@ -5,6 +5,7 @@ import { titleNameFor } from '@shared/titleCatalog';
 import { useSession } from '../auth.ts';
 import { fetchAvgScoreContext } from '../stats.ts';
 import { pushToast } from '../toast.ts';
+import LevelUpModal from '../components/LevelUpModal.tsx';
 import type { RoomConnection } from '../ws.ts';
 
 function formatMs(ms: number | null): string {
@@ -21,6 +22,7 @@ export default function MatchEndScreen({ conn }: { conn: RoomConnection }) {
   const ranked = [...s.players].sort((a, b) => b.score - a.score);
   const mySummary = s.matchSummary?.find((m) => m.playerId === s.you.id) ?? null;
   const [avgContext, setAvgContext] = useState<{ avgScore: number | null; gamesPlayed: number } | null>(null);
+  const [showLevelUp, setShowLevelUp] = useState(false);
 
   const reasonLabel = winner?.reason === 'perfect'
     ? 'conseguiu 5 acertos perfeitos'
@@ -35,14 +37,15 @@ export default function MatchEndScreen({ conn }: { conn: RoomConnection }) {
   }, [userId]);
 
   // Fires once, the instant matchSummary shows up for `you` — level-up
-  // takes priority over a plain new-record toast since it's the bigger
-  // moment. No toast at all when neither applies (most matches).
+  // gets its own blocking popup (bigger moment, per the user's own request
+  // for something more than a corner toast); a plain new-record only gets
+  // the quieter toast, and never both at once for the same match.
   const toastedRef = useRef(false);
   useEffect(() => {
     if (toastedRef.current || !mySummary) return;
     toastedRef.current = true;
     if (mySummary.levelUp) {
-      pushToast({ kind: 'level-up', icon: '⭐', title: `Nível ${mySummary.levelUp.to}!`, subtitle: `+${mySummary.xpEarned} XP nessa partida` });
+      setShowLevelUp(true);
     } else if (mySummary.records?.scoreIsNewBest) {
       pushToast({ kind: 'record', icon: '🏆', title: 'Novo recorde pessoal!', subtitle: `${s.you.score.toLocaleString('pt-BR')} pontos` });
     }
@@ -145,6 +148,15 @@ export default function MatchEndScreen({ conn }: { conn: RoomConnection }) {
         className="corio-tap"
         style={{ all: 'unset', cursor: 'pointer', flex: 'none', boxSizing: 'border-box', width: '100%', textAlign: 'center', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', color: 'rgba(244,242,248,0.75)', fontWeight: 700, fontSize: 10.5, padding: 10, borderRadius: 11 }}
       >↩ Voltar ao início</button>
+
+      {showLevelUp && mySummary?.levelUp && (
+        <LevelUpModal
+          from={mySummary.levelUp.from}
+          to={mySummary.levelUp.to}
+          xpEarned={mySummary.xpEarned}
+          onClose={() => setShowLevelUp(false)}
+        />
+      )}
     </div>
   );
 }
