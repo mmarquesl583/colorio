@@ -5,8 +5,16 @@ import { AVATAR_ICONS, avatarSmallSrc } from '@shared/avatarIcons';
 import { TITLE_CATALOG, titleNameFor } from '@shared/titleCatalog';
 import { LOBBY_THEMES } from '@shared/gameData';
 import { useProfileData } from '../hooks/useProfileData.ts';
-import { accuracyPct, formatPlaytime } from '../stats.ts';
+import { accuracyPct, formatPlaytime, addFriend, removeFriend, markUnlocksSeen } from '../stats.ts';
 import IdentityPickerModal from '../components/IdentityPickerModal.tsx';
+
+const ADD_FRIEND_MESSAGES: Record<string, string> = {
+  not_found: 'Nenhum jogador com esse código.',
+  self: 'Esse código é o seu próprio :)',
+  already_friends: 'Vocês já são amigos!',
+  not_authenticated: 'Faça login pra adicionar amigos.',
+  error: 'Não deu pra adicionar agora. Tenta de novo.',
+};
 
 const MODE_LABELS: Record<string, string> = { players: 'Frase dos jogadores', ai: 'Frase da IA', race: 'Corrida contra o Tempo' };
 const THEME_BY_ID = new Map(LOBBY_THEMES.map((t) => [t.id, t]));
@@ -16,7 +24,7 @@ const FREE_TITLE_COUNT = TITLE_CATALOG.filter((t) => t.free).length;
 export default function ProfileScreen({ onBack }: { onBack: () => void }) {
   const { session } = useSession();
   const userId = session?.user.id ?? null;
-  const { data, loading, history, historyHasMore, historyLoading, loadMoreHistory } = useProfileData(userId);
+  const { data, loading, history, historyHasMore, historyLoading, loadMoreHistory, refresh } = useProfileData(userId);
   const [pickerMode, setPickerMode] = useState<'avatar' | 'title' | null>(null);
   // undefined = no local override yet (still trusting whatever useProfileData
   // last fetched); set the instant the picker actually equips a new title,
@@ -28,6 +36,15 @@ export default function ProfileScreen({ onBack }: { onBack: () => void }) {
   // same auto-refresh pattern as the avatar picker below).
   const [nameDraft, setNameDraft] = useState<string | null>(null);
   const [savingName, setSavingName] = useState(false);
+  const [friendCodeInput, setFriendCodeInput] = useState('');
+  const [addingFriend, setAddingFriend] = useState(false);
+  const [addFriendMsg, setAddFriendMsg] = useState<string | null>(null);
+  const [copiedCode, setCopiedCode] = useState(false);
+  // Cleared the moment either picker tab opens (it lets you switch between
+  // Ícone/Título from the same modal either way) — local-only, so the "new
+  // stuff to check" dot disappears instantly instead of waiting on the
+  // mark_unlocks_seen() round-trip.
+  const [unlocksChecked, setUnlocksChecked] = useState(false);
 
   const name = accountName(session) ?? 'Jogador';
   const avatarId = accountAvatar(session);
@@ -38,12 +55,60 @@ export default function ProfileScreen({ onBack }: { onBack: () => void }) {
   const avatarCount = FREE_AVATAR_COUNT + (data?.unlockedAvatarIds.size ?? 0);
   const titleCount = FREE_TITLE_COUNT + (data?.unlockedTitleIds.size ?? 0);
 
+  // "New unlock" dots: any achievement granted after the player's own
+  // last_checked_unlocks_at, split by which kind of reward it handed out
+  // (an achievement can in principle hand out both) — reward_type lookup
+  // goes through achievementRewards since player_achievements itself only
+  // has the achievement id, not what it unlocked.
+  const lastCheckedAt = data?.profile?.last_checked_unlocks_at ? new Date(data.profile.last_checked_unlocks_at).getTime() : 0;
+  const newRewardTypes = new Set(
+    unlocksChecked ? [] : (data?.recentUnlocks ?? [])
+      .filter((u) => new Date(u.unlocked_at).getTime() > lastCheckedAt)
+      .flatMap((u) => (data?.achievementRewards ?? []).filter((r) => r.achievement_id === u.achievement_id).map((r) => r.reward_type))
+  );
+  const hasNewAvatar = newRewardTypes.has('avatar');
+  const hasNewTitle = newRewardTypes.has('title');
+
   const commitName = async () => {
     const trimmed = (nameDraft ?? '').trim();
     if (!trimmed || trimmed === name) { setNameDraft(null); return; }
     setSavingName(true);
     await setAccountName(trimmed).finally(() => setSavingName(false));
     setNameDraft(null);
+  };
+
+  const openPicker = (mode: 'avatar' | 'title') => {
+    setPickerMode(mode);
+    if (!unlocksChecked) { setUnlocksChecked(true); markUnlocksSeen(); }
+  };
+
+  const copyFriendCode = () => {
+    const code = data?.profile?.friend_code;
+    if (!code) return;
+    navigator.clipboard?.writeText(code).catch(() => {});
+    setCopiedCode(true);
+    setTimeout(() => setCopiedCode(false), 1500);
+  };
+
+  const handleAddFriend = async () => {
+    const code = friendCodeInput.trim();
+    if (!code || addingFriend) return;
+    setAddingFriend(true);
+    setAddFriendMsg(null);
+    const result = await addFriend(code).finally(() => setAddingFriend(false));
+    if (result === 'ok') {
+      setFriendCodeInput('');
+      setAddFriendMsg('Amigo adicionado! 🎉');
+      refresh();
+    } else {
+      setAddFriendMsg(ADD_FRIEND_MESSAGES[result] ?? ADD_FRIEND_MESSAGES.error);
+    }
+    setTimeout(() => setAddFriendMsg(null), 3000);
+  };
+
+  const handleRemoveFriend = async (friendId: string) => {
+    await removeFriend(friendId);
+    refresh();
   };
 
   return (
@@ -59,7 +124,7 @@ export default function ProfileScreen({ onBack }: { onBack: () => void }) {
 
       <div className="corio-card" style={{ flex: 'none', display: 'flex', alignItems: 'center', gap: 12, background: '#12121a', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 16, padding: 14 }}>
         <button
-          onClick={() => setPickerMode('avatar')}
+          onClick={() => openPicker('avatar')}
           className="corio-tap"
           style={{ all: 'unset', cursor: 'pointer', boxSizing: 'border-box', width: 56, height: 56, borderRadius: '50%', background: '#8B5CF6', color: '#fff', fontWeight: 800, fontSize: 22, display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', flex: 'none' }}
           aria-label="Trocar ícone"
@@ -87,7 +152,7 @@ export default function ProfileScreen({ onBack }: { onBack: () => void }) {
             />
             <span style={{ flex: 'none', fontSize: 11 }} aria-hidden="true">{savingName ? '…' : '✏️'}</span>
           </div>
-          <button onClick={() => setPickerMode('title')} className="corio-tap" style={{ all: 'unset', cursor: 'pointer', display: 'inline-block', fontSize: 10.5, fontWeight: 700, color: '#FFC93C', marginTop: 3 }}>{titleName} ✏️</button>
+          <button onClick={() => openPicker('title')} className="corio-tap" style={{ all: 'unset', cursor: 'pointer', display: 'inline-block', fontSize: 10.5, fontWeight: 700, color: '#FFC93C', marginTop: 3 }}>{titleName} ✏️</button>
         </div>
       </div>
 
@@ -167,14 +232,59 @@ export default function ProfileScreen({ onBack }: { onBack: () => void }) {
       </div>
 
       <div style={{ flex: 'none', display: 'flex', gap: 8 }}>
-        <button onClick={() => setPickerMode('avatar')} className="corio-tap corio-card" style={collectionCardStyle}>
+        <button onClick={() => openPicker('avatar')} className="corio-tap corio-card" style={collectionCardStyle}>
+          {hasNewAvatar && <span className="corio-new-dot" />}
           <div style={{ fontSize: 18 }}>🖼️</div>
           <div className="corio-card-title" style={{ fontSize: 10, fontWeight: 700, marginTop: 4 }}>{avatarCount} avatares</div>
         </button>
-        <button onClick={() => setPickerMode('title')} className="corio-tap corio-card" style={collectionCardStyle}>
+        <button onClick={() => openPicker('title')} className="corio-tap corio-card" style={collectionCardStyle}>
+          {hasNewTitle && <span className="corio-new-dot" />}
           <div style={{ fontSize: 18 }}>🏅</div>
           <div className="corio-card-title" style={{ fontSize: 10, fontWeight: 700, marginTop: 4 }}>{titleCount} títulos</div>
         </button>
+      </div>
+
+      <div className="corio-card" style={{ flex: 'none', background: '#12121a', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 14, padding: 10 }}>
+        <div className="corio-eyebrow" style={{ fontSize: 8, fontWeight: 700, letterSpacing: 0.6, color: 'rgba(244,242,248,0.5)' }}>
+          AMIGOS {data ? `(${data.friends.length})` : ''}
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 8 }}>
+          <div className="corio-card-sub" style={{ fontSize: 9.5, color: 'rgba(244,242,248,0.5)' }}>Seu código de amigo</div>
+          <button onClick={copyFriendCode} className="corio-tap" style={{ all: 'unset', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6, fontFamily: "'Space Grotesk',sans-serif", fontWeight: 800, fontSize: 13, letterSpacing: 1, color: '#29E7FF' }}>
+            {data?.profile?.friend_code ?? '------'} <span style={{ fontSize: 10 }}>{copiedCode ? '✓' : '📋'}</span>
+          </button>
+        </div>
+        <div style={{ display: 'flex', gap: 6, marginTop: 8 }}>
+          <input
+            value={friendCodeInput}
+            onChange={(e) => setFriendCodeInput(e.target.value.toUpperCase().slice(0, 6))}
+            onKeyDown={(e) => { if (e.key === 'Enter') handleAddFriend(); }}
+            placeholder="Código do amigo"
+            maxLength={6}
+            style={{ flex: 1, minWidth: 0, boxSizing: 'border-box', background: '#1c1c26', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 10, padding: '8px 10px', color: '#fff', fontSize: 11, fontWeight: 700, letterSpacing: 1, outline: 'none' }}
+          />
+          <button onClick={handleAddFriend} disabled={addingFriend || !friendCodeInput.trim()} className="corio-tap" style={{ all: 'unset', cursor: 'pointer', flex: 'none', boxSizing: 'border-box', padding: '8px 14px', borderRadius: 10, background: 'linear-gradient(90deg,#8B5CF6,#6D28D9)', color: '#fff', fontWeight: 700, fontSize: 10.5, opacity: addingFriend || !friendCodeInput.trim() ? 0.55 : 1 }}>
+            {addingFriend ? '…' : 'Adicionar'}
+          </button>
+        </div>
+        {addFriendMsg && <div style={{ fontSize: 9.5, fontWeight: 700, color: '#FFC93C', marginTop: 6 }}>{addFriendMsg}</div>}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginTop: 10 }}>
+          {(data?.friends.length ?? 0) === 0 && (
+            <div className="corio-card-sub" style={{ fontSize: 10.5, color: 'rgba(244,242,248,0.5)', textAlign: 'center', padding: '8px 0' }}>Nenhum amigo ainda — compartilhe seu código!</div>
+          )}
+          {data?.friends.map((f) => (
+            <div key={f.friend_id} style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'rgba(255,255,255,0.03)', borderRadius: 10, padding: '8px 10px' }}>
+              <div style={{ width: 30, height: 30, borderRadius: '50%', background: 'rgba(139,92,246,0.25)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 700, flex: 'none', overflow: 'hidden' }}>
+                {f.avatar_id ? <img src={avatarSmallSrc(f.avatar_id)} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : f.name[0]?.toUpperCase()}
+              </div>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div className="corio-card-title" style={{ fontSize: 10.5, fontWeight: 700, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{f.name}</div>
+                <div className="corio-card-sub" style={{ fontSize: 8.5, color: 'rgba(244,242,248,0.5)' }}>{titleNameFor(f.title_id)} · {f.games_played} partidas · {f.best_score.toLocaleString('pt-BR')} pts</div>
+              </div>
+              <button onClick={() => handleRemoveFriend(f.friend_id)} className="corio-tap" aria-label={`Remover ${f.name} dos amigos`} style={{ all: 'unset', cursor: 'pointer', flex: 'none', width: 22, height: 22, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'rgba(244,242,248,0.4)', fontSize: 11 }}>✕</button>
+            </div>
+          ))}
+        </div>
       </div>
 
       <div className="corio-card" style={{ flex: 'none', background: '#12121a', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 14, padding: 10 }}>
@@ -228,7 +338,7 @@ export default function ProfileScreen({ onBack }: { onBack: () => void }) {
           currentTitleId={titleId}
           unlockedAvatarIds={data?.unlockedAvatarIds ?? new Set()}
           unlockedTitleIds={data?.unlockedTitleIds ?? new Set()}
-          progress={data ? { stats: data.stats, modeStats: data.modeStats, achievements: data.achievements, achievementRewards: data.achievementRewards } : undefined}
+          progress={data ? { stats: data.stats, modeStats: data.modeStats, achievements: data.achievements, achievementRewards: data.achievementRewards, friendsCount: data.friendsCount } : undefined}
           onAvatarEquipped={() => { /* useSession() auto-refreshes */ }}
           onTitleEquipped={(id) => setTitleOverride(id)}
           onClose={() => setPickerMode(null)}
@@ -248,6 +358,6 @@ function StatCell({ label, value }: { label: string; value: string | number }) {
 }
 
 const collectionCardStyle: React.CSSProperties = {
-  all: 'unset', cursor: 'pointer', boxSizing: 'border-box', flex: 1, minWidth: 0, textAlign: 'center',
+  all: 'unset', cursor: 'pointer', position: 'relative', boxSizing: 'border-box', flex: 1, minWidth: 0, textAlign: 'center',
   background: '#12121a', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 14, padding: '12px 8px',
 };

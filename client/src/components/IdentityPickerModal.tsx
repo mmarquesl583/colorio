@@ -21,6 +21,7 @@ export interface IdentityProgressData {
   modeStats: ModeStats[];
   achievements: AchievementDef[];
   achievementRewards: AchievementReward[];
+  friendsCount: number;
 }
 
 interface Props {
@@ -80,7 +81,7 @@ export default function IdentityPickerModal({
     ? achievementForTitle(previewTitle.id, progress?.achievements ?? [], progress?.achievementRewards ?? [])
     : null;
   const previewTitleProgress = previewTitleAchievement
-    ? achievementProgress(previewTitleAchievement, progress?.stats ?? null, progress?.modeStats ?? [])
+    ? achievementProgress(previewTitleAchievement, progress?.stats ?? null, progress?.modeStats ?? [], progress?.friendsCount)
     : null;
 
   const commitAvatar = async () => {
@@ -225,7 +226,7 @@ export default function IdentityPickerModal({
                   let progressLabel: string | null = null;
                   if (!unlocked) {
                     const ach = achievementForTitle(t.id, progress?.achievements ?? [], progress?.achievementRewards ?? []);
-                    const prog = ach ? achievementProgress(ach, progress?.stats ?? null, progress?.modeStats ?? []) : null;
+                    const prog = ach ? achievementProgress(ach, progress?.stats ?? null, progress?.modeStats ?? [], progress?.friendsCount) : null;
                     if (prog) {
                       if (prog.lowerIsBetter) {
                         progressLabel = formatProgressValue(prog.current, ach!.criteria_type);

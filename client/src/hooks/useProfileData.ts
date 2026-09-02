@@ -10,7 +10,10 @@ export function useProfileData(userId: string | null) {
   const [historyLoading, setHistoryLoading] = useState(false);
 
   // Fetched once when the screen mounts (userId is stable for the session)
-  // — not re-fetched on every render, and nothing here polls.
+  // — not re-fetched on every render, and nothing here polls. `refresh`
+  // below is the deliberate exception, for actions that change server
+  // state the initial fetch already covers (adding a friend changes both
+  // the friends list and possibly newly-granted achievements at once).
   useEffect(() => {
     if (!userId) { setLoading(false); return; }
     let cancelled = false;
@@ -19,6 +22,11 @@ export function useProfileData(userId: string | null) {
       if (!cancelled) { setData(d); setLoading(false); }
     });
     return () => { cancelled = true; };
+  }, [userId]);
+
+  const refresh = useCallback(() => {
+    if (!userId) return;
+    fetchProfileData(userId).then((d) => setData(d));
   }, [userId]);
 
   const loadMoreHistory = useCallback(() => {
@@ -40,5 +48,5 @@ export function useProfileData(userId: string | null) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userId]);
 
-  return { data, loading, history, historyHasMore, historyLoading, loadMoreHistory };
+  return { data, loading, history, historyHasMore, historyLoading, loadMoreHistory, refresh };
 }

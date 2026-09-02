@@ -575,6 +575,20 @@ input, textarea { font-family: inherit; touch-action: manipulation; }
   align-items: center;
   justify-content: center;
 }
+/* "Something new to check out" — a small pulsing dot, not a number, since
+   the point is just to catch the eye toward the avatares/títulos cards,
+   not to communicate a count. */
+.corio-new-dot {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: #FF5C8A;
+  box-shadow: 0 0 0 2px #12121a;
+  animation: corio-pulse 1.4s ease-in-out infinite;
+}
 .corio-picker-current-badge {
   position: absolute;
   top: 3px;

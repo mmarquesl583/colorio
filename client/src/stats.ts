@@ -16,6 +16,19 @@ export interface Profile {
   last_login_at: string | null;
   last_played_at: string | null;
   session_count: number;
+  friend_code: string | null;
+  last_checked_unlocks_at: string;
+}
+
+export interface Friend {
+  friend_id: string;
+  name: string;
+  avatar_id: string | null;
+  title_id: string | null;
+  games_played: number;
+  games_won: number;
+  best_score: number;
+  total_perfects: number;
 }
 
 export interface PlayerStats {
@@ -131,6 +144,12 @@ export interface ProfileData {
   unlockedAvatarIds: Set<string>;
   unlockedTitleIds: Set<string>;
   daysPlayed: number;
+  friends: Friend[];
+  friendsCount: number;
+  // achievement_id + when it unlocked — lets the UI show a "new" badge for
+  // anything granted after the player's own last_checked_unlocks_at,
+  // without a second table just for read/unread state.
+  recentUnlocks: { achievement_id: string; unlocked_at: string }[];
 }
 
 const emptyProfileData: ProfileData = {
@@ -144,11 +163,14 @@ const emptyProfileData: ProfileData = {
   unlockedAvatarIds: new Set(),
   unlockedTitleIds: new Set(),
   daysPlayed: 0,
+  friends: [],
+  friendsCount: 0,
+  recentUnlocks: [],
 };
 
 export async function fetchProfileData(userId: string): Promise<ProfileData> {
   try {
-    const [profileRes, statsRes, modeRes, themeRes, achRes, rewardsRes, playerAchRes, avatarRes, titleRes, daysRes] = await Promise.all([
+    const [profileRes, statsRes, modeRes, themeRes, achRes, rewardsRes, playerAchRes, avatarRes, titleRes, daysRes, friendsRes, friendsCountRes] = await Promise.all([
       supabase.from('profiles').select('*').eq('user_id', userId).maybeSingle(),
       supabase.from('player_stats').select('*').eq('user_id', userId).maybeSingle(),
       supabase.from('player_mode_stats').select('*').eq('user_id', userId),
@@ -159,7 +181,7 @@ export async function fetchProfileData(userId: string): Promise<ProfileData> {
       // backs a given title id, so it can look up that achievement's
       // criteria and show real "how close am I" progress in the picker.
       supabase.from('achievement_rewards').select('*'),
-      supabase.from('player_achievements').select('achievement_id').eq('user_id', userId),
+      supabase.from('player_achievements').select('achievement_id, unlocked_at').eq('user_id', userId),
       supabase.from('player_avatars').select('avatar_id').eq('user_id', userId),
       supabase.from('player_titles').select('title_id').eq('user_id', userId),
       // Row count only (head: true skips fetching the actual rows) — this
@@ -167,6 +189,11 @@ export async function fetchProfileData(userId: string): Promise<ProfileData> {
       // table so it's O(1) per match to maintain instead of scanning all
       // of match_history every time the profile opens.
       supabase.from('player_play_days').select('*', { count: 'exact', head: true }).eq('user_id', userId),
+      // Friend names/avatars/stats live in auth.users + other players' own
+      // rows — RLS blocks reading those directly, so this goes through the
+      // get_friends_stats() SECURITY DEFINER function instead of a table select.
+      supabase.rpc('get_friends_stats'),
+      supabase.from('friendships').select('*', { count: 'exact', head: true }).eq('user_id', userId),
     ]);
 
     return {
@@ -176,15 +203,34 @@ export async function fetchProfileData(userId: string): Promise<ProfileData> {
       themeStats: (themeRes.data as ThemeStats[] | null) ?? [],
       achievements: (achRes.data as AchievementDef[] | null) ?? [],
       achievementRewards: (rewardsRes.data as AchievementReward[] | null) ?? [],
-      unlockedAchievementIds: new Set(((playerAchRes.data ?? []) as { achievement_id: string }[]).map((r) => r.achievement_id)),
+      unlockedAchievementIds: new Set(((playerAchRes.data ?? []) as { achievement_id: string; unlocked_at: string }[]).map((r) => r.achievement_id)),
       unlockedAvatarIds: new Set(((avatarRes.data ?? []) as { avatar_id: string }[]).map((r) => r.avatar_id)),
       unlockedTitleIds: new Set(((titleRes.data ?? []) as { title_id: string }[]).map((r) => r.title_id)),
       daysPlayed: daysRes.count ?? 0,
+      friends: (friendsRes.data as Friend[] | null) ?? [],
+      friendsCount: friendsCountRes.count ?? 0,
+      recentUnlocks: (playerAchRes.data ?? []) as { achievement_id: string; unlocked_at: string }[],
     };
   } catch (err) {
     console.error('fetchProfileData failed:', err);
     return emptyProfileData;
   }
+}
+
+export async function addFriend(code: string): Promise<string> {
+  const { data, error } = await supabase.rpc('add_friend', { p_code: code });
+  if (error) { console.error('add_friend failed:', error.message); return 'error'; }
+  return (data as string | null) ?? 'error';
+}
+
+export async function removeFriend(friendId: string): Promise<void> {
+  const { error } = await supabase.rpc('remove_friend', { p_friend_id: friendId });
+  if (error) console.error('remove_friend failed:', error.message);
+}
+
+export async function markUnlocksSeen(): Promise<void> {
+  const { error } = await supabase.rpc('mark_unlocks_seen');
+  if (error) console.error('mark_unlocks_seen failed:', error.message);
 }
 
 const HISTORY_PAGE_SIZE = 20;
@@ -292,8 +338,13 @@ export interface AchievementProgress {
 
 /** null return = no progress to show (criteria_type not yet mappable, or
  * a lower-is-better stat the player has never recorded at all — 0ms would
- * misleadingly read as "already there"). */
-export function achievementProgress(ach: AchievementDef, stats: PlayerStats | null, modeStats: ModeStats[]): AchievementProgress | null {
+ * misleadingly read as "already there"). friendsCount only matters for the
+ * friends_count criteria_type — it lives in `friendships`, not PlayerStats,
+ * so it can't go through the same field-lookup map as everything else. */
+export function achievementProgress(ach: AchievementDef, stats: PlayerStats | null, modeStats: ModeStats[], friendsCount?: number): AchievementProgress | null {
+  if (ach.criteria_type === 'friends_count') {
+    return { current: friendsCount ?? 0, target: ach.criteria_value, lowerIsBetter: false };
+  }
   const lowerIsBetter = LOWER_IS_BETTER.has(ach.criteria_type);
   if (ach.required_mode_id) {
     const field = MODE_CRITERIA_FIELDS[ach.criteria_type];

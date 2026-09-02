@@ -7,7 +7,7 @@
 // achievement_rewards) — not duplicated here. The client cross-references
 // that at runtime (see client/src/stats.ts's fetchAchievementRewards) to
 // compute "how close am I" progress without a second source of truth.
-export type TitleCategory = 'especiais' | 'precisao' | 'velocidade' | 'sequencias' | 'pontuacao' | 'numeros-especiais' | 'experiencia';
+export type TitleCategory = 'especiais' | 'precisao' | 'velocidade' | 'sequencias' | 'pontuacao' | 'numeros-especiais' | 'experiencia' | 'social';
 
 export interface TitleOption {
   id: string;
@@ -56,6 +56,11 @@ export const TITLE_CATALOG: TitleOption[] = [
   // Experiência
   { id: 'veterano-das-cores', name: 'Veterano das Cores', category: 'experiencia', description: 'Jogue 100 partidas.' },
   { id: 'morador-do-colorio', name: 'Morador do Colorio', category: 'experiencia', description: 'Passe 10 horas dentro do jogo.' },
+
+  // Social
+  { id: 'um-bom-amigo', name: 'Um Bom Amigo', category: 'social', description: 'Adicione 1 amigo.' },
+  { id: 'amigao-da-vizinhanca', name: 'Amigão da Vizinhança', category: 'social', description: 'Adicione 3 amigos.' },
+  { id: 'popularidade-maxima', name: 'Popularidade Máxima', category: 'social', description: 'Adicione 5 amigos.' },
 ];
 
 export const TITLE_CATEGORIES: { id: TitleCategory; label: string }[] = [
@@ -65,6 +70,7 @@ export const TITLE_CATEGORIES: { id: TitleCategory; label: string }[] = [
   { id: 'pontuacao', label: 'Pontuação' },
   { id: 'numeros-especiais', label: 'Números Especiais' },
   { id: 'experiencia', label: 'Experiência' },
+  { id: 'social', label: 'Social' },
   { id: 'especiais', label: 'Especiais' },
 ];
 
