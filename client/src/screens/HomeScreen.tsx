@@ -124,7 +124,7 @@ export default function HomeScreen({ connecting, error, onClearError, onStartCre
               </div>
 
               {progression && (
-                <div style={{ display: 'flex', alignItems: 'center', gap: 10, width: '100%', marginTop: 10, paddingTop: 10, borderTop: '1px solid rgba(255,255,255,0.1)' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10, width: '100%', marginTop: 6, paddingTop: 6, borderTop: '1px solid rgba(255,255,255,0.1)' }}>
                   <div style={{ flex: 'none', fontSize: 12, fontWeight: 800, color: '#FFC93C', fontFamily: "'Space Grotesk',sans-serif" }}>Nv. {progression.level}</div>
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ height: 6, borderRadius: 3, background: 'rgba(255,255,255,0.12)', overflow: 'hidden' }}>
