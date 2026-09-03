@@ -4,7 +4,7 @@ import { useSession, accountAvatar, accountName, setAccountName } from '../auth.
 import { AVATAR_ICONS, avatarSmallSrc } from '@shared/avatarIcons';
 import { TITLE_CATALOG, titleNameFor } from '@shared/titleCatalog';
 import { LOBBY_THEMES } from '@shared/gameData';
-import { xpForLevel } from '@shared/progression';
+import { xpForLevel, nextLevelMilestone } from '@shared/progression';
 import { useProfileData } from '../hooks/useProfileData.ts';
 import { formatPlaytime, addFriend, removeFriend, markUnlocksSeen } from '../stats.ts';
 import IdentityPickerModal from '../components/IdentityPickerModal.tsx';
@@ -194,6 +194,14 @@ export default function ProfileScreen({ onBack, onOpenAdmin }: { onBack: () => v
             </div>
             <div style={{ flex: 'none', fontSize: 8.5, color: 'rgba(244,242,248,0.5)' }}>{stats.xp.toLocaleString('pt-BR')} XP</div>
           </div>
+          {(() => {
+            const next = nextLevelMilestone(stats.level);
+            return next ? (
+              <div style={{ fontSize: 9, color: 'rgba(244,242,248,0.5)', marginBottom: 10 }}>
+                🔒 Nível {next.level} desbloqueia o título <span style={{ color: '#C4B5FD', fontWeight: 700 }}>{next.title}</span>
+              </div>
+            ) : null;
+          })()}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10 }}>
             <StatCell label="Sequência atual" value={stats.current_day_streak > 0 ? `🔥 ${stats.current_day_streak}` : 0} />
             <StatCell label="Melhor combo" value={`x${stats.best_combo}`} />

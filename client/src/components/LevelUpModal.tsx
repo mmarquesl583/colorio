@@ -1,23 +1,8 @@
 import { useEffect } from 'react';
-
-// Display-only mirror of the level milestones seeded in
-// supabase/migrations/0009_level_titles.sql / shared/titleCatalog.ts — the
-// actual unlock is enforced server-side regardless of what this shows;
-// this is purely "which title, if any, did this level-up just cross" for
-// the popup's own text.
-const LEVEL_TITLES: Record<number, string> = {
-  5: 'Pupilo', 10: 'Gafanhoto', 15: 'Soldado', 20: 'Guerreiro', 25: 'Viking',
-  30: 'Samurai', 35: 'Sensei', 40: 'Máquina de Guerra', 45: 'Lenda', 50: 'Mestre Supremo',
-};
-
-function titleCrossedFor(from: number, to: number): string | null {
-  const milestones = Object.keys(LEVEL_TITLES).map(Number).sort((a, b) => b - a);
-  const hit = milestones.find((lvl) => lvl > from && lvl <= to);
-  return hit ? LEVEL_TITLES[hit] : null;
-}
+import { milestoneCrossed } from '@shared/progression';
 
 export default function LevelUpModal({ from, to, xpEarned, onClose }: { from: number; to: number; xpEarned: number; onClose: () => void }) {
-  const titleUnlocked = titleCrossedFor(from, to);
+  const titleUnlocked = milestoneCrossed(from, to)?.title ?? null;
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape' || e.key === 'Enter') onClose(); };
