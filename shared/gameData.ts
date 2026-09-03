@@ -65,7 +65,7 @@ export const MAX_ROUNDS = 12;
 // times: every broadcast fans out to every connected player with an
 // O(players) payload, so an unbounded room is a real perf/DoS surface, not
 // just a visual oddity.
-export const MAX_ROOM_PLAYERS = 40;
+export const MAX_ROOM_PLAYERS = 10;
 
 // Alternate win condition alongside "rounds run out": whoever hits this many
 // points first wins the match immediately, in every mode — the host sets it
