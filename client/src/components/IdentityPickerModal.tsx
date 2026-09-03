@@ -3,7 +3,7 @@ import {
   AVATAR_ICONS, AVATAR_CATEGORIES, RARITY_LABELS, avatarSmallSrc, avatarLargeSrc,
   type AvatarCategory,
 } from '@shared/avatarIcons';
-import { TITLE_CATALOG, TITLE_CATEGORIES, titleNameFor, type TitleCategory } from '@shared/titleCatalog';
+import { TITLE_CATALOG, TITLE_CATEGORIES, titleNameFor, isTitleCurrentlyAvailable, type TitleCategory } from '@shared/titleCatalog';
 import { setAccountAvatar } from '../auth.ts';
 import {
   equipTitle, achievementForTitle, achievementProgress, formatPlaytime,
@@ -75,7 +75,7 @@ export default function IdentityPickerModal({
   // ones you can actually equip got old fast. Stable sort keeps the
   // catalog's own order within each group (unlocked, then locked).
   const titleList = TITLE_CATALOG
-    .filter((t) => titleCat === 'todos' || t.category === titleCat)
+    .filter((t) => isTitleCurrentlyAvailable(t) && (titleCat === 'todos' || t.category === titleCat))
     .slice()
     .sort((a, b) => {
       const aUnlocked = a.free || unlockedTitleIds.has(a.id);

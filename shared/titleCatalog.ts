@@ -15,10 +15,16 @@ export interface TitleOption {
   category: TitleCategory;
   description: string;
   free?: boolean;
+  /** ISO date ('YYYY-MM-DD', UTC) — once today is past this date, the title
+   * drops out of the browsable picker grid (see isTitleCurrentlyAvailable)
+   * as if it never existed. titleNameFor() still resolves it unfiltered, so
+   * anyone who already equipped it keeps seeing it correctly. */
+  validUntil?: string;
 }
 
 export const TITLE_CATALOG: TitleOption[] = [
   { id: 'novato', name: 'Novato das Cores', category: 'especiais', description: 'Todo mestre um dia começou por aqui.', free: true },
+  { id: 'parabens-amanda', name: '🎉 Parabéns, Amanda!', category: 'especiais', description: 'Hoje é aniversário da Amanda — um brinde a mais um ano de vida! 🥳', free: true, validUntil: '2026-09-03' },
 
   // Precisão
   { id: 'daltonico', name: 'Daltônico', category: 'precisao', description: 'Tire 0 pontos em 10 palpites.' },
@@ -103,4 +109,13 @@ export const TITLE_CATEGORIES: { id: TitleCategory; label: string }[] = [
 // now in-room player lists).
 export function titleNameFor(titleId: string | null): string {
   return TITLE_CATALOG.find((t) => t.id === titleId)?.name ?? 'Novato das Cores';
+}
+
+// Date-limited titles (validUntil) — true for everything else. Compared as
+// plain 'YYYY-MM-DD' strings against UTC "today", same format/timezone the
+// server already uses for day-streak tracking (see room.ts's v_today).
+export function isTitleCurrentlyAvailable(t: TitleOption): boolean {
+  if (!t.validUntil) return true;
+  const todayUtc = new Date().toISOString().slice(0, 10);
+  return todayUtc <= t.validUntil;
 }
