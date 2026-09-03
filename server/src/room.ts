@@ -104,6 +104,12 @@ interface InternalPlayer {
    * null when not tracked (no userId, or the session hasn't opened yet /
    * already closed). */
   sessionId: string | null;
+  /** Rounds that finished while this player was disconnected (see
+   * computeReveal()'s tally) — read and reset by reconnect()'s catch-up
+   * bonus, and by restartMatch(). Master-round misses don't count here:
+   * an absent master's masterGain still lands normally (see computeReveal),
+   * only guesser rounds are truly skipped for a disconnected player. */
+  missedRounds: number;
 }
 
 interface ThemeTallyEntry { correct: number; wrong: number; perfects: number; bestScore: number; }
@@ -228,7 +234,7 @@ export class Room {
       avatarId, titleId,
       score: 0, perfectCount: 0, combo: 0, priorBests: null, connected: true, confirmed: false, readyNext: false,
       pickedColor: null, colorHistory: [], confirmedAtSeconds: null, raceResponseMs: null,
-      userId, sessionId: null,
+      userId, sessionId: null, missedRounds: 0,
     };
     this.players.set(id, player);
     this.order.push(id);
@@ -267,13 +273,44 @@ export class Room {
   reconnect(id: string, ws: WebSocket): boolean {
     const p = this.players.get(id);
     if (!p) return false;
+    const wasDisconnected = !p.connected;
     p.ws = ws;
     p.connected = true;
     const pending = this.lobbyLeaveTimers.get(id);
     if (pending) { clearTimeout(pending); this.lobbyLeaveTimers.delete(id); }
     if (p.userId && !p.sessionId) this.openSessionFor(id, p.userId);
+    if (wasDisconnected) {
+      this.chat.push(sysMsg('#4ADE80', `${p.name} voltou`));
+      this.applyReconnectCatchUp(p, id);
+    }
     this.broadcast();
     return true;
+  }
+
+  // Pays out a capped catch-up bonus for rounds missed while disconnected
+  // (see missedRounds' own doc comment) — only during an actual match, and
+  // only up to just under whoever's currently in last place, so reconnecting
+  // can never leapfrog someone who stayed and kept playing. Multiplies this
+  // player's own average score-per-round-played (their skill/luck so far
+  // this match, not a flat number) by rounds missed, then clamps.
+  private applyReconnectCatchUp(p: InternalPlayer, id: string) {
+    const missed = p.missedRounds;
+    p.missedRounds = 0;
+    if (this.screen !== 'playing' || missed <= 0) return;
+    const roundsPlayed = this.matchRoundScores.get(id)?.length ?? 0;
+    if (roundsPlayed === 0) return;
+    const avgScore = p.score / roundsPlayed;
+    const rawBonus = Math.round(avgScore * missed);
+    if (rawBonus <= 0) return;
+    const otherScores = this.order
+      .filter((pid) => pid !== id && this.players.get(pid)?.connected)
+      .map((pid) => this.players.get(pid)!.score);
+    if (otherScores.length === 0) return;
+    const lowestOther = Math.min(...otherScores);
+    const bonus = Math.max(0, Math.min(rawBonus, lowestOther - 1 - p.score));
+    if (bonus <= 0) return;
+    p.score += bonus;
+    this.chat.push(sysMsg('#4ADE80', `${p.name} recebeu +${bonus} pontos de compensação (${missed} ${missed === 1 ? 'rodada perdida' : 'rodadas perdidas'})`));
   }
 
   // Explicit leave (player clicked SAIR) — skips the reconnect grace period
@@ -324,6 +361,10 @@ export class Room {
       this.lobbyLeaveTimers.set(id, timer);
       return;
     }
+    // Mid-match (or post-match) drop — no grace period here, their slot/score
+    // already survives a reconnect on its own, so this chat line is the only
+    // signal anyone gets that they left. reconnect() announces the return.
+    this.chat.push(sysMsg('#94A3B8', `${p.name} saiu da sala`));
     if (this.players.size === 0 || this.order.every((pid) => !this.players.get(pid)?.connected)) {
       this.stopTimers();
       // The whole room is dying with a match still in progress (nobody left
@@ -639,6 +680,16 @@ export class Room {
     const secretRgb = hslFracToRgb(secretHsl.h, secretHsl.s / 100, secretHsl.l / 100);
     const secretHex = rgbToHex(secretRgb.r, secretRgb.g, secretRgb.b);
     const guessers = this.eligibleGuessers();
+    // Anyone disconnected right now gets zero points for this round (they're
+    // excluded from `guessers` above) — tallied here so reconnect() can pay
+    // out a capped catch-up bonus later. A disconnected MASTER still earns
+    // masterGain normally below (their absence doesn't stall a round once
+    // they've already submitted their phrase), so only non-master misses
+    // count as "missed" here.
+    for (const id of this.order) {
+      const p = this.players.get(id);
+      if (p && !p.connected && id !== this.round?.masterId) p.missedRounds += 1;
+    }
     const byStanding = [...guessers].sort((a, b) => (this.players.get(b)!.score - this.players.get(a)!.score));
     const base = byStanding.map((id) => {
       const p = this.players.get(id)!;
@@ -1013,6 +1064,7 @@ export class Room {
     for (const p of this.players.values()) {
       p.score = 0; p.perfectCount = 0; p.combo = 0; p.confirmed = false; p.readyNext = false;
       p.pickedColor = null; p.colorHistory = []; p.confirmedAtSeconds = null; p.raceResponseMs = null;
+      p.missedRounds = 0;
       // Prior bests go stale the moment the match that just ended wrote new
       // ones — reload so the replay's own record comparison is accurate,
       // not stuck comparing against pre-previous-match values.
