@@ -28,7 +28,7 @@ export default function MatchEndScreen({ conn }: { conn: RoomConnection }) {
     ? 'conseguiu 5 acertos perfeitos'
     : winner?.reason === 'rounds'
       ? 'terminou com mais pontos'
-      : 'chegou a 10.000 pontos';
+      : `chegou a ${s.config.maxScore.toLocaleString('pt-BR')} pontos`;
   const winnerIds = new Set(winner?.winners.map((w) => w.playerId) ?? []);
   const isDraw = Boolean(winner?.isDraw);
 

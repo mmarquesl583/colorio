@@ -6,7 +6,7 @@ import { Room, type QuestionReport } from './room.ts';
 import { verifyUserToken } from './supabaseAdmin.ts';
 import { startStaleSessionSweep, startQuestionOverridesPoll, recordQuestionReport } from './stats.ts';
 import { handleAdminRequest } from './admin.ts';
-import { LOBBY_THEMES, MIN_ROUNDS, MAX_ROUNDS, MIN_MAX_SCORE, MAX_MAX_SCORE, DEFAULT_MAX_SCORE } from '../../shared/gameData.ts';
+import { LOBBY_THEMES, MIN_ROUNDS, MAX_ROUNDS, MIN_MAX_SCORE, MAX_MAX_SCORE, DEFAULT_MAX_SCORE, MAX_ROOM_PLAYERS } from '../../shared/gameData.ts';
 import type { ClientMessage, RoomConfig, ServerMessage, PublicRoomSummary } from '../../shared/types.ts';
 
 const PORT = Number(process.env.PORT) || 8787;
@@ -165,6 +165,7 @@ wss.on('connection', (ws: WebSocket) => {
       if (!isNonEmptyString(msg.code) || !isNonEmptyString(msg.name)) return;
       const target = rooms.get(msg.code.toUpperCase());
       if (!target) { send(ws, { type: 'error', message: 'Sala não encontrada.' }); return; }
+      if (target.players.size >= MAX_ROOM_PLAYERS) { send(ws, { type: 'error', message: 'Sala cheia.' }); return; }
       const userId = await verifyUserToken(msg.token);
       // Rooms stay open for the whole match — joining mid-round just drops
       // the newcomer in with 0 points and a chat announcement, no gate here.

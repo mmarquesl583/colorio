@@ -127,11 +127,11 @@ export interface YouView extends PlayerPublic {
   masterSecret: HslColor | null;
 }
 
-/** Set once a match ends — either the Frase da IA win condition (10000
- * pontos or 5 acertos perfeitos) or, in Frase dos jogadores, the last
- * configured round finishing. `playerId`/`name`/`score` stay a single
- * back-compat winner (first tied winner if it's a draw); `winners` is the
- * full list, with 2+ entries only when `isDraw`. */
+/** Set once a match ends — either someone reaching config.maxScore (every
+ * mode; Frase da IA also has its own 5-acertos-perfeitos alt condition) or
+ * the last configured round finishing. `playerId`/`name`/`score` stay a
+ * single back-compat winner (first tied winner if it's a draw); `winners`
+ * is the full list, with 2+ entries only when `isDraw`. */
 export interface MatchWinner {
   playerId: string;
   name: string;

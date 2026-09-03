@@ -59,6 +59,14 @@ export const LOBBY_RECONNECT_GRACE_MS = 45000;
 export const MIN_ROUNDS = 1;
 export const MAX_ROUNDS = 12;
 
+// Not host-configurable, not shown anywhere in the UI — a purely internal
+// safety net now that rooms no longer have a host-chosen numPlayers ceiling.
+// Without this, a script could join the same public room thousands of
+// times: every broadcast fans out to every connected player with an
+// O(players) payload, so an unbounded room is a real perf/DoS surface, not
+// just a visual oddity.
+export const MAX_ROOM_PLAYERS = 40;
+
 // Alternate win condition alongside "rounds run out": whoever hits this many
 // points first wins the match immediately, in every mode — the host sets it
 // per room instead of a single fixed number, so Corrida's higher per-round
