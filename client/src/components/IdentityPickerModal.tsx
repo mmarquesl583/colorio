@@ -70,7 +70,18 @@ export default function IdentityPickerModal({
   // exists in the browsable grid, not merely see it greyed out with a 🔒.
   const avatarList = AVATAR_ICONS.filter((a) =>
     (avatarCat === 'todos' || a.category === avatarCat) && (a.rarity !== 'unico' || unlockedAvatarIds.has(a.id)));
-  const titleList = TITLE_CATALOG.filter((t) => titleCat === 'todos' || t.category === titleCat);
+  // Unlocked titles float to the top — with dozens of titles in the
+  // catalog, hunting through a wall of locked 🔒 rows just to find the
+  // ones you can actually equip got old fast. Stable sort keeps the
+  // catalog's own order within each group (unlocked, then locked).
+  const titleList = TITLE_CATALOG
+    .filter((t) => titleCat === 'todos' || t.category === titleCat)
+    .slice()
+    .sort((a, b) => {
+      const aUnlocked = a.free || unlockedTitleIds.has(a.id);
+      const bUnlocked = b.free || unlockedTitleIds.has(b.id);
+      return aUnlocked === bUnlocked ? 0 : aUnlocked ? -1 : 1;
+    });
   const previewAvatar = AVATAR_ICONS.find((a) => a.id === previewAvatarId) ?? null;
   const previewTitle = TITLE_CATALOG.find((t) => t.id === previewTitleId) ?? null;
   const currentTitleName = titleNameFor(currentTitleId);
