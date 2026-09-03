@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import Logo from '../components/Logo.tsx';
-import { LOBBY_THEMES, MIN_PLAYERS, MAX_PLAYERS, MIN_ROUNDS, MAX_ROUNDS } from '@shared/gameData';
+import { LOBBY_THEMES, MIN_ROUNDS, MAX_ROUNDS, MIN_MAX_SCORE, MAX_MAX_SCORE, MAX_SCORE_STEP } from '@shared/gameData';
 import { AI_QUESTIONS } from '@shared/aiQuestions';
 import { avatarSmallSrc } from '@shared/avatarIcons';
 import { titleNameFor } from '@shared/titleCatalog';
@@ -14,7 +14,6 @@ export default function WaitingScreen({ conn }: { conn: RoomConnection }) {
   const [copyLabel, setCopyLabel] = useState('🔗 Compartilhar');
   const [editingConfig, setEditingConfig] = useState(false);
   const isHost = s.you.isHost;
-  const slots = Array.from({ length: s.config.numPlayers }, (_, i) => s.players[i] ?? null);
 
   const copyLink = () => {
     navigator.clipboard?.writeText(s.code).catch(() => {});
@@ -40,13 +39,13 @@ export default function WaitingScreen({ conn }: { conn: RoomConnection }) {
     const next = has ? s.config.selectedThemes.filter((x) => x !== id) : [...s.config.selectedThemes, id];
     conn.send({ type: 'update_config', config: { selectedThemes: next } });
   };
-  const setNumPlayers = (delta: number) => {
-    const next = Math.max(MIN_PLAYERS, Math.min(MAX_PLAYERS, s.config.numPlayers + delta));
-    if (next !== s.config.numPlayers) conn.send({ type: 'update_config', config: { numPlayers: next } });
-  };
   const setNumRounds = (delta: number) => {
     const next = Math.max(MIN_ROUNDS, Math.min(MAX_ROUNDS, s.config.numRounds + delta));
     if (next !== s.config.numRounds) conn.send({ type: 'update_config', config: { numRounds: next } });
+  };
+  const setMaxScore = (delta: number) => {
+    const next = Math.max(MIN_MAX_SCORE, Math.min(MAX_MAX_SCORE, s.config.maxScore + delta));
+    if (next !== s.config.maxScore) conn.send({ type: 'update_config', config: { maxScore: next } });
   };
   const currentModeChoice: ModeChoice = s.config.gameMode === 'race' ? 'race' : s.config.phraseMode === 'ai' ? 'ai' : s.config.phraseMode === 'verbal' ? 'verbal' : 'players';
   const needsAiThemesNow = s.config.phraseMode === 'ai' || s.config.gameMode === 'race';
@@ -97,8 +96,8 @@ export default function WaitingScreen({ conn }: { conn: RoomConnection }) {
 
         {!editingConfig && (
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6 }}>
-            <ConfigChip label="👥 Jogadores" value={String(s.config.numPlayers)} />
             <ConfigChip label="⏱ Rodadas" value={String(s.config.numRounds)} />
+            <ConfigChip label="🏆 Pontuação máx." value={s.config.maxScore.toLocaleString('pt-BR')} />
             <ConfigChip label="🎮 Modo de jogo" value={currentModeChoice === 'race' ? 'Corrida contra o Tempo' : currentModeChoice === 'ai' ? 'Frase da IA' : currentModeChoice === 'verbal' ? 'Com a Galera' : 'Frase dos jogadores'} valueColor="#C4B5FD" span2 />
             <ConfigChip label="🎨 Temas" value={`${s.config.selectedThemes.length} selecionados`} valueColor="#4ADE80" span2 />
           </div>
@@ -107,8 +106,8 @@ export default function WaitingScreen({ conn }: { conn: RoomConnection }) {
         {editingConfig && (
           <div style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', gap: 8 }}>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6 }}>
-              <StepperChip label="👥 Jogadores" value={s.config.numPlayers} onDec={() => setNumPlayers(-1)} onInc={() => setNumPlayers(1)} />
               <StepperChip label="⏱ Rodadas" value={s.config.numRounds} onDec={() => setNumRounds(-1)} onInc={() => setNumRounds(1)} />
+              <StepperChip label="🏆 Pontos" value={s.config.maxScore} onDec={() => setMaxScore(-MAX_SCORE_STEP)} onInc={() => setMaxScore(MAX_SCORE_STEP)} format={(v) => v.toLocaleString('pt-BR')} />
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
               <div onClick={() => chooseMode('players')} className="corio-tap corio-card" style={modeCardStyle(currentModeChoice === 'players', 'rgba(139,92,246,0.15)', '#8B5CF6')}>
@@ -163,10 +162,10 @@ export default function WaitingScreen({ conn }: { conn: RoomConnection }) {
         <div className="corio-card" style={{ flex: 1, minHeight: 0, background: '#12121a', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 14, padding: '9px 10px', display: 'flex', flexDirection: 'column' }}>
           <div style={{ flex: 'none', display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
             <div className="corio-eyebrow" style={{ fontSize: 9, fontWeight: 700, letterSpacing: 0.6, color: 'rgba(244,242,248,0.6)' }}>JOGADORES</div>
-            <div style={{ fontSize: 11, fontWeight: 700, color: '#A78BFA', fontFamily: "'Space Grotesk',sans-serif" }}>{s.players.length}/{s.config.numPlayers}</div>
+            <div style={{ fontSize: 11, fontWeight: 700, color: '#A78BFA', fontFamily: "'Space Grotesk',sans-serif" }}>{s.players.length}</div>
           </div>
           <div className="corio-noscroll corio-player-grid" style={{ flex: 1, minHeight: 0, overflowY: 'auto' }}>
-            {slots.map((p, i) => p ? (
+            {s.players.map((p) => (
               <div key={p.id} className="corio-card" style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 8px', borderRadius: 10, background: 'rgba(255,255,255,0.03)', flex: 'none' }}>
                 <div style={{ width: 32, height: 32, borderRadius: '50%', background: `${p.color}33`, border: `1.5px solid ${p.color}`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 700, flex: 'none', overflow: 'hidden' }}>
                   {p.avatarId ? <img src={avatarSmallSrc(p.avatarId)} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : p.initial}
@@ -180,12 +179,6 @@ export default function WaitingScreen({ conn }: { conn: RoomConnection }) {
                   <div className="corio-card-sub" style={{ fontSize: 8.5, fontWeight: 600, color: p.connected ? '#4ADE80' : '#FCA5A5' }}>{p.connected ? 'Pronto para jogar!' : 'Reconectando…'}</div>
                 </div>
                 <div style={{ fontSize: 13, flex: 'none' }}>{p.connected ? '✅' : '🔄'}</div>
-              </div>
-            ) : (
-              <div key={'empty' + i} className="corio-card" style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 8px', borderRadius: 10, background: 'transparent', flex: 'none' }}>
-                <div style={{ width: 32, height: 32, borderRadius: '50%', border: '1.5px dashed rgba(255,255,255,0.2)', flex: 'none' }} />
-                <div className="corio-card-sub" style={{ flex: 1, minWidth: 0, fontSize: 11, color: 'rgba(244,242,248,0.35)' }}>Aguardando jogador...</div>
-                <div style={{ fontSize: 13, flex: 'none' }}>➕</div>
               </div>
             ))}
           </div>
@@ -217,13 +210,13 @@ export default function WaitingScreen({ conn }: { conn: RoomConnection }) {
   );
 }
 
-function StepperChip({ label, value, onDec, onInc }: { label: string; value: number; onDec: () => void; onInc: () => void }) {
+function StepperChip({ label, value, onDec, onInc, format }: { label: string; value: number; onDec: () => void; onInc: () => void; format?: (v: number) => string }) {
   return (
     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'rgba(255,255,255,0.03)', borderRadius: 8, padding: '5px 6px 5px 8px' }}>
       <div className="corio-card-sub" style={{ fontSize: 8.5, fontWeight: 700, color: 'rgba(244,242,248,0.55)' }}>{label}</div>
       <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
         <button onClick={onDec} className="corio-tap" style={{ all: 'unset', cursor: 'pointer', width: 18, height: 18, borderRadius: '50%', background: 'rgba(255,255,255,0.08)', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11 }}>−</button>
-        <div className="corio-card-title" style={{ fontSize: 11, fontWeight: 800, fontFamily: "'Space Grotesk',sans-serif", width: 14, textAlign: 'center' }}>{value}</div>
+        <div className="corio-card-title" style={{ fontSize: 11, fontWeight: 800, fontFamily: "'Space Grotesk',sans-serif", minWidth: 14, textAlign: 'center' }}>{format ? format(value) : value}</div>
         <button onClick={onInc} className="corio-tap" style={{ all: 'unset', cursor: 'pointer', width: 18, height: 18, borderRadius: '50%', background: '#8B5CF6', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11 }}>+</button>
       </div>
     </div>

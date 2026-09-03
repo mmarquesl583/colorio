@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import Logo from '../components/Logo.tsx';
-import { LOBBY_THEMES, MIN_PLAYERS, MAX_PLAYERS, MIN_ROUNDS, MAX_ROUNDS, PLAYER_PALETTE } from '@shared/gameData';
+import { LOBBY_THEMES, MIN_ROUNDS, MAX_ROUNDS, MIN_MAX_SCORE, MAX_MAX_SCORE, MAX_SCORE_STEP, DEFAULT_MAX_SCORE, PLAYER_PALETTE } from '@shared/gameData';
 import { AI_QUESTIONS } from '@shared/aiQuestions';
 import { avatarSmallSrc } from '@shared/avatarIcons';
 import { accountAvatar, useSession } from '../auth.ts';
@@ -27,8 +27,8 @@ interface Props {
 export default function LobbyScreen({ playerName, connecting, error, onBack, onCreate }: Props) {
   const { session } = useSession();
   const avatarId = accountAvatar(session);
-  const [numPlayers, setNumPlayers] = useState(5);
   const [numRounds, setNumRounds] = useState(5);
+  const [maxScore, setMaxScore] = useState(DEFAULT_MAX_SCORE);
   const [modeChoice, setModeChoice] = useState<ModeChoice>('players');
   const [privacy, setPrivacy] = useState<Privacy>('public');
   // Starts with just the first theme picked instead of everything — adding
@@ -56,7 +56,7 @@ export default function LobbyScreen({ playerName, connecting, error, onBack, onC
 
   const create = () => {
     onCreate({
-      numPlayers, numRounds, privacy, selectedThemes,
+      numRounds, maxScore, privacy, selectedThemes,
       phraseMode: modeChoice === 'verbal' ? 'verbal' : modeChoice === 'players' ? 'players' : 'ai',
       gameMode: modeChoice === 'race' ? 'race' : 'classic',
     });
@@ -87,15 +87,6 @@ export default function LobbyScreen({ playerName, connecting, error, onBack, onC
 
       <div className="corio-card" style={{ flex: 'none', display: 'flex', gap: 8, background: '#12121a', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 14, padding: '9px 10px' }}>
         <div style={{ flex: 1, minWidth: 0 }}>
-          <div className="corio-eyebrow" style={{ fontSize: 7.5, fontWeight: 700, letterSpacing: 0.6, color: 'rgba(244,242,248,0.45)' }}>JOGADORES</div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 3 }}>
-            <button onClick={() => setNumPlayers((v) => Math.max(MIN_PLAYERS, v - 1))} className="corio-tap" style={stepperBtn('rgba(255,255,255,0.08)', '#fff')}>−</button>
-            <div className="corio-value-lg" style={{ fontFamily: "'Space Grotesk',sans-serif", fontWeight: 800, fontSize: 15, flex: 1, textAlign: 'center' }}>{numPlayers}</div>
-            <button onClick={() => setNumPlayers((v) => Math.min(MAX_PLAYERS, v + 1))} className="corio-tap" style={stepperBtn('#8B5CF6', '#fff')}>+</button>
-          </div>
-        </div>
-        <div style={{ width: 1, background: 'rgba(255,255,255,0.08)', flex: 'none' }} />
-        <div style={{ flex: 1, minWidth: 0 }}>
           <div className="corio-eyebrow" style={{ fontSize: 7.5, fontWeight: 700, letterSpacing: 0.6, color: 'rgba(244,242,248,0.45)' }}>RODADAS</div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 3 }}>
             <button onClick={() => setNumRounds((v) => Math.max(MIN_ROUNDS, v - 1))} className="corio-tap" style={stepperBtn('rgba(255,255,255,0.08)', '#fff')}>−</button>
@@ -104,9 +95,18 @@ export default function LobbyScreen({ playerName, connecting, error, onBack, onC
           </div>
         </div>
         <div style={{ width: 1, background: 'rgba(255,255,255,0.08)', flex: 'none' }} />
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div className="corio-eyebrow" style={{ fontSize: 7.5, fontWeight: 700, letterSpacing: 0.6, color: 'rgba(244,242,248,0.45)' }}>PONTUAÇÃO MÁX.</div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 3 }}>
+            <button onClick={() => setMaxScore((v) => Math.max(MIN_MAX_SCORE, v - MAX_SCORE_STEP))} className="corio-tap" style={stepperBtn('rgba(255,255,255,0.08)', '#fff')}>−</button>
+            <div className="corio-value-lg" style={{ fontFamily: "'Space Grotesk',sans-serif", fontWeight: 800, fontSize: 13, flex: 1, textAlign: 'center' }}>{maxScore.toLocaleString('pt-BR')}</div>
+            <button onClick={() => setMaxScore((v) => Math.min(MAX_MAX_SCORE, v + MAX_SCORE_STEP))} className="corio-tap" style={stepperBtn('#8B5CF6', '#fff')}>+</button>
+          </div>
+        </div>
+        <div style={{ width: 1, background: 'rgba(255,255,255,0.08)', flex: 'none' }} />
         <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center', gap: 1 }}>
           <div style={{ fontSize: 15 }}>🏆</div>
-          <div className="corio-card-sub" style={{ fontSize: 7.5, color: 'rgba(244,242,248,0.5)', lineHeight: 1.25 }}>Vence quem tiver <span style={{ color: '#FFC93C', fontWeight: 700 }}>mais pontos</span></div>
+          <div className="corio-card-sub" style={{ fontSize: 7.5, color: 'rgba(244,242,248,0.5)', lineHeight: 1.25 }}>Vence quem <span style={{ color: '#FFC93C', fontWeight: 700 }}>bater a meta</span> ou tiver mais no final</div>
         </div>
       </div>
 

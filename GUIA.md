@@ -36,9 +36,9 @@ pontos" ou "o que é considerado válido", ela vai no `server/`, não no
 | Mudar a fórmula de pontuação (curva de pontos por Delta E) | `shared/scoring.ts` → `calculateColorScore` |
 | Mudar os bônus (velocidade, MVP da rodada) | `shared/gameData.ts` (valores `SPEED_BONUS_MAX`, `ROUND_MVP_BONUS`) + `server/src/room.ts` → `computeReveal()` (é onde os bônus são somados) |
 | Mudar quando os badges PERFEITO/CIRÚRGICO/MUITO PERTO/PERTO/QUASE LÁ/NEM PERTO/PASSOU LONGE aparecem (pontuação vai de -100 a 1000) | `shared/scoring.ts` → `badgeFromScore` |
-| Mudar quantos jogadores mínimo/máximo, rodadas, tempo de rodada | `shared/gameData.ts` (`MIN_PLAYERS`, `MAX_PLAYERS`, `MIN_ROUNDS`, `MAX_ROUNDS`, `PLACING_SECONDS`) |
-| Mudar as regras de "quantos jogadores pra começar a partida" | `server/src/room.ts` → `startMatch()` (hoje: 1 no modo IA, 2 nos outros) |
-| Mudar a condição de vitória do modo "Frase da IA" (hoje: 10.000 pontos ou 5 acertos perfeitos) | `shared/gameData.ts` (`AI_WIN_SCORE`, `AI_WIN_PERFECTS`) + `server/src/room.ts` → `computeReveal()` (onde checa) e `finishMatch()`/`restartMatch()` |
+| Mudar rodadas mín/máx, pontuação máxima mín/máx, tempo de rodada | `shared/gameData.ts` (`MIN_ROUNDS`, `MAX_ROUNDS`, `MIN_MAX_SCORE`, `MAX_MAX_SCORE`, `MAX_SCORE_STEP`, `DEFAULT_MAX_SCORE`, `PLACING_SECONDS`) |
+| Mudar as regras de "quantos jogadores pra começar a partida" | `server/src/room.ts` → `startMatch()` (hoje: 1 no modo IA, 2 nos outros — não existe mais limite máximo de jogadores por sala) |
+| Mudar a condição de vitória (hoje: `numRounds` rodadas OU alguém bater `config.maxScore`, escolhido pelo anfitrião na sala; "Frase da IA" ainda soma 5 acertos perfeitos como condição extra) | `shared/gameData.ts` (`AI_WIN_PERFECTS`) + `server/src/room.ts` → `computeReveal()` (onde checa) e `finishMatch()`/`restartMatch()` |
 | Mudar a tela de fim de partida (vencedor, placar final, "jogar novamente") | `client/src/screens/MatchEndScreen.tsx` |
 | Mudar a lista de salas abertas na Home (em vez de digitar código) | `client/src/screens/HomeScreen.tsx` (busca em `${HTTP_BASE}/rooms`) + `server/src/index.ts` → rota HTTP `/rooms` |
 | Mudar o botão "reportar pergunta" do modo IA ou onde os reports são salvos | `client/src/screens/GameScreen.tsx` → `ReportButton` + `server/src/room.ts` → `reportQuestion()` + `server/src/index.ts` → `recordReport`/rota `/reports` |
@@ -65,7 +65,7 @@ pontos" ou "o que é considerado válido", ela vai no `server/`, não no
    entráveis, mesmo com a partida já em andamento: quem entra depois
    só aparece no chat e começa com 0 pontos, sem travar nada.
 2. **Lobby** (`LobbyScreen.tsx`, só pra quem está criando) → escolhe
-   jogadores/rodadas/temas/modo de frase, manda `create_room`.
+   rodadas/pontuação máxima/temas/modo de frase, manda `create_room`.
 3. **Sala de espera** (`WaitingScreen.tsx`) → mostra o código, quem já
    entrou. O anfitrião manda `start_match`.
 4. **Rodada** (`GameScreen.tsx`) → duas variações:
@@ -83,14 +83,14 @@ pontos" ou "o que é considerado válido", ela vai no `server/`, não no
    anima a revelação em cima disso — a animação inteira é
    automática/sincronizada (mesmo cronograma pra todo mundo, sem botão
    pra acelerar), só o "Próxima rodada" final é uma ação do jogador.
-6. Repete até `numRounds` — **exceto no modo "Frase da IA"**, que pode
-   terminar antes: assim que alguém bate `AI_WIN_SCORE` pontos ou
-   `AI_WIN_PERFECTS` acertos PERFEITO (`shared/gameData.ts`), a sala
-   vai pra `screen: 'finished'` e mostra `MatchEndScreen.tsx` (vencedor
-   + placar final + botão "jogar novamente" só pro anfitrião, que
-   reinicia a mesma sala com os mesmos jogadores e pontuação zerada).
-   No modo "Frase dos jogadores" ainda não existe uma condição de fim
-   de partida — a sala só continua rodando rodadas.
+6. Repete até `numRounds` — mas pode terminar antes, em qualquer modo,
+   assim que alguém bate `config.maxScore` pontos (definido pelo
+   anfitrião na sala); no modo "Frase da IA" também termina antes com
+   `AI_WIN_PERFECTS` acertos PERFEITO (`shared/gameData.ts`). Quando
+   termina, a sala vai pra `screen: 'finished'` e mostra
+   `MatchEndScreen.tsx` (vencedor + placar final + botão "jogar
+   novamente" só pro anfitrião, que reinicia a mesma sala com os
+   mesmos jogadores e pontuação zerada).
 
 O estado inteiro de uma sala vive **na memória do servidor**, dentro
 de um objeto `Room` (`server/src/room.ts`). Não tem banco de dados —

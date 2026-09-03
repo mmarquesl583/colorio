@@ -84,9 +84,9 @@ function getLive(rooms: Map<string, Room>) {
       privacy: room.config.privacy,
       modeId: room.config.gameMode === 'race' ? 'race' : room.config.phraseMode,
       playerCount: connectedPlayers.length,
-      numPlayers: room.config.numPlayers,
       roundNumber: room.round?.number ?? null,
       numRounds: room.config.numRounds,
+      maxScore: room.config.maxScore,
       themeName: room.round?.themeName ?? null,
       createdAt: new Date(room.createdAt).toISOString(),
     });

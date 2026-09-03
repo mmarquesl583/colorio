@@ -19,7 +19,7 @@ interface DashboardData {
 interface LiveData {
   playersOnline: number; activeRooms: number; matchesInProgress: number;
   topCategory: string | null; topMode: string | null;
-  rooms: { code: string; hostName: string | null; screen: string; modeId: string; playerCount: number; numPlayers: number; roundNumber: number | null; numRounds: number; themeName: string | null }[];
+  rooms: { code: string; hostName: string | null; screen: string; modeId: string; playerCount: number; roundNumber: number | null; numRounds: number; themeName: string | null }[];
 }
 
 function fmtDuration(sec: number): string {
@@ -112,7 +112,7 @@ export default function AdminDashboard({ period }: { period: string }) {
                     <td>{r.hostName ?? '—'}</td>
                     <td><span className={`corio-admin-pill ${r.screen === 'playing' ? 'corio-admin-pill-green' : 'corio-admin-pill-yellow'}`}>{r.screen === 'playing' ? 'Em andamento' : 'Aguardando'}</span></td>
                     <td>{r.modeId}</td>
-                    <td>{r.playerCount}/{r.numPlayers}</td>
+                    <td>{r.playerCount}</td>
                     <td>{r.roundNumber ? `${r.roundNumber}/${r.numRounds}` : '—'}</td>
                   </tr>
                 ))}

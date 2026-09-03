@@ -6,7 +6,7 @@ import { calculateColorScore, calculateMasterScore, badgeFromScore, roundOutcome
 import { RACE_MS, RACE_INTRO_MS, raceTimeMultiplier } from '../../shared/raceMode.ts';
 import {
   LOBBY_THEMES, AI_PHRASE_BANK, PLAYER_PALETTE, PLACING_SECONDS, NEXT_ROUND_READY_TIMEOUT_MS,
-  SPEED_BONUS_MAX, ROUND_MVP_BONUS, AI_WIN_SCORE, AI_WIN_PERFECTS, LOBBY_RECONNECT_GRACE_MS,
+  SPEED_BONUS_MAX, ROUND_MVP_BONUS, AI_WIN_PERFECTS, LOBBY_RECONNECT_GRACE_MS,
 } from '../../shared/gameData.ts';
 import {
   XP_PER_ROUND_PLAYED, XP_PER_CORRECT, XP_PER_PERFECT_BONUS, XP_MATCH_PLAYED_BONUS,
@@ -748,21 +748,20 @@ export class Room {
     });
     recordRoundGuesses(guessRows);
 
-    // Frase da IA win condition: first to 10000 pontos or 5 acertos perfeitos.
-    // Checked against guessers only (the master's average-of-guessers gain
-    // below isn't a color match of their own, so it doesn't count).
-    // Explicitly excludes gameMode:'race' — race scores can blow past 10000
-    // in very few rounds (1000 base × up to 2.0x each), which would end a
-    // race unpredictably early instead of after the configured round count.
-    if (this.config.phraseMode === 'ai' && this.config.gameMode !== 'race' && !this.matchWinner) {
+    // Alternate win condition, every mode: first to reach the host-set
+    // maxScore wins outright, whatever round it happens on. Checked against
+    // guessers only (the master's average-of-guessers gain below isn't a
+    // color match of their own, so it doesn't count). Frase da IA keeps an
+    // extra accuracy-based alt condition on top (5 acertos perfeitos).
+    if (!this.matchWinner) {
       const qualifiers = guesses
         .map((g) => ({ g, p: this.players.get(g.playerId)! }))
-        .filter(({ p }) => p.score >= AI_WIN_SCORE || p.perfectCount >= AI_WIN_PERFECTS);
+        .filter(({ p }) => p.score >= this.config.maxScore || (this.config.phraseMode === 'ai' && p.perfectCount >= AI_WIN_PERFECTS));
       if (qualifiers.length > 0) {
         const winner = qualifiers.reduce((best, cur) => (cur.p.score > best.p.score ? cur : best), qualifiers[0]);
         this.matchWinner = {
           playerId: winner.g.playerId, name: winner.g.name, score: winner.p.score,
-          reason: winner.p.score >= AI_WIN_SCORE ? 'points' : 'perfect',
+          reason: winner.p.score >= this.config.maxScore ? 'points' : 'perfect',
           isDraw: false,
           winners: [{ playerId: winner.g.playerId, name: winner.g.name, score: winner.p.score }],
         };
@@ -781,13 +780,12 @@ export class Room {
       masterNewScore = master.score;
     }
 
-    // Round-count fallback for every mode, not just "Frase dos jogadores"
-    // and Corrida (which have no score/perfect threshold at all). "Frase da
-    // IA" normally ends early via the 10000-pontos/5-perfeitos check above,
-    // but casual play very often never reaches that — without this
-    // fallback the match would just run past the configured round count
-    // forever, only ever ending when the room empties and gets recorded as
-    // *abandoned* instead of finished (which never bumps games_played).
+    // Round-count fallback for every mode. Reaching maxScore above normally
+    // ends the match early, but casual play very often never reaches it —
+    // without this fallback the match would just run past the configured
+    // round count forever, only ever ending when the room empties and gets
+    // recorded as *abandoned* instead of finished (which never bumps
+    // games_played).
     // Decided by whoever has the highest cumulative score at that point
     // (tied top scores are recorded as a draw, not resolved arbitrarily).
     // Placed after the master's own score update above so their final-round
@@ -1063,7 +1061,6 @@ export class Room {
       code: this.code,
       screen: this.screen,
       config: this.config,
-      roomFull: activeIds.length >= this.config.numPlayers,
       you: {
         ...this.publicPlayer(me),
         isMaster: this.round?.masterId === playerId,

@@ -102,7 +102,7 @@ export default function FindRoomScreen({ playerName, connecting, error, onBack, 
               <div style={{ fontSize: 20, flex: 'none' }}>{r.phraseMode === 'ai' ? '🤖' : r.phraseMode === 'verbal' ? '🗣️' : '✏️'}</div>
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ fontSize: 13.5, fontWeight: 700, color: '#fff', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>Sala de {r.hostName}</div>
-                <div style={{ fontSize: 10.5, fontWeight: 600, color: 'rgba(255,255,255,0.6)' }}>{r.playerCount}/{r.numPlayers} jogadores · {r.phraseMode === 'ai' ? 'Frase da IA' : r.phraseMode === 'verbal' ? 'Com a Galera' : 'Frase dos jogadores'}</div>
+                <div style={{ fontSize: 10.5, fontWeight: 600, color: 'rgba(255,255,255,0.6)' }}>{r.playerCount} jogador{r.playerCount === 1 ? '' : 'es'} · {r.phraseMode === 'ai' ? 'Frase da IA' : r.phraseMode === 'verbal' ? 'Com a Galera' : 'Frase dos jogadores'}</div>
               </div>
               <div style={{
                 fontSize: 9, fontWeight: 700, letterSpacing: 0.3, padding: '4px 8px', borderRadius: 999, flex: 'none',

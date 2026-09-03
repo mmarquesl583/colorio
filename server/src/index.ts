@@ -6,7 +6,7 @@ import { Room, type QuestionReport } from './room.ts';
 import { verifyUserToken } from './supabaseAdmin.ts';
 import { startStaleSessionSweep, startQuestionOverridesPoll, recordQuestionReport } from './stats.ts';
 import { handleAdminRequest } from './admin.ts';
-import { LOBBY_THEMES, MIN_PLAYERS, MAX_PLAYERS, MIN_ROUNDS, MAX_ROUNDS } from '../../shared/gameData.ts';
+import { LOBBY_THEMES, MIN_ROUNDS, MAX_ROUNDS, MIN_MAX_SCORE, MAX_MAX_SCORE, DEFAULT_MAX_SCORE } from '../../shared/gameData.ts';
 import type { ClientMessage, RoomConfig, ServerMessage, PublicRoomSummary } from '../../shared/types.ts';
 
 const PORT = Number(process.env.PORT) || 8787;
@@ -38,7 +38,6 @@ function publicRoomSummary(room: Room): PublicRoomSummary {
     code: room.code,
     hostName: host?.name ?? '?',
     playerCount: [...room.players.values()].filter((p) => p.connected).length,
-    numPlayers: room.config.numPlayers,
     phraseMode: room.config.phraseMode,
     screen: room.screen,
     numRounds: room.config.numRounds,
@@ -49,8 +48,8 @@ function sanitizeConfig(input: Partial<RoomConfig> | undefined): RoomConfig {
   const validThemeIds = new Set(LOBBY_THEMES.map((t) => t.id));
   const selectedThemes = (input?.selectedThemes ?? LOBBY_THEMES.map((t) => t.id)).filter((id) => validThemeIds.has(id));
   return {
-    numPlayers: clamp(input?.numPlayers ?? 5, MIN_PLAYERS, MAX_PLAYERS),
     numRounds: clamp(input?.numRounds ?? 5, MIN_ROUNDS, MAX_ROUNDS),
+    maxScore: clamp(input?.maxScore ?? DEFAULT_MAX_SCORE, MIN_MAX_SCORE, MAX_MAX_SCORE),
     phraseMode: input?.phraseMode === 'ai' ? 'ai' : input?.phraseMode === 'verbal' ? 'verbal' : 'players',
     gameMode: input?.gameMode === 'race' ? 'race' : 'classic',
     privacy: input?.privacy === 'private' ? 'private' : 'public',

@@ -56,15 +56,23 @@ export const NEXT_ROUND_READY_TIMEOUT_MS = 15000;
 // A dropped connection while still in the lobby (tab backgrounded, flaky
 // wifi) gets this long to reconnect before the slot actually frees up.
 export const LOBBY_RECONNECT_GRACE_MS = 45000;
-export const MIN_PLAYERS = 2;
-export const MAX_PLAYERS = 12;
 export const MIN_ROUNDS = 1;
 export const MAX_ROUNDS = 12;
+
+// Alternate win condition alongside "rounds run out": whoever hits this many
+// points first wins the match immediately, in every mode — the host sets it
+// per room instead of a single fixed number, so Corrida's higher per-round
+// ceiling (up to 2x multiplier) is just a "set it higher" choice, not a
+// hardcoded mismatch.
+export const MIN_MAX_SCORE = 1000;
+export const MAX_MAX_SCORE = 20000;
+export const MAX_SCORE_STEP = 500;
+export const DEFAULT_MAX_SCORE = 5000;
 
 // Scoring bonuses layered on top of the base Delta E curve (shared/scoring.ts).
 export const SPEED_BONUS_MAX = 30; // full bonus for confirming the instant the round starts
 export const ROUND_MVP_BONUS = 50; // awarded to the single closest guess of the round (needs 2+ guessers to be meaningful)
 
-// Frase da IA win condition: first player to hit either wins the match.
-export const AI_WIN_SCORE = 10000;
+// Frase da IA keeps this extra alt-win flavor on top of the generic
+// maxScore check above: 5 PERFEITOs also ends the match, even under maxScore.
 export const AI_WIN_PERFECTS = 5;

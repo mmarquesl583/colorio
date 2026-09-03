@@ -10,8 +10,11 @@ export type Privacy = 'public' | 'private';
 export type GameMode = 'classic' | 'race';
 
 export interface RoomConfig {
-  numPlayers: number;
   numRounds: number;
+  /** Alternate win condition: first player to reach this score wins the
+   * match immediately, whatever round it happens on (see AI_WIN_PERFECTS'
+   * doc comment in gameData.ts for Frase da IA's extra alt condition). */
+  maxScore: number;
   phraseMode: PhraseMode;
   gameMode: GameMode;
   privacy: Privacy;
@@ -165,7 +168,6 @@ export interface RoomStateView {
   code: string;
   screen: ScreenState;
   config: RoomConfig;
-  roomFull: boolean;
   you: YouView;
   players: PlayerPublic[];
   chat: ChatEntry[];
@@ -193,7 +195,6 @@ export interface PublicRoomSummary {
   code: string;
   hostName: string;
   playerCount: number;
-  numPlayers: number;
   phraseMode: PhraseMode;
   screen: ScreenState;
   numRounds: number;

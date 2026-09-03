@@ -4,7 +4,7 @@ import { fetchAdmin, AdminApiError } from '../../adminApi.ts';
 interface LiveData {
   playersOnline: number; activeRooms: number; matchesInProgress: number;
   topCategory: string | null; topMode: string | null;
-  rooms: { code: string; hostName: string | null; screen: string; privacy: string; modeId: string; playerCount: number; numPlayers: number; roundNumber: number | null; numRounds: number; themeName: string | null; createdAt: string }[];
+  rooms: { code: string; hostName: string | null; screen: string; privacy: string; modeId: string; playerCount: number; roundNumber: number | null; numRounds: number; maxScore: number; themeName: string | null; createdAt: string }[];
 }
 
 const SCREEN_LABELS: Record<string, string> = { lobby: 'Na sala de espera', playing: 'Em andamento', reveal: 'Revelação', finished: 'Finalizada' };
@@ -40,7 +40,7 @@ export default function AdminRooms() {
         {data.rooms.length === 0 ? <div className="corio-admin-empty">Nenhuma sala ativa neste momento.</div> : (
           <div className="corio-admin-table-wrap">
             <table className="corio-admin-table">
-              <thead><tr><th>Código</th><th>Anfitrião</th><th>Privacidade</th><th>Status</th><th>Modo</th><th>Tema atual</th><th>Jogadores</th><th>Rodada</th><th>Criada</th></tr></thead>
+              <thead><tr><th>Código</th><th>Anfitrião</th><th>Privacidade</th><th>Status</th><th>Modo</th><th>Tema atual</th><th>Jogadores</th><th>Rodada</th><th>Pontuação máx.</th><th>Criada</th></tr></thead>
               <tbody>
                 {data.rooms.map((r) => (
                   <tr key={r.code}>
@@ -50,8 +50,9 @@ export default function AdminRooms() {
                     <td><span className={`corio-admin-pill ${r.screen === 'playing' ? 'corio-admin-pill-green' : 'corio-admin-pill-yellow'}`}>{SCREEN_LABELS[r.screen] ?? r.screen}</span></td>
                     <td>{r.modeId}</td>
                     <td>{r.themeName ?? '—'}</td>
-                    <td>{r.playerCount}/{r.numPlayers}</td>
+                    <td>{r.playerCount}</td>
                     <td>{r.roundNumber ? `${r.roundNumber}/${r.numRounds}` : '—'}</td>
+                    <td>{r.maxScore.toLocaleString('pt-BR')}</td>
                     <td>{new Date(r.createdAt).toLocaleTimeString('pt-BR')}</td>
                   </tr>
                 ))}
