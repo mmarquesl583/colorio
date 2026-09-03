@@ -8,10 +8,7 @@ import {
   LOBBY_THEMES, AI_PHRASE_BANK, PLAYER_PALETTE, PLACING_SECONDS, NEXT_ROUND_READY_TIMEOUT_MS,
   SPEED_BONUS_MAX, ROUND_MVP_BONUS, AI_WIN_PERFECTS, LOBBY_RECONNECT_GRACE_MS,
 } from '../../shared/gameData.ts';
-import {
-  XP_PER_ROUND_PLAYED, XP_PER_CORRECT, XP_PER_PERFECT_BONUS, XP_MATCH_PLAYED_BONUS,
-  XP_MATCH_WIN_BONUS, XP_MATCH_DRAW_BONUS, comboXpMultiplier, levelForXp,
-} from '../../shared/progression.ts';
+import { levelForXp } from '../../shared/progression.ts';
 import { AI_QUESTIONS } from '../../shared/aiQuestions.ts';
 import type { AiDifficulty, AiQuestion } from '../../shared/aiQuestions.ts';
 import type {
@@ -702,17 +699,16 @@ export class Room {
       this.matchOutcomes.get(id)!.push(outcome);
 
       // Progression: combo survives across rounds within the match (see
-      // InternalPlayer.combo's own doc comment), zeroed on a wrong guess.
-      // XP is accuracy-driven (outcome/badge, same as `score`'s base
-      // component) and combo only multiplies XP — never `score` itself, so
-      // combo luck can never affect who wins, best_score records, or the
-      // exact-value achievements (666/777) that depend on `score` being
-      // precise.
+      // InternalPlayer.combo's own doc comment), zeroed on a wrong guess —
+      // purely a streak stat now (own titles/achievements), no longer an XP
+      // multiplier. Levels track real accumulated points (see
+      // shared/progression.ts), so XP gained this round is just `score`
+      // itself (floored at 0 — a single bad round should never claw back
+      // level progress already earned).
       if (outcome === 'wrong') p.combo = 0; else p.combo += 1;
       this.matchComboBest.set(id, Math.max(this.matchComboBest.get(id) ?? 0, p.combo));
       if (badge === 'CIRÚRGICO') this.matchNearPerfects.set(id, (this.matchNearPerfects.get(id) ?? 0) + 1);
-      const roundXpBase = XP_PER_ROUND_PLAYED + (outcome !== 'wrong' ? XP_PER_CORRECT : 0) + (badge === 'PERFEITO' ? XP_PER_PERFECT_BONUS : 0);
-      const xpGained = Math.round(roundXpBase * comboXpMultiplier(p.combo));
+      const xpGained = Math.max(0, score);
       this.matchXp.set(id, (this.matchXp.get(id) ?? 0) + xpGained);
 
       // Generic all-modes history (see matchRoundScores/matchRoundResponseMs
@@ -936,14 +932,12 @@ export class Room {
       const validResponseMs = roundResponseMsList.filter((v): v is number => v !== null);
       const avgResponseMs = validResponseMs.length ? Math.round(validResponseMs.reduce((s, v) => s + v, 0) / validResponseMs.length) : null;
 
-      // Match-level XP bonuses (played/win/draw) — flat, once per match,
-      // on top of the per-round XP already accumulated in matchXp during
-      // computeReveal(). Every connected player earns this (even a guest
-      // with no userId sees it on their own match-end screen), but only
+      // No flat played/win/draw bonuses anymore — XP is purely accumulated
+      // points now (see shared/progression.ts), so it only ever holds real
+      // score gained this match. Every connected player gets this on their
+      // own match-end screen (even a guest with no userId), but only
       // signed-in players get it persisted below.
-      let xpEarned = (this.matchXp.get(id) ?? 0) + XP_MATCH_PLAYED_BONUS;
-      if (result === 'won') xpEarned += XP_MATCH_WIN_BONUS;
-      else if (result === 'drawn') xpEarned += XP_MATCH_DRAW_BONUS;
+      const xpEarned = this.matchXp.get(id) ?? 0;
 
       let records: MatchPlayerSummary['records'] = null;
       let levelUp: MatchPlayerSummary['levelUp'] = null;

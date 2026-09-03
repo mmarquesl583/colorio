@@ -74,9 +74,10 @@ export interface RevealPlayerResult {
   isRoundMvp: boolean;
   prevScore: number;
   newScore: number;
-  /** XP earned this round (already combo-multiplied — see
-   * shared/progression.ts's comboXpMultiplier) and the guesser's combo
-   * count AFTER this round's outcome. Unconditional, every mode. */
+  /** XP earned this round — literally this round's `score`, floored at 0
+   * (levels track real accumulated points, see shared/progression.ts) —
+   * and the guesser's combo count AFTER this round's outcome. Unconditional,
+   * every mode. */
   xpGained: number;
   combo: number;
   /** Only set for gameMode:'race' rounds — baseScore is score before the
