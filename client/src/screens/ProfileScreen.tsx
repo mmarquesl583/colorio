@@ -6,7 +6,7 @@ import { TITLE_CATALOG, titleNameFor } from '@shared/titleCatalog';
 import { LOBBY_THEMES } from '@shared/gameData';
 import { xpForLevel, nextLevelMilestone } from '@shared/progression';
 import { useProfileData } from '../hooks/useProfileData.ts';
-import { formatPlaytime, addFriend, removeFriend, markUnlocksSeen } from '../stats.ts';
+import { addFriend, removeFriend, markUnlocksSeen } from '../stats.ts';
 import IdentityPickerModal from '../components/IdentityPickerModal.tsx';
 import MatchDetailModal from '../components/MatchDetailModal.tsx';
 
@@ -191,16 +191,15 @@ export default function ProfileScreen({ onBack, onOpenAdmin }: { onBack: () => v
               </div>
             ) : null;
           })()}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 10 }}>
             <StatCell label="Partidas" value={stats.games_played} />
             <StatCell label="Vitórias" value={stats.games_won} />
             <StatCell label="Perfeitos" value={stats.total_perfects} />
             <StatCell label="Pontos acumulados" value={stats.total_score.toLocaleString('pt-BR')} />
             <StatCell label="Precisão média" value={stats.best_avg_precision} />
             <StatCell label="Sequência atual" value={stats.current_day_streak > 0 ? `🔥 ${stats.current_day_streak}` : 0} />
-            <StatCell label="Tempo de jogo" value={formatPlaytime(stats.total_playtime_seconds)} />
             <StatCell label="Conta criada em" value={session?.user.created_at ? new Date(session.user.created_at).toLocaleDateString('pt-BR') : '—'} />
-            <StatCell label="Última vez online" value={session?.user.last_sign_in_at ? new Date(session.user.last_sign_in_at).toLocaleDateString('pt-BR') : '—'} />
+            <StatCell label="Última vez online" value={session?.user.last_sign_in_at ? formatLastOnline(session.user.last_sign_in_at) : '—'} />
           </div>
         </div>
       )}
@@ -343,6 +342,22 @@ export default function ProfileScreen({ onBack, onOpenAdmin }: { onBack: () => v
       )}
     </div>
   );
+}
+
+// "Online" covers the fresh case (just signed in, or reloaded and the
+// session silently refreshed) — last_sign_in_at only moves on an actual
+// sign-in event, not on every request, so a persisted session can sit at
+// the same timestamp for days while you're actively using the app right
+// now. Past that, plain minutes/hours/days — no need for weeks/months on
+// what's ultimately a "last time you signed in" stat.
+function formatLastOnline(iso: string): string {
+  const minutes = Math.floor((Date.now() - new Date(iso).getTime()) / 60000);
+  if (minutes < 2) return 'Online';
+  if (minutes < 60) return `há ${minutes} min`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `há ${hours}h`;
+  const days = Math.floor(hours / 24);
+  return `há ${days} ${days === 1 ? 'dia' : 'dias'}`;
 }
 
 function StatCell({ label, value }: { label: string; value: string | number }) {
