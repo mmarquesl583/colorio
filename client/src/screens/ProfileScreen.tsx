@@ -168,17 +168,6 @@ export default function ProfileScreen({ onBack, onOpenAdmin }: { onBack: () => v
         <div style={{ textAlign: 'center', padding: '24px 0', fontSize: 11.5, fontWeight: 700, color: 'rgba(244,242,248,0.6)' }}>Carregando estatísticas…</div>
       )}
 
-      <div className="corio-card" style={{ flex: 'none', background: '#12121a', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 14, padding: 10 }}>
-        <div className="corio-eyebrow" style={{ fontSize: 8, fontWeight: 700, letterSpacing: 0.6, color: 'rgba(244,242,248,0.5)', marginBottom: 8 }}>ESTATÍSTICAS</div>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10 }}>
-          <StatCell label="Partidas" value={stats?.games_played ?? 0} />
-          <StatCell label="Perfeitos" value={stats?.total_perfects ?? 0} />
-          <StatCell label="Vitórias" value={stats?.games_won ?? 0} />
-          <StatCell label="Pontuação total" value={(stats?.total_score ?? 0).toLocaleString('pt-BR')} />
-          <StatCell label="Tempo de jogo" value={formatPlaytime(stats?.total_playtime_seconds ?? 0)} />
-        </div>
-      </div>
-
       {stats && (
         <div className="corio-card" style={{ flex: 'none', background: '#12121a', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 14, padding: 10 }}>
           <div className="corio-eyebrow" style={{ fontSize: 8, fontWeight: 700, letterSpacing: 0.6, color: 'rgba(244,242,248,0.5)', marginBottom: 8 }}>MINHA HISTÓRIA</div>
@@ -203,9 +192,13 @@ export default function ProfileScreen({ onBack, onOpenAdmin }: { onBack: () => v
             ) : null;
           })()}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10 }}>
-            <StatCell label="Sequência atual" value={stats.current_day_streak > 0 ? `🔥 ${stats.current_day_streak}` : 0} />
-            <StatCell label="Precisão média" value={stats.best_avg_precision} />
+            <StatCell label="Partidas" value={stats.games_played} />
+            <StatCell label="Vitórias" value={stats.games_won} />
+            <StatCell label="Perfeitos" value={stats.total_perfects} />
             <StatCell label="Pontos acumulados" value={stats.total_score.toLocaleString('pt-BR')} />
+            <StatCell label="Precisão média" value={stats.best_avg_precision} />
+            <StatCell label="Sequência atual" value={stats.current_day_streak > 0 ? `🔥 ${stats.current_day_streak}` : 0} />
+            <StatCell label="Tempo de jogo" value={formatPlaytime(stats.total_playtime_seconds)} />
             <StatCell label="Conta criada em" value={session?.user.created_at ? new Date(session.user.created_at).toLocaleDateString('pt-BR') : '—'} />
             <StatCell label="Última vez online" value={session?.user.last_sign_in_at ? new Date(session.user.last_sign_in_at).toLocaleDateString('pt-BR') : '—'} />
           </div>
