@@ -204,9 +204,10 @@ export default function ProfileScreen({ onBack, onOpenAdmin }: { onBack: () => v
           })()}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10 }}>
             <StatCell label="Sequência atual" value={stats.current_day_streak > 0 ? `🔥 ${stats.current_day_streak}` : 0} />
-            <StatCell label="Melhor combo" value={`x${stats.best_combo}`} />
             <StatCell label="Precisão média" value={stats.best_avg_precision} />
-            <StatCell label="Melhor tempo médio" value={stats.best_avg_response_ms !== null ? `${(stats.best_avg_response_ms / 1000).toFixed(1).replace('.', ',')}s` : '—'} />
+            <StatCell label="Pontos acumulados" value={stats.total_score.toLocaleString('pt-BR')} />
+            <StatCell label="Conta criada em" value={session?.user.created_at ? new Date(session.user.created_at).toLocaleDateString('pt-BR') : '—'} />
+            <StatCell label="Última vez online" value={session?.user.last_sign_in_at ? new Date(session.user.last_sign_in_at).toLocaleDateString('pt-BR') : '—'} />
           </div>
         </div>
       )}
