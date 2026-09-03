@@ -80,6 +80,15 @@ export const DEFAULT_MAX_SCORE = 5000;
 // Scoring bonuses layered on top of the base Delta E curve (shared/scoring.ts).
 export const SPEED_BONUS_MAX = 30; // full bonus for confirming the instant the round starts
 export const ROUND_MVP_BONUS = 50; // awarded to the single closest guess of the round (needs 2+ guessers to be meaningful)
+// Flat, on top of the 1000-point PERFEITO plateau — a perfect guess (ΔE≤2)
+// is worth 1100 total. Kept as an additive bonus rather than raising
+// calculateColorScore's own plateau so the curve's documented continuity
+// (every band's end value is the next band's start) stays intact — this
+// intentionally creates a step right at the perfect threshold instead,
+// same pattern as SPEED_BONUS_MAX/ROUND_MVP_BONUS (baseScore itself, and
+// everything keyed off it — badges, achievements, avgPrecision — is
+// untouched by this).
+export const PERFECT_BONUS = 100;
 
 // Frase da IA keeps this extra alt-win flavor on top of the generic
 // maxScore check above: 5 PERFEITOs also ends the match, even under maxScore.

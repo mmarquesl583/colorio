@@ -6,7 +6,7 @@ import { calculateColorScore, calculateMasterScore, badgeFromScore, roundOutcome
 import { RACE_MS, RACE_INTRO_MS, raceTimeMultiplier } from '../../shared/raceMode.ts';
 import {
   LOBBY_THEMES, AI_PHRASE_BANK, PLAYER_PALETTE, PLACING_SECONDS, NEXT_ROUND_READY_TIMEOUT_MS,
-  SPEED_BONUS_MAX, ROUND_MVP_BONUS, AI_WIN_PERFECTS, LOBBY_RECONNECT_GRACE_MS,
+  SPEED_BONUS_MAX, ROUND_MVP_BONUS, PERFECT_BONUS, AI_WIN_PERFECTS, LOBBY_RECONNECT_GRACE_MS,
 } from '../../shared/gameData.ts';
 import { levelForXp } from '../../shared/progression.ts';
 import { AI_QUESTIONS } from '../../shared/aiQuestions.ts';
@@ -713,6 +713,14 @@ export class Room {
     const guessRows: RoundGuessRow[] = [];
     const guesses = base.map(({ id, p, hsl, de, baseScore }) => {
       const isRoundMvp = id === mvpId;
+      // Perfect is purely accuracy-driven (baseScore/ΔE) in every mode —
+      // speed is a fully separate axis, so "perfeito, mas com multiplicador
+      // baixo (até 0x)" is an intentional, valid outcome in race mode.
+      // Computed up front so PERFECT_BONUS below can use it in both
+      // branches — badgeFromScore/roundOutcomeFromScore/matchRoundScores
+      // still key off the untouched baseScore, same as speed/MVP bonuses.
+      const badge = badgeFromScore(baseScore);
+      const perfectBonus = badge === 'PERFEITO' ? PERFECT_BONUS : 0;
       let score: number;
       let timeMultiplier: number | undefined;
       let raceResponseSeconds: number | null | undefined;
@@ -726,19 +734,18 @@ export class Room {
         // answered), only the scoring multiplier is affected.
         timeMultiplier = raceTimeMultiplier((responseMs ?? RACE_MS) / 1000);
         raceResponseSeconds = responseMs === null ? null : responseMs / 1000;
-        score = Math.round(baseScore * timeMultiplier);
+        // Perfect bonus is flat, added after the multiplier — the multiplier
+        // rewards speed on the accuracy portion, the perfect bonus rewards
+        // nailing the color exactly, so it isn't itself speed-scaled.
+        score = Math.round(baseScore * timeMultiplier) + perfectBonus;
       } else {
         const speedBonus = baseScore > 0 ? Math.round(SPEED_BONUS_MAX * ((p.confirmedAtSeconds ?? 0) / PLACING_SECONDS)) : 0;
-        score = baseScore + speedBonus + (isRoundMvp ? ROUND_MVP_BONUS : 0);
+        score = baseScore + speedBonus + perfectBonus + (isRoundMvp ? ROUND_MVP_BONUS : 0);
         // "Com a Galera" bonus round — badge/perfectCount/matchRoundScores
         // below all key off baseScore, which stays untouched, same as speed
         // and MVP bonuses already do.
         if (this.round?.doublePoints) score *= 2;
       }
-      // Perfect is purely accuracy-driven (baseScore/ΔE) in every mode —
-      // speed is a fully separate axis, so "perfeito, mas com multiplicador
-      // baixo (até 0x)" is an intentional, valid outcome in race mode.
-      const badge = badgeFromScore(baseScore);
       if (badge === 'PERFEITO') p.perfectCount += 1;
       const prevScore = p.score;
       p.score += score;
