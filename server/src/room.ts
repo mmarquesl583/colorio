@@ -136,6 +136,17 @@ export class Room {
   order: string[] = [];
   chat: ChatEntry[] = [];
   roundIdx = -1;
+  /** Color Master rotation index — separate from roundIdx because "Com a
+   * Galera" bonus rounds (see mastersSinceBonus below) interleave with
+   * master rounds without a fixed 1-in-N cadence; indexing master picks
+   * straight off roundIdx would skip players whenever a bonus round lands
+   * between their turns. Only ever advances on an actual master round. */
+  private masterTurnIdx = 0;
+  /** "Com a Galera" only: player ids who've been Color Master since the
+   * last bonus round. Once this covers every currently connected player,
+   * the next round is AI-sourced instead (no master, double points) and
+   * the set clears for the next cycle. Reset on restartMatch() too. */
+  private mastersSinceBonus = new Set<string>();
   round: RoundView | null = null;
   phase: RoundPhase | null = null;
   secondsLeft: number | null = null;
@@ -359,6 +370,8 @@ export class Room {
   private resetMatchAccumulators() {
     this.matchId = newMatchId();
     this.matchStartedAt = Date.now();
+    this.masterTurnIdx = 0;
+    this.mastersSinceBonus = new Set();
     this.matchOutcomes = new Map();
     this.matchThemeTally = new Map();
     this.matchThemeIds = new Set();
@@ -382,11 +395,15 @@ export class Room {
     return this.config.phraseMode === 'ai' || this.config.gameMode === 'race';
   }
 
-  private pickTheme(): { id: string; icon: string; name: string } {
+  // `forAi` is passed explicitly rather than read from usesAiQuestions()
+  // internally — a "Com a Galera" bonus round is AI-sourced too (see
+  // startRound()'s isVerbalBonus) even though the room's own phraseMode
+  // isn't 'ai', so the caller decides per-round, not per-room.
+  private pickTheme(forAi: boolean): { id: string; icon: string; name: string } {
     let pool = this.config.selectedThemes.length
       ? LOBBY_THEMES.filter((t) => this.config.selectedThemes.includes(t.id))
       : LOBBY_THEMES;
-    if (this.usesAiQuestions()) {
+    if (forAi) {
       const aiEligible = LOBBY_THEMES.filter((t) => AI_QUESTIONS[t.id]?.length);
       const inPool = pool.filter((t) => AI_QUESTIONS[t.id]?.length);
       pool = inPool.length ? inPool : aiEligible;
@@ -426,16 +443,28 @@ export class Room {
   private startRound() {
     this.stopTimers();
     this.roundIdx += 1;
-    const theme = this.pickTheme();
     const isRace = this.config.gameMode === 'race';
-    const isAi = this.usesAiQuestions();
     const activeOrder = this.connectedOrder();
+
+    // "Com a Galera" bonus round: once every currently connected player has
+    // been Color Master since the last bonus round (a full cycle), the next
+    // round comes from the AI question bank instead — same shape as Frase
+    // da IA (no master, everyone guesses), scored double in computeReveal().
+    const isVerbalBonus = this.config.phraseMode === 'verbal'
+      && activeOrder.length > 0
+      && activeOrder.every((id) => this.mastersSinceBonus.has(id));
+
+    const isAi = this.usesAiQuestions() || isVerbalBonus;
+    const theme = this.pickTheme(isAi);
     let masterId: string | null = null;
     let masterName = isRace ? 'Corrida' : 'IA';
     if (!isAi && activeOrder.length > 0) {
-      masterId = activeOrder[this.roundIdx % activeOrder.length];
+      masterId = activeOrder[this.masterTurnIdx % activeOrder.length];
+      this.masterTurnIdx += 1;
       masterName = this.players.get(masterId)!.name;
+      if (this.config.phraseMode === 'verbal') this.mastersSinceBonus.add(masterId);
     }
+    if (isVerbalBonus) this.mastersSinceBonus.clear();
 
     for (const p of this.players.values()) {
       p.confirmed = false;
@@ -475,6 +504,7 @@ export class Room {
       themeId: theme.id, themeIcon: theme.icon, themeName: theme.name,
       masterId, masterName,
       phrase, isAiPhrase: isAi, aiDifficulty, aiSource,
+      doublePoints: isVerbalBonus,
     };
     this.results = null;
     this.secretHsl = secretHsl;
@@ -483,7 +513,7 @@ export class Room {
     if (aiDifficulty) this.matchDifficultyTally.set(aiDifficulty, (this.matchDifficultyTally.get(aiDifficulty) ?? 0) + 1);
 
     this.chat.push(sysMsg('#FF5C8A', `Tema da Rodada · ${theme.name}`));
-    this.chat.push(sysMsg('#29E7FF', isRace ? '⏱️ Corrida contra o Tempo — responda rápido!' : isAi ? '🤖 A IA escreveu a pista' : `✏️ Vez de ${masterName}`));
+    this.chat.push(sysMsg('#29E7FF', isRace ? '⏱️ Corrida contra o Tempo — responda rápido!' : isVerbalBonus ? '🎁 Rodada bônus da IA — pontos em dobro!' : isAi ? '🤖 A IA escreveu a pista' : `✏️ Vez de ${masterName}`));
 
     if (isRace) {
       // Read-the-phrase phase first, no clock pressure — the 10s answer
@@ -652,6 +682,10 @@ export class Room {
       } else {
         const speedBonus = baseScore > 0 ? Math.round(SPEED_BONUS_MAX * ((p.confirmedAtSeconds ?? 0) / PLACING_SECONDS)) : 0;
         score = baseScore + speedBonus + (isRoundMvp ? ROUND_MVP_BONUS : 0);
+        // "Com a Galera" bonus round — badge/perfectCount/matchRoundScores
+        // below all key off baseScore, which stays untouched, same as speed
+        // and MVP bonuses already do.
+        if (this.round?.doublePoints) score *= 2;
       }
       // Perfect is purely accuracy-driven (baseScore/ΔE) in every mode —
       // speed is a fully separate axis, so "perfeito, mas com multiplicador
@@ -797,6 +831,7 @@ export class Room {
     this.results = {
       secretHsl, secretHex,
       guesses, masterId, masterName, masterAvatarId, masterPrevScore, masterNewScore, masterGain,
+      doublePoints: this.round?.doublePoints ?? false,
     };
     this.phase = 'reveal';
     this.secondsLeft = null;

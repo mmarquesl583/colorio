@@ -98,6 +98,7 @@ export interface RoundResults {
   masterPrevScore: number;
   masterNewScore: number;
   masterGain: number;
+  doublePoints: boolean;
 }
 
 export interface RoundView {
@@ -112,6 +113,11 @@ export interface RoundView {
   isAiPhrase: boolean;
   aiDifficulty: 'facil' | 'media' | 'dificil' | null;
   aiSource: string | null;
+  /** "Com a Galera" only: once every connected player has been Color
+   * Master since the last bonus round, the next round is AI-sourced
+   * instead (isAiPhrase true, masterId null, same shape as Frase da IA)
+   * and scores double. Always false in every other mode. */
+  doublePoints: boolean;
 }
 
 export interface YouView extends PlayerPublic {

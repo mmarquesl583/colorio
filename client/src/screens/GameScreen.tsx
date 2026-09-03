@@ -152,6 +152,13 @@ export default function GameScreen({ conn }: { conn: RoomConnection }) {
             </div>
           )}
 
+          {round.doublePoints && (
+            <div style={{ flex: 'none', margin: '0 16px 8px', padding: '7px 10px', borderRadius: 10, background: 'linear-gradient(90deg,rgba(255,201,60,0.18),rgba(139,92,246,0.14))', border: '1px solid rgba(255,201,60,0.4)', display: 'flex', alignItems: 'center', gap: 6 }}>
+              <span style={{ fontSize: 13 }}>🎁</span>
+              <span style={{ fontSize: 10.5, fontWeight: 700, color: '#FFC93C' }}>Rodada Bônus — pontos em dobro nessa!</span>
+            </div>
+          )}
+
           {isRace ? (
             // Nothing rendered here during 'race-intro' — RoundIntroModal
             // below already covers the theme+phrase reading moment as a

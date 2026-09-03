@@ -25,6 +25,7 @@ interface Row {
   isMasterRow: boolean;
   timeMultiplier?: number;
   xpLabel?: string;
+  doublePoints?: boolean;
 }
 
 interface Props {
@@ -140,6 +141,7 @@ export default function RevealModal({ results, you, gameMode, nextReady, readySe
         isMasterRow: false,
         timeMultiplier: (isSorted && progress >= 1) ? g.timeMultiplier : undefined,
         xpLabel: (isSorted && progress >= 1) ? `+${g.xpGained} XP` : undefined,
+        doublePoints: results.doublePoints,
       };
     });
     if (isSorted && results.masterId) {
@@ -250,6 +252,7 @@ export default function RevealModal({ results, you, gameMode, nextReady, readySe
               {r.isTop && <span style={{ flex: 'none' }} title="Maior pontuação da rodada">🏆</span>}
               {r.roundMvp && <span style={{ flex: 'none' }} title="Palpite mais preciso da rodada">🎯</span>}
               {r.badge && <span style={{ fontSize: 7.5, fontWeight: 700, letterSpacing: 0.3, background: '#FFC93C', color: '#151007', padding: '2px 5px', borderRadius: 5, flex: 'none', whiteSpace: 'nowrap' }}>{r.badge}</span>}
+              {r.doublePoints && <span style={{ fontSize: 7.5, fontWeight: 700, letterSpacing: 0.3, background: 'rgba(255,201,60,0.2)', color: '#FFC93C', padding: '2px 5px', borderRadius: 5, flex: 'none', whiteSpace: 'nowrap' }} title="Rodada bônus — pontos em dobro">🎁 ×2</span>}
               {r.timeMultiplier != null && (
                 <span style={{ fontSize: 7.5, fontWeight: 700, letterSpacing: 0.3, background: r.timeMultiplier > 0 ? 'rgba(41,231,255,0.18)' : 'rgba(239,68,68,0.18)', color: r.timeMultiplier > 0 ? '#29E7FF' : '#FCA5A5', padding: '2px 5px', borderRadius: 5, flex: 'none', whiteSpace: 'nowrap' }} title="Bônus de velocidade">
                   ×{r.timeMultiplier.toFixed(1).replace('.', ',')}

@@ -16,7 +16,7 @@ export default function RoundIntroModal({ round, raceMode }: { round: RoundView;
         <div style={{ fontSize: 18, animation: 'corio-twinkle 1.6s ease-in-out infinite' }}>✦</div>
         <div style={{ fontSize: 9, fontWeight: 700, letterSpacing: 0.6, color: '#A78BFA', marginTop: 4 }}>TEMA · {round.themeName}{round.aiSource ? ` — ${round.aiSource}` : ''}</div>
         <div style={{ fontSize: 14, fontWeight: 700, marginTop: 4 }}>
-          {raceMode ? '⏱️ Corrida contra o Tempo' : round.isAiPhrase ? '🤖 Frase da IA' : `✏️ Vez de ${round.masterName}`}
+          {raceMode ? '⏱️ Corrida contra o Tempo' : round.doublePoints ? '🎁 Rodada Bônus — pontos em dobro!' : round.isAiPhrase ? '🤖 Frase da IA' : `✏️ Vez de ${round.masterName}`}
         </div>
         <div style={{ marginTop: 12, background: '#1c1c26', borderRadius: 12, padding: 12 }}>
           <div style={{ fontSize: 8.5, fontWeight: 700, color: 'rgba(244,242,248,0.4)', marginBottom: 4 }}>FRASE {round.aiDifficulty && difficultyDot(round.aiDifficulty)}</div>
