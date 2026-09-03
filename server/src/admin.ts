@@ -275,6 +275,30 @@ async function getUserDetail(userId: string) {
   };
 }
 
+// Admin override of a player's identity — the only "edit" flow in this
+// panel today (everything else is read/toggle). display_name/avatar_icon
+// live in auth.users metadata (no ownership check makes sense there, it's
+// not gated content); title_id lives in profiles and normally goes through
+// equip_title()'s ownership check, but an admin using the service-role
+// client bypasses that on purpose — this can set a title the player never
+// actually unlocked, which is the point of an admin override.
+async function editUser(userId: string, patch: { displayName?: string; titleId?: string | null; avatarId?: string | null }) {
+  const sb = supabaseAdmin!;
+  if (patch.displayName !== undefined || patch.avatarId !== undefined) {
+    const { data: current, error: fetchErr } = await sb.auth.admin.getUserById(userId);
+    if (fetchErr || !current?.user) throw fetchErr ?? new Error('user_not_found');
+    const meta: Record<string, unknown> = { ...(current.user.user_metadata ?? {}) };
+    if (patch.displayName !== undefined) meta.display_name = patch.displayName.trim().slice(0, 24) || null;
+    if (patch.avatarId !== undefined) meta.avatar_icon = patch.avatarId || null;
+    const { error } = await sb.auth.admin.updateUserById(userId, { user_metadata: meta });
+    if (error) throw error;
+  }
+  if (patch.titleId !== undefined) {
+    const { error } = await sb.from('profiles').update({ title_id: patch.titleId || null }).eq('user_id', userId);
+    if (error) throw error;
+  }
+}
+
 // --- Partidas --------------------------------------------------------------
 async function getMatches(url: URL) {
   const sb = supabaseAdmin!;
@@ -709,6 +733,15 @@ export async function handleAdminRequest(req: IncomingMessage, res: ServerRespon
     if (parts[0] === 'live') { json(res, 200, getLive(rooms)); return; }
 
     if (parts[0] === 'users' && parts.length === 1) { json(res, 200, await getUsers(url)); return; }
+    if (parts[0] === 'users' && parts.length === 3 && parts[2] === 'edit' && req.method === 'POST') {
+      const patch: { displayName?: string; titleId?: string | null; avatarId?: string | null } = {};
+      if (url.searchParams.has('displayName')) patch.displayName = url.searchParams.get('displayName')!;
+      if (url.searchParams.has('titleId')) patch.titleId = url.searchParams.get('titleId') || null;
+      if (url.searchParams.has('avatarId')) patch.avatarId = url.searchParams.get('avatarId') || null;
+      await editUser(parts[1], patch);
+      json(res, 200, { ok: true });
+      return;
+    }
     if (parts[0] === 'users' && parts.length === 2) {
       const detail = await getUserDetail(parts[1]);
       json(res, detail ? 200 : 404, detail ?? { error: 'not_found' });

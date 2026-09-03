@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
-import { fetchAdmin, AdminApiError } from '../../adminApi.ts';
-import { titleNameFor } from '@shared/titleCatalog';
+import { fetchAdmin, postAdmin, AdminApiError } from '../../adminApi.ts';
+import { TITLE_CATALOG, titleNameFor } from '@shared/titleCatalog';
+import { AVATAR_ICONS } from '@shared/avatarIcons';
 
 interface UserDetail {
   id: string; name: string; email: string | null; avatarId: string | null; titleId: string | null; isAdmin: boolean;
@@ -15,11 +16,35 @@ interface UserDetail {
 export default function AdminUserDetail({ userId, onBack, onOpenMatch }: { userId: string; onBack: () => void; onOpenMatch: (id: string) => void }) {
   const [data, setData] = useState<UserDetail | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [editing, setEditing] = useState(false);
+  const [nameDraft, setNameDraft] = useState('');
+  const [titleDraft, setTitleDraft] = useState('');
+  const [avatarDraft, setAvatarDraft] = useState('');
+  const [saving, setSaving] = useState(false);
 
-  useEffect(() => {
+  const load = () => {
     setData(null);
-    fetchAdmin<UserDetail>(`users/${userId}`).then(setData).catch((e) => setError(e instanceof AdminApiError ? e.message : 'Erro'));
-  }, [userId]);
+    fetchAdmin<UserDetail>(`users/${userId}`).then((d) => {
+      setData(d);
+      setNameDraft(d.name);
+      setTitleDraft(d.titleId ?? '');
+      setAvatarDraft(d.avatarId ?? '');
+    }).catch((e) => setError(e instanceof AdminApiError ? e.message : 'Erro'));
+  };
+  useEffect(load, [userId]);
+
+  const save = async () => {
+    setSaving(true);
+    try {
+      await postAdmin(`users/${userId}/edit`, { displayName: nameDraft, titleId: titleDraft, avatarId: avatarDraft });
+      setEditing(false);
+      load();
+    } catch (e) {
+      setError(e instanceof AdminApiError ? e.message : 'Erro ao salvar');
+    } finally {
+      setSaving(false);
+    }
+  };
 
   return (
     <div>
@@ -33,7 +58,7 @@ export default function AdminUserDetail({ userId, onBack, onOpenMatch }: { userI
               <div style={{ width: 52, height: 52, borderRadius: '50%', background: 'rgba(139,92,246,0.25)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20, fontWeight: 800, flex: 'none' }}>
                 {data.avatarId ? <img src={`/images/avatars/${data.avatarId}-sm.webp`} alt="" style={{ width: '100%', height: '100%', borderRadius: '50%', objectFit: 'cover' }} /> : data.name[0]?.toUpperCase()}
               </div>
-              <div>
+              <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ fontSize: 16, fontWeight: 800, display: 'flex', alignItems: 'center', gap: 8 }}>
                   {data.name}
                   {data.isAdmin && <span className="corio-admin-pill corio-admin-pill-purple">ADMIN</span>}
@@ -41,7 +66,45 @@ export default function AdminUserDetail({ userId, onBack, onOpenMatch }: { userI
                 <div style={{ fontSize: 11, color: '#FFC93C', fontWeight: 700 }}>{titleNameFor(data.titleId)}</div>
                 <div style={{ fontSize: 10, color: 'rgba(244,242,248,0.45)', marginTop: 2 }}>{data.email} · cadastro em {new Date(data.createdAt).toLocaleDateString('pt-BR')} · último acesso {data.lastLoginAt ? new Date(data.lastLoginAt).toLocaleDateString('pt-BR') : '—'}</div>
               </div>
+              {!editing && (
+                <button onClick={() => setEditing(true)} className="corio-admin-btn-ghost" style={{ flex: 'none' }}>✏️ Editar</button>
+              )}
             </div>
+
+            {editing && (
+              <div style={{ marginTop: 14, paddingTop: 14, borderTop: '1px solid rgba(255,255,255,0.08)', display: 'flex', flexDirection: 'column', gap: 10 }}>
+                <div>
+                  <div style={{ fontSize: 9.5, fontWeight: 700, color: 'rgba(244,242,248,0.5)', marginBottom: 4 }}>NOME DE EXIBIÇÃO</div>
+                  <input
+                    value={nameDraft}
+                    onChange={(e) => setNameDraft(e.target.value.slice(0, 24))}
+                    className="corio-admin-search"
+                    style={{ width: '100%', boxSizing: 'border-box' }}
+                  />
+                </div>
+                <div style={{ display: 'flex', gap: 10 }}>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: 9.5, fontWeight: 700, color: 'rgba(244,242,248,0.5)', marginBottom: 4 }}>TÍTULO EQUIPADO</div>
+                    <select value={titleDraft} onChange={(e) => setTitleDraft(e.target.value)} className="corio-admin-period" style={{ width: '100%' }}>
+                      <option value="">— Novato das Cores (padrão) —</option>
+                      {TITLE_CATALOG.map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}
+                    </select>
+                  </div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: 9.5, fontWeight: 700, color: 'rgba(244,242,248,0.5)', marginBottom: 4 }}>ÍCONE EQUIPADO</div>
+                    <select value={avatarDraft} onChange={(e) => setAvatarDraft(e.target.value)} className="corio-admin-period" style={{ width: '100%' }}>
+                      <option value="">— Inicial do nome (padrão) —</option>
+                      {AVATAR_ICONS.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}
+                    </select>
+                  </div>
+                </div>
+                <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+                  <button onClick={() => setEditing(false)} disabled={saving} className="corio-admin-btn-ghost">Cancelar</button>
+                  <button onClick={save} disabled={saving} className="corio-admin-btn">{saving ? 'Salvando…' : 'Salvar'}</button>
+                </div>
+                <div style={{ fontSize: 9, color: 'rgba(244,242,248,0.4)' }}>Título/ícone são aplicados direto, mesmo que o jogador não tenha desbloqueado — é uma ação administrativa.</div>
+              </div>
+            )}
           </div>
 
           <div className="corio-admin-kpis">
