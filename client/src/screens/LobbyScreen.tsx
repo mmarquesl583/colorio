@@ -31,17 +31,27 @@ export default function LobbyScreen({ playerName, connecting, error, onBack, onC
   const [numRounds, setNumRounds] = useState(5);
   const [modeChoice, setModeChoice] = useState<ModeChoice>('players');
   const [privacy, setPrivacy] = useState<Privacy>('public');
-  const [selectedThemes, setSelectedThemes] = useState<string[]>(LOBBY_THEMES.map((t) => t.id));
+  // Starts with just the first theme picked instead of everything — adding
+  // more is one tap away, but a giant pre-checked list reads as "already
+  // decided for you" instead of an actual choice.
+  const [selectedThemes, setSelectedThemes] = useState<string[]>([LOBBY_THEMES[0].id]);
 
   const toggleTheme = (id: string) => {
     setSelectedThemes((s) => (s.includes(id) ? s.filter((x) => x !== id) : [...s, id]));
   };
 
   const needsAiThemes = modeChoice === 'ai' || modeChoice === 'race';
-  const visibleThemes = needsAiThemes ? LOBBY_THEMES.filter((t) => AI_ELIGIBLE_IDS.has(t.id)) : LOBBY_THEMES;
+  // "Sons e Onomatopeias" only makes sense when the master is actually
+  // speaking out loud (Com a Galera) — in every other mode it's hidden
+  // entirely, same "don't even show it" treatment as unico-rarity avatars.
+  const visibleThemes = LOBBY_THEMES.filter((t) => {
+    if (t.id === 'sons') return modeChoice === 'verbal';
+    return needsAiThemes ? AI_ELIGIBLE_IDS.has(t.id) : true;
+  });
   const chooseMode = (mode: ModeChoice) => {
     setModeChoice(mode);
     if (mode === 'ai' || mode === 'race') setSelectedThemes((s) => s.filter((id) => AI_ELIGIBLE_IDS.has(id)));
+    if (mode !== 'verbal') setSelectedThemes((s) => s.filter((id) => id !== 'sons'));
   };
 
   const create = () => {

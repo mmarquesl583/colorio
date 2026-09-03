@@ -24,7 +24,8 @@ export default function WaitingScreen({ conn }: { conn: RoomConnection }) {
 
   const chooseMode = (mode: ModeChoice) => {
     const needsAiThemes = mode === 'ai' || mode === 'race';
-    const nextThemes = needsAiThemes ? s.config.selectedThemes.filter((id) => AI_ELIGIBLE_IDS.has(id)) : s.config.selectedThemes;
+    let nextThemes = needsAiThemes ? s.config.selectedThemes.filter((id) => AI_ELIGIBLE_IDS.has(id)) : s.config.selectedThemes;
+    if (mode !== 'verbal') nextThemes = nextThemes.filter((id) => id !== 'sons');
     conn.send({
       type: 'update_config',
       config: {
@@ -48,7 +49,11 @@ export default function WaitingScreen({ conn }: { conn: RoomConnection }) {
     if (next !== s.config.numRounds) conn.send({ type: 'update_config', config: { numRounds: next } });
   };
   const currentModeChoice: ModeChoice = s.config.gameMode === 'race' ? 'race' : s.config.phraseMode === 'ai' ? 'ai' : s.config.phraseMode === 'verbal' ? 'verbal' : 'players';
-  const visibleThemes = (s.config.phraseMode === 'ai' || s.config.gameMode === 'race') ? LOBBY_THEMES.filter((t) => AI_ELIGIBLE_IDS.has(t.id)) : LOBBY_THEMES;
+  const needsAiThemesNow = s.config.phraseMode === 'ai' || s.config.gameMode === 'race';
+  const visibleThemes = LOBBY_THEMES.filter((t) => {
+    if (t.id === 'sons') return s.config.phraseMode === 'verbal';
+    return needsAiThemesNow ? AI_ELIGIBLE_IDS.has(t.id) : true;
+  });
 
   return (
     <div className="corio-wide corio-noscroll" style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', padding: '8px 16px 12px', gap: 8, overflowY: 'auto', animation: 'corio-rise .4s ease' }}>
