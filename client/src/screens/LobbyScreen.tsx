@@ -14,7 +14,7 @@ const AI_ELIGIBLE_IDS = new Set(Object.keys(AI_QUESTIONS));
 // (phraseMode/gameMode) — 'race' always implies phraseMode:'ai' under the
 // hood (the server's usesAiQuestions() already treats them the same way
 // for question sourcing), so the picker doesn't need a 4th combination.
-type ModeChoice = 'players' | 'ai' | 'race';
+type ModeChoice = 'players' | 'ai' | 'race' | 'verbal';
 
 interface Props {
   playerName: string;
@@ -47,7 +47,7 @@ export default function LobbyScreen({ playerName, connecting, error, onBack, onC
   const create = () => {
     onCreate({
       numPlayers, numRounds, privacy, selectedThemes,
-      phraseMode: modeChoice === 'players' ? 'players' : 'ai',
+      phraseMode: modeChoice === 'verbal' ? 'verbal' : modeChoice === 'players' ? 'players' : 'ai',
       gameMode: modeChoice === 'race' ? 'race' : 'classic',
     });
   };
@@ -102,7 +102,7 @@ export default function LobbyScreen({ playerName, connecting, error, onBack, onC
 
       <div className="corio-card" style={{ flex: 'none', background: '#12121a', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 14, padding: '9px 10px' }}>
         <div className="corio-eyebrow" style={{ fontSize: 8, fontWeight: 700, letterSpacing: 0.6, color: 'rgba(244,242,248,0.6)' }}>MODO DE JOGO</div>
-        <div style={{ display: 'flex', gap: 8, marginTop: 6 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginTop: 6 }}>
           <div onClick={() => chooseMode('players')} className="corio-tap corio-card" style={modeCardStyle(modeChoice === 'players', 'rgba(139,92,246,0.15)', '#8B5CF6')}>
             {modeChoice === 'players' && <div style={checkDotStyle('#8B5CF6')}>✓</div>}
             <div style={{ fontSize: 16 }}>✏️</div>
@@ -120,6 +120,12 @@ export default function LobbyScreen({ playerName, connecting, error, onBack, onC
             <div style={{ fontSize: 16 }}>⏱️</div>
             <div className="corio-card-title" style={{ fontSize: 10, fontWeight: 700, marginTop: 3 }}>Corrida contra o Tempo</div>
             <div className="corio-card-sub" style={{ fontSize: 7.5, color: 'rgba(244,242,248,0.45)', marginTop: 2, lineHeight: 1.25 }}>12s por rodada — quanto mais rápido, mais pontos</div>
+          </div>
+          <div onClick={() => chooseMode('verbal')} className="corio-tap corio-card" style={modeCardStyle(modeChoice === 'verbal', 'rgba(255,92,138,0.14)', '#FF5C8A')}>
+            {modeChoice === 'verbal' && <div style={checkDotStyle('#FF5C8A')}>✓</div>}
+            <div style={{ fontSize: 16 }}>🗣️</div>
+            <div className="corio-card-title" style={{ fontSize: 10, fontWeight: 700, marginTop: 3 }}>Com a Galera</div>
+            <div className="corio-card-sub" style={{ fontSize: 7.5, color: 'rgba(244,242,248,0.45)', marginTop: 2, lineHeight: 1.25 }}>Pensa e fala a pista em voz alta, sem escrever</div>
           </div>
         </div>
       </div>

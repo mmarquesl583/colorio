@@ -51,7 +51,7 @@ function sanitizeConfig(input: Partial<RoomConfig> | undefined): RoomConfig {
   return {
     numPlayers: clamp(input?.numPlayers ?? 5, MIN_PLAYERS, MAX_PLAYERS),
     numRounds: clamp(input?.numRounds ?? 5, MIN_ROUNDS, MAX_ROUNDS),
-    phraseMode: input?.phraseMode === 'ai' ? 'ai' : 'players',
+    phraseMode: input?.phraseMode === 'ai' ? 'ai' : input?.phraseMode === 'verbal' ? 'verbal' : 'players',
     gameMode: input?.gameMode === 'race' ? 'race' : 'classic',
     privacy: input?.privacy === 'private' ? 'private' : 'public',
     selectedThemes: selectedThemes.length ? selectedThemes : LOBBY_THEMES.map((t) => t.id),

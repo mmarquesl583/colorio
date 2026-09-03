@@ -7,7 +7,7 @@ import { titleNameFor } from '@shared/titleCatalog';
 import type { RoomConnection } from '../ws.ts';
 
 const AI_ELIGIBLE_IDS = new Set(Object.keys(AI_QUESTIONS));
-type ModeChoice = 'players' | 'ai' | 'race';
+type ModeChoice = 'players' | 'ai' | 'race' | 'verbal';
 
 export default function WaitingScreen({ conn }: { conn: RoomConnection }) {
   const s = conn.state!;
@@ -28,7 +28,7 @@ export default function WaitingScreen({ conn }: { conn: RoomConnection }) {
     conn.send({
       type: 'update_config',
       config: {
-        phraseMode: mode === 'players' ? 'players' : 'ai',
+        phraseMode: mode === 'verbal' ? 'verbal' : mode === 'players' ? 'players' : 'ai',
         gameMode: mode === 'race' ? 'race' : 'classic',
         selectedThemes: nextThemes,
       },
@@ -47,7 +47,7 @@ export default function WaitingScreen({ conn }: { conn: RoomConnection }) {
     const next = Math.max(MIN_ROUNDS, Math.min(MAX_ROUNDS, s.config.numRounds + delta));
     if (next !== s.config.numRounds) conn.send({ type: 'update_config', config: { numRounds: next } });
   };
-  const currentModeChoice: ModeChoice = s.config.gameMode === 'race' ? 'race' : s.config.phraseMode === 'ai' ? 'ai' : 'players';
+  const currentModeChoice: ModeChoice = s.config.gameMode === 'race' ? 'race' : s.config.phraseMode === 'ai' ? 'ai' : s.config.phraseMode === 'verbal' ? 'verbal' : 'players';
   const visibleThemes = (s.config.phraseMode === 'ai' || s.config.gameMode === 'race') ? LOBBY_THEMES.filter((t) => AI_ELIGIBLE_IDS.has(t.id)) : LOBBY_THEMES;
 
   return (
@@ -94,7 +94,7 @@ export default function WaitingScreen({ conn }: { conn: RoomConnection }) {
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6 }}>
             <ConfigChip label="👥 Jogadores" value={String(s.config.numPlayers)} />
             <ConfigChip label="⏱ Rodadas" value={String(s.config.numRounds)} />
-            <ConfigChip label="🎮 Modo de jogo" value={currentModeChoice === 'race' ? 'Corrida contra o Tempo' : currentModeChoice === 'ai' ? 'Frase da IA' : 'Frase dos jogadores'} valueColor="#C4B5FD" span2 />
+            <ConfigChip label="🎮 Modo de jogo" value={currentModeChoice === 'race' ? 'Corrida contra o Tempo' : currentModeChoice === 'ai' ? 'Frase da IA' : currentModeChoice === 'verbal' ? 'Com a Galera' : 'Frase dos jogadores'} valueColor="#C4B5FD" span2 />
             <ConfigChip label="🎨 Temas" value={`${s.config.selectedThemes.length} selecionados`} valueColor="#4ADE80" span2 />
           </div>
         )}
@@ -105,7 +105,7 @@ export default function WaitingScreen({ conn }: { conn: RoomConnection }) {
               <StepperChip label="👥 Jogadores" value={s.config.numPlayers} onDec={() => setNumPlayers(-1)} onInc={() => setNumPlayers(1)} />
               <StepperChip label="⏱ Rodadas" value={s.config.numRounds} onDec={() => setNumRounds(-1)} onInc={() => setNumRounds(1)} />
             </div>
-            <div style={{ display: 'flex', gap: 8 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
               <div onClick={() => chooseMode('players')} className="corio-tap corio-card" style={modeCardStyle(currentModeChoice === 'players', 'rgba(139,92,246,0.15)', '#8B5CF6')}>
                 {currentModeChoice === 'players' && <div style={checkDotStyle('#8B5CF6')}>✓</div>}
                 <div style={{ fontSize: 16 }}>✏️</div>
@@ -120,6 +120,11 @@ export default function WaitingScreen({ conn }: { conn: RoomConnection }) {
                 {currentModeChoice === 'race' && <div style={checkDotStyle('#FFC93C', '#1a1024')}>✓</div>}
                 <div style={{ fontSize: 16 }}>⏱️</div>
                 <div className="corio-card-title" style={{ fontSize: 10, fontWeight: 700, marginTop: 3 }}>Corrida contra o Tempo</div>
+              </div>
+              <div onClick={() => chooseMode('verbal')} className="corio-tap corio-card" style={modeCardStyle(currentModeChoice === 'verbal', 'rgba(255,92,138,0.14)', '#FF5C8A')}>
+                {currentModeChoice === 'verbal' && <div style={checkDotStyle('#FF5C8A')}>✓</div>}
+                <div style={{ fontSize: 16 }}>🗣️</div>
+                <div className="corio-card-title" style={{ fontSize: 10, fontWeight: 700, marginTop: 3 }}>Com a Galera</div>
               </div>
             </div>
             <div className="corio-eyebrow" style={{ fontSize: 7.5, fontWeight: 700, letterSpacing: 0.6, color: 'rgba(244,242,248,0.45)' }}>TEMAS</div>

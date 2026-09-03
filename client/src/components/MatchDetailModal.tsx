@@ -3,7 +3,7 @@ import { avatarSmallSrc } from '@shared/avatarIcons';
 import { LOBBY_THEMES } from '@shared/gameData';
 import { fetchMatchParticipants, type MatchParticipant } from '../stats.ts';
 
-const MODE_LABELS: Record<string, string> = { players: 'Frase dos jogadores', ai: 'Frase da IA', race: 'Corrida contra o Tempo' };
+const MODE_LABELS: Record<string, string> = { players: 'Frase dos jogadores', ai: 'Frase da IA', race: 'Corrida contra o Tempo', verbal: 'Com a Galera' };
 const THEME_NAMES = new Map(LOBBY_THEMES.map((t) => [t.id, t.name]));
 
 export default function MatchDetailModal({ matchId, youUserId, onClose }: { matchId: string; youUserId: string | null; onClose: () => void }) {

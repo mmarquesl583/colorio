@@ -21,6 +21,10 @@ export const LOBBY_THEMES: LobbyTheme[] = [
   { id: 'animais', icon: '🐾', name: 'Animais', color: '#65A30D' },
   { id: 'ciencia', icon: '🔬', name: 'Ciência', color: '#475569' },
   { id: 'memoria', icon: '🧠', name: 'Aquecendo a Memória', color: '#DB2777' },
+  // Sem banco de IA de propósito — a graça é o mestre inventar o som na
+  // hora (modo 'verbal' ou até digitado em "Frase dos jogadores"), não uma
+  // pergunta pronta.
+  { id: 'sons', icon: '🔊', name: 'Sons e Onomatopeias', color: '#F97316' },
 ];
 
 // Used when a round's phrase mode is "AI" (auto-generated clue, no human master writes it).

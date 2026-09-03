@@ -79,6 +79,16 @@ export default function GameScreen({ conn }: { conn: RoomConnection }) {
   const eligibleGuessers = s.players.filter((p) => p.id !== round.masterId);
   const confirmedCount = eligibleGuessers.filter((p) => p.confirmed).length;
   const isRace = s.config.gameMode === 'race';
+  // "Com a Galera" — same human-master shape as Frase dos jogadores, but the
+  // clue is spoken out loud in person instead of typed. The master still
+  // sends submit_phrase (room.ts needs no changes for this), just with a
+  // fixed placeholder instead of real typed text — see submitVerbal below.
+  const isVerbal = s.config.phraseMode === 'verbal';
+  const isSoundsTheme = round.themeId === 'sons';
+  const submitVerbal = () => {
+    if (masterSpin.spinning) return;
+    conn.send({ type: 'submit_phrase', text: isSoundsTheme ? '🔊 Som dito em voz alta' : '🗣️ Frase dita em voz alta' });
+  };
 
   const seconds = s.secondsLeft ?? 0;
   const mm = String(Math.floor(seconds / 60)).padStart(2, '0');
@@ -86,7 +96,9 @@ export default function GameScreen({ conn }: { conn: RoomConnection }) {
   const timerColor = phase === 'placing' && seconds <= 10 ? '#FF5C8A' : '#29E7FF';
 
   const masterLabel = you.isMaster ? 'Sua vez' : round.masterName;
-  const themeHint = round.phrase || (you.isMaster ? 'Escreva sua pista' : (round.isAiPhrase ? 'A IA está preparando a pista...' : 'Aguardando a pista...'));
+  const themeHint = round.phrase || (you.isMaster
+    ? (isVerbal ? 'Fale sua pista em voz alta' : 'Escreva sua pista')
+    : (round.isAiPhrase ? 'A IA está preparando a pista...' : isVerbal ? 'Aguardando a pista falada...' : 'Aguardando a pista...'));
 
   const showTabsPanel = !(phase === 'master-writing' && you.isMaster) && phase !== 'reveal';
   // Race rounds never enter this phase state combo (isRace already implies
@@ -204,18 +216,32 @@ export default function GameScreen({ conn }: { conn: RoomConnection }) {
           )}
 
           {phase === 'master-writing' && you.isMaster && (
-            <MasterWritingCard
-              secretCss={cssFromHsl(masterSpin.color)}
-              hexLabel={hexFromHsl(masterSpin.color)}
-              spinning={masterSpin.spinning}
-              draft={masterDraft}
-              onDraftChange={setMasterDraft}
-              onSubmit={submitPhrase}
-            />
+            isVerbal ? (
+              <VerbalMasterCard
+                key={round.idx}
+                secretCss={cssFromHsl(masterSpin.color)}
+                hexLabel={hexFromHsl(masterSpin.color)}
+                spinning={masterSpin.spinning}
+                isSounds={isSoundsTheme}
+                onSubmit={submitVerbal}
+              />
+            ) : (
+              <MasterWritingCard
+                secretCss={cssFromHsl(masterSpin.color)}
+                hexLabel={hexFromHsl(masterSpin.color)}
+                spinning={masterSpin.spinning}
+                draft={masterDraft}
+                onDraftChange={setMasterDraft}
+                onSubmit={submitPhrase}
+              />
+            )
           )}
 
           {phase === 'master-writing' && !you.isMaster && (
-            <WaitingCard title={`${round.masterName} está escrevendo a pista`} subtitle="Aguarde só um instante." />
+            <WaitingCard
+              title={isVerbal ? `${round.masterName} está pensando na pista` : `${round.masterName} está escrevendo a pista`}
+              subtitle={isVerbal ? 'Preste atenção quando ele(a) falar em voz alta!' : 'Aguarde só um instante.'}
+            />
           )}
 
           {phase === 'placing' && you.isMaster && (
@@ -349,6 +375,56 @@ function MasterWritingCard({ secretCss, hexLabel, spinning, draft, onDraftChange
         </div>
         <div style={{ fontSize: 11, color: '#A78BFA', textAlign: 'center' }}>✦ DICA: quanto mais perto todo mundo chegar da sua cor, mais vocês ganham juntos!</div>
         <button onClick={onSubmit} disabled={spinning || !draft.trim()} className="corio-tap corio-btn-lg" style={{ all: 'unset', cursor: 'pointer', boxSizing: 'border-box', width: '100%', textAlign: 'center', background: 'linear-gradient(90deg,#8B5CF6,#C084FC)', color: '#fff', fontWeight: 700, fontSize: 15, padding: 13, borderRadius: 13, opacity: spinning ? 0.5 : 1 }}>➤ Enviar pista</button>
+      </div>
+    </div>
+  );
+}
+
+// "Com a Galera" — no text input at all, just a short thinking countdown
+// (purely a visual pace-setter, not a hard server deadline — the button
+// works the instant it's ready) and a button that tells the server the
+// master is done, same submit_phrase message MasterWritingCard's button
+// already sends, just with a fixed placeholder instead of typed text.
+// Remounted per round via `key={round.idx}` in GameScreen, which is what
+// resets the countdown — no shared timer state needed.
+function VerbalMasterCard({ secretCss, hexLabel, spinning, isSounds, onSubmit }: { secretCss: string; hexLabel: string; spinning: boolean; isSounds: boolean; onSubmit: () => void }) {
+  const [secondsLeft, setSecondsLeft] = useState(15);
+  useEffect(() => {
+    const id = setInterval(() => setSecondsLeft((v) => Math.max(0, v - 1)), 1000);
+    return () => clearInterval(id);
+  }, []);
+
+  return (
+    <div className="corio-card corio-noscroll" style={{ flex: 1, minHeight: 0, margin: '0 16px', background: '#12121a', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 16, padding: 18, display: 'flex', flexDirection: 'column', overflowY: 'auto', animation: 'corio-rise .35s ease' }}>
+      <div style={{ margin: 'auto 0', display: 'flex', flexDirection: 'column', gap: 16 }}>
+        <div style={{ textAlign: 'center', position: 'relative' }}>
+          <span className="corio-sparkle" style={{ left: '10%', top: 4, fontSize: 16, animation: 'corio-twinkle 1.8s ease-in-out infinite .3s' }}>✦</span>
+          <span className="corio-sparkle" style={{ right: '8%', top: 30, fontSize: 11, animation: 'corio-twinkle 1.8s ease-in-out infinite .8s' }}>✦</span>
+          <div style={{ fontSize: 20, lineHeight: 1, animation: 'corio-twinkle 1.8s ease-in-out infinite' }}>{isSounds ? '🔊' : '🗣️'}</div>
+          <div className="corio-title" style={{ fontSize: 18, fontWeight: 800, lineHeight: 1.3, marginTop: 6 }}>É A SUA VEZ, <span style={{ background: 'linear-gradient(90deg,#8B5CF6,#FFC93C)', WebkitBackgroundClip: 'text', backgroundClip: 'text', color: 'transparent' }}>MESTRE DA COR</span></div>
+          <div className="corio-subtitle" style={{ fontSize: 12.5, color: 'rgba(244,242,248,0.6)', lineHeight: 1.5, marginTop: 4 }}>
+            {isSounds
+              ? 'O tema é a sua cor secreta. Pense num som ou onomatopeia que combine com ela e faça o som em voz alta pros outros!'
+              : 'O tema é a sua cor secreta. Pense numa frase sobre ela e fale em voz alta pros outros!'}
+          </div>
+        </div>
+
+        <div style={{ display: 'flex', alignItems: 'center', gap: 14, background: '#1c1c26', borderRadius: 14, padding: 14 }}>
+          <div style={{ width: 56, height: 56, borderRadius: 13, flex: 'none', background: secretCss, border: '1px solid rgba(139,92,246,0.4)' }} />
+          <div style={{ minWidth: 0 }}>
+            <div className="corio-eyebrow" style={{ fontSize: 9, fontWeight: 700, letterSpacing: 0.3, color: '#A78BFA', whiteSpace: 'nowrap' }}>{spinning ? '🎲 SORTEANDO...' : 'SUA COR SECRETA'}</div>
+            <div className="corio-value-lg" style={{ fontSize: 17, fontWeight: 700, fontFamily: "'Space Grotesk',sans-serif", marginTop: 4 }}>{hexLabel}</div>
+          </div>
+        </div>
+
+        <div style={{ textAlign: 'center' }}>
+          <div style={{ fontFamily: "'Space Grotesk',sans-serif", fontWeight: 800, fontSize: 34, color: secondsLeft <= 5 ? '#FF5C8A' : '#29E7FF' }}>{secondsLeft}s</div>
+          <div style={{ fontSize: 10.5, color: 'rgba(244,242,248,0.5)', marginTop: 2 }}>tempo pra pensar — pode falar antes se quiser</div>
+        </div>
+
+        <button onClick={onSubmit} disabled={spinning} className="corio-tap corio-btn-lg" style={{ all: 'unset', cursor: 'pointer', boxSizing: 'border-box', width: '100%', textAlign: 'center', background: 'linear-gradient(90deg,#8B5CF6,#C084FC)', color: '#fff', fontWeight: 700, fontSize: 15, padding: 13, borderRadius: 13, opacity: spinning ? 0.5 : 1 }}>
+          {isSounds ? '🔊 Pronto! Já fiz o som' : '🗣️ Pronto! Já falei'}
+        </button>
       </div>
     </div>
   );

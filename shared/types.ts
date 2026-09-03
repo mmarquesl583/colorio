@@ -1,4 +1,8 @@
-export type PhraseMode = 'players' | 'ai';
+// 'verbal': same "a human master gives the clue" shape as 'players', but the
+// clue is spoken out loud in person instead of typed — for playing together
+// in the same room. The master still calls submit_phrase (see room.ts),
+// just with a fixed placeholder instead of real typed text.
+export type PhraseMode = 'players' | 'ai' | 'verbal';
 export type Privacy = 'public' | 'private';
 // Orthogonal to PhraseMode — 'race' always sources questions from the AI
 // bank and has no clue-writing master (see room.ts's usesAiQuestions()),

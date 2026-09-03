@@ -15,7 +15,7 @@ import { TITLE_CATALOG } from '../../shared/titleCatalog.ts';
 import { AVATAR_ICONS } from '../../shared/avatarIcons.ts';
 
 const THEME_BY_ID = new Map(LOBBY_THEMES.map((t) => [t.id, t]));
-const MODE_LABELS: Record<string, string> = { players: 'Frase dos jogadores', ai: 'Frase da IA', race: 'Corrida contra o Tempo' };
+const MODE_LABELS: Record<string, string> = { players: 'Frase dos jogadores', ai: 'Frase da IA', race: 'Corrida contra o Tempo', verbal: 'Com a Galera' };
 
 function json(res: ServerResponse, status: number, body: unknown) {
   res.writeHead(status, { 'content-type': 'application/json', 'access-control-allow-origin': '*' });
@@ -501,7 +501,7 @@ async function getModes(url: URL) {
   const byMatch = new Map<string, typeof rows>();
   for (const r of rows) { if (!byMatch.has(r.match_id)) byMatch.set(r.match_id, []); byMatch.get(r.match_id)!.push(r); }
 
-  const modeIds = ['players', 'ai', 'race'];
+  const modeIds = ['players', 'ai', 'race', 'verbal'];
   const result = modeIds.map((modeId) => {
     const matchGroups = [...byMatch.values()].filter((g) => g[0].mode_id === modeId);
     const participants = rows.filter((r) => r.mode_id === modeId);
